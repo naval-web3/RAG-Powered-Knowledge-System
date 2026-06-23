@@ -1,0 +1,46 @@
+# ===== Web framework =====
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# ===== Config / validation =====
+pydantic==2.10.5
+pydantic-settings==2.7.1
+email-validator==2.2.0
+
+# ===== Database (PostgreSQL) =====
+sqlalchemy==2.0.37
+psycopg2-binary==2.9.10
+alembic==1.14.1
+
+# ===== Auth / security =====
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
+
+# ===== RAG / LLM orchestration =====
+langchain==0.3.14
+langchain-community==0.3.14
+langchain-openai==0.2.14
+langchain-ollama==0.2.2
+# chromadb 0.5.4 pins chroma-hnswlib 0.7.5, which has a prebuilt Windows
+# cp312 wheel (newer chromadb pins 0.7.6, which is source-only and needs a
+# C++ compiler). We talk to Chroma via its native client, so langchain-chroma
+# is not required.
+chromadb==0.5.4
+chroma-hnswlib==0.7.5
+
+# ===== Embeddings (local) =====
+sentence-transformers==3.3.1
+
+# ===== LLM providers =====
+openai==1.59.6
+tiktoken==0.8.0
+
+# ===== Document parsing =====
+pypdf==5.1.0
+python-docx==1.1.2
+
+# ===== Testing =====
+pytest==8.3.4
+httpx==0.28.1

@@ -1,0 +1,19 @@
+Project Aurora - Internal Engineering Notes
+
+Project Aurora is a next-generation battery management system developed by the
+Helios Energy team. The system uses a proprietary cell-balancing algorithm
+called QuantumBalance, which extends battery lifespan by approximately 37 percent
+compared to conventional approaches.
+
+The lead engineer on Project Aurora is Dr. Mira Castellano. The project started
+in March 2023 and reached its first production milestone in November 2024.
+
+Key technical specifications:
+- Maximum cell count: 512 cells per pack
+- Operating temperature range: minus 20 to plus 60 degrees Celsius
+- Communication protocol: CAN bus at 1 Mbps
+- Firmware language: Rust, with a safety-certified subset
+
+The most common failure mode observed during testing was thermal runaway caused
+by a faulty temperature sensor on cell module 7. This was resolved in firmware
+version 2.4.1 by adding a redundant sensor cross-check.
