@@ -1,16 +1,20 @@
-"""Authentication routes: register, login (synopsis Module 1)."""
+"""Authentication routes: register, login, account deletion (synopsis Module 1)."""
 
+import os
+import shutil
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import User
 from app.schemas import Token, UserLogin, UserOut, UserRegister
 from app.security import create_access_token, hash_password, verify_password
+from app.services import vector_store
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -58,3 +62,28 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)) -> UserOut:
     return UserOut.model_validate(current_user)
+
+
+@router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Permanently delete the current user and all their data: documents,
+    conversations/messages (DB cascade), vector chunks, and uploaded files."""
+    user_id = str(current_user.user_id)
+
+    # Remove the user's vectors from ChromaDB.
+    try:
+        vector_store.delete_user(user_id)
+    except Exception:  # noqa: BLE001 - best effort; continue with account deletion
+        pass
+
+    # Remove the user's uploaded files.
+    user_dir = os.path.join(settings.UPLOAD_DIR, user_id)
+    if os.path.isdir(user_dir):
+        shutil.rmtree(user_dir, ignore_errors=True)
+
+    # Delete the user; documents/conversations/messages cascade, query_logs SET NULL.
+    db.delete(current_user)
+    db.commit()

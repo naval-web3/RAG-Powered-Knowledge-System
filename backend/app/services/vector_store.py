@@ -65,3 +65,8 @@ def similarity_search(query: str, user_id: str, k: int | None = None) -> list[tu
 def delete_document(document_id: str) -> None:
     """Remove all chunks belonging to a document from the vector store."""
     get_collection().delete(where={"document_id": document_id})
+
+
+def delete_user(user_id: str) -> None:
+    """Remove all chunks belonging to a user from the vector store."""
+    get_collection().delete(where={"user_id": user_id})

@@ -6,6 +6,7 @@ import ChatPage from "./pages/ChatPage";
 import DocumentsPage from "./pages/DocumentsPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Settings from "./pages/Settings";
 
 function Protected({ children, adminOnly = false }) {
   const { user } = useAuth();
@@ -28,6 +29,7 @@ export default function App() {
         }
       >
         <Route index element={<ChatPage />} />
+        <Route path="settings" element={<Settings />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route
           path="admin"

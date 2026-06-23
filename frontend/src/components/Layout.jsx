@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { IconChat, IconChart, IconDoc, IconGhost, IconLogout } from "./icons";
+import { IconChat, IconChart, IconDoc, IconGhost, IconLogout, IconSettings } from "./icons";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -56,6 +56,17 @@ export default function Layout() {
             <span className="text-sm text-muted">
               {user?.username} <span className="text-move">·</span> {user?.role}
             </span>
+            <NavLink
+              to="/settings"
+              title="Settings"
+              className={({ isActive }) =>
+                `p-2 rounded-full transition-colors ${
+                  isActive ? "bg-surface2 text-white" : "text-muted hover:text-white hover:bg-surface"
+                }`
+              }
+            >
+              <IconSettings className="w-4 h-4" />
+            </NavLink>
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full bg-surface text-muted hover:text-white hover:bg-surface2 transition-colors"
