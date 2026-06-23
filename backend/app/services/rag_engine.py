@@ -135,6 +135,23 @@ def _smalltalk_reply(query: str) -> str | None:
     return None
 
 
+def _llm_error_message(llm, exc: Exception) -> str:
+    """Turn a model/provider exception into a friendly user-facing message."""
+    text = str(exc).lower()
+    if "insufficient_quota" in text or "exceeded your current quota" in text:
+        return (
+            "The OpenAI request failed: your account has no remaining quota. Add billing "
+            "credit at platform.openai.com, or switch to a Local model."
+        )
+    if "invalid_api_key" in text or "incorrect api key" in text or "401" in text:
+        return "OpenAI authentication failed — please check your API key in the backend .env."
+    if "openai_api_key" in text or "api key is not set" in text:
+        return "OpenAI isn't configured. Add OPENAI_API_KEY to the backend .env, or use a Local model."
+    if llm.name == "ollama" and any(w in text for w in ("connection", "refused", "11434", "timed out")):
+        return "Couldn't reach the local Ollama server. Make sure Ollama is running."
+    return f"The {llm.name} model request failed. Please try again or switch models."
+
+
 def _result(answer: str, sources: list, llm, chunks: int, start: float) -> dict:
     return {
         "answer": answer,
@@ -224,8 +241,11 @@ def answer_query(
 
     # 4) Grounded answer from the retrieved context.
     context, sources = _format_context(results)
-    chain = _build_prompt(llm) | llm.chat_model()
-    answer = _clean_answer(chain.invoke({"context": context, "question": query}).content)
+    try:
+        chain = _build_prompt(llm) | llm.chat_model()
+        answer = _clean_answer(chain.invoke({"context": context, "question": query}).content)
+    except Exception as exc:  # noqa: BLE001 - surface a friendly message instead of a 500
+        return _result(_llm_error_message(llm, exc), [], llm, len(results), start)
 
     # The question is on-topic (relevant chunks were found), so always show the
     # source. But if the answer says the specific fact isn't actually present,
