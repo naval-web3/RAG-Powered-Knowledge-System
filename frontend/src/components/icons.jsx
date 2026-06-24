@@ -141,6 +141,15 @@ export function IconCheck({ className = "w-4 h-4" }) {
   );
 }
 
+export function IconArrowLeft({ className = "w-4 h-4" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base}>
+      <path d="M19 12H5" />
+      <path d="M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
 export function IconChevron({ className = "w-4 h-4" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...base}>

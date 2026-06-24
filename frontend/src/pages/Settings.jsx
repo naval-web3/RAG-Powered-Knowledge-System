@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../context/AuthContext";
-import { IconTrash } from "../components/icons";
+import { IconArrowLeft, IconTrash } from "../components/icons";
 
 export default function Settings() {
   const { user, logout } = useAuth();
@@ -34,6 +34,12 @@ export default function Settings() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-1.5 text-sm text-muted hover:text-white transition mb-4"
+      >
+        <IconArrowLeft className="w-4 h-4" /> Back
+      </button>
       <h1 className="text-xl font-semibold tracking-tight text-white mb-5">Settings</h1>
 
       {/* Account info */}
