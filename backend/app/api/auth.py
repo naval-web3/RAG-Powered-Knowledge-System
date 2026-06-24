@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import User
+from app.models import QueryLog, User
 from app.schemas import Token, UserLogin, UserOut, UserRegister
 from app.security import create_access_token, hash_password, verify_password
 from app.services import vector_store
@@ -84,6 +84,10 @@ def delete_account(
     if os.path.isdir(user_dir):
         shutil.rmtree(user_dir, ignore_errors=True)
 
-    # Delete the user; documents/conversations/messages cascade, query_logs SET NULL.
+    # Remove the user's query logs (they contain query text) for full privacy,
+    # rather than leaving orphaned rows behind.
+    db.query(QueryLog).filter(QueryLog.user_id == current_user.user_id).delete()
+
+    # Delete the user; documents/conversations/messages cascade.
     db.delete(current_user)
     db.commit()

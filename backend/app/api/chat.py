@@ -29,6 +29,11 @@ def chat(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ChatResponse:
+    if payload.provider and payload.provider.lower() not in ("ollama", "openai"):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"Unknown provider '{payload.provider}'. Use 'ollama' or 'openai'."
+        )
+
     has_documents = (
         db.query(Document.document_id).filter(Document.user_id == current_user.user_id).first() is not None
     )

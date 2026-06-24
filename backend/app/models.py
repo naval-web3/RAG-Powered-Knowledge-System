@@ -125,7 +125,9 @@ class QueryLog(Base):
         UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True
     )
     conversation_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("conversations.conversation_id"), nullable=True
+        UUID(as_uuid=True),
+        ForeignKey("conversations.conversation_id", ondelete="SET NULL"),
+        nullable=True,
     )
     query_text: Mapped[str] = mapped_column(Text, nullable=False)
     response_time_ms: Mapped[int] = mapped_column(Integer, nullable=False)
