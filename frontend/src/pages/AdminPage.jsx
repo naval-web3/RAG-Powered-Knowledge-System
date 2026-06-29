@@ -57,9 +57,9 @@ export default function AdminPage() {
         )}
       </div>
 
-      <div className="bg-surface border border-hairline rounded-2xl overflow-hidden">
+      <div className="bg-surface border border-hairline rounded-2xl overflow-x-auto">
         <h2 className="font-semibold text-white px-5 pt-5 pb-3">Users</h2>
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[520px] text-sm">
           <thead className="text-muted text-left border-b border-hairline">
             <tr>
               <th className="px-5 py-3 font-medium">Username</th>

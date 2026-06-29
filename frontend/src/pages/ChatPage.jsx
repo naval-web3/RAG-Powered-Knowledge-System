@@ -33,7 +33,12 @@ export default function ChatPage() {
   const [menuId, setMenuId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 768 : true
+  );
   const [sidebarWidth, setSidebarWidth] = useState(288);
   const resizing = useRef(false);
   const bottomRef = useRef(null);
@@ -82,6 +87,18 @@ export default function ChatPage() {
     setInput("");
   }, [incognito]);
 
+  // Track mobile vs desktop; collapse the sidebar into a drawer on mobile.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => {
+      setIsMobile(mq.matches);
+      setSidebarOpen(!mq.matches);
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
   // Sidebar drag-to-resize.
   useEffect(() => {
     function onMove(e) {
@@ -122,12 +139,14 @@ export default function ChatPage() {
     const { data } = await client.get(`/api/conversations/${id}`);
     setActiveId(id);
     setMessages(data.messages);
+    if (isMobile) setSidebarOpen(false);
   }
 
   function newConversation() {
     setActiveId(null);
     setMessages([]);
     setInput("");
+    if (isMobile) setSidebarOpen(false);
   }
 
   async function deleteConversation(id, e) {
@@ -251,15 +270,30 @@ export default function ChatPage() {
         <button
           onClick={() => setSidebarOpen(true)}
           title="Open sidebar"
-          className="shrink-0 self-start mr-3 p-2 rounded-lg text-muted hover:text-white hover:bg-surface transition"
+          className="shrink-0 self-start mr-2 sm:mr-3 p-2 rounded-lg text-muted hover:text-white hover:bg-surface transition"
         >
           <IconSidebar className="w-5 h-5" />
         </button>
       )}
 
-      {/* History sidebar */}
+      {/* Mobile drawer backdrop */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* History sidebar (inline column on desktop, slide-in drawer on mobile) */}
       {sidebarOpen && (
-      <aside style={{ width: sidebarWidth }} className="relative shrink-0 flex flex-col pr-4">
+      <aside
+        style={isMobile ? undefined : { width: sidebarWidth }}
+        className={
+          isMobile
+            ? "fixed inset-y-0 left-0 z-40 w-[84%] max-w-xs flex flex-col bg-ink border-r border-hairline p-3"
+            : "relative shrink-0 flex flex-col pr-4"
+        }
+      >
         <div className="flex items-center gap-2 mb-1">
           <button
             onClick={newConversation}
@@ -347,33 +381,35 @@ export default function ChatPage() {
           })}
         </div>
 
-        {/* Drag handle to resize the sidebar — sits flush at the chat panel edge */}
-        <div
-          onMouseDown={startResize}
-          title="Drag to resize"
-          className="absolute top-0 right-0 h-full w-2 cursor-col-resize flex justify-end group"
-        >
-          <div className="w-0.5 h-full bg-transparent group-hover:bg-move transition-colors" />
-        </div>
+        {/* Drag handle to resize the sidebar — desktop only, flush at the panel edge */}
+        {!isMobile && (
+          <div
+            onMouseDown={startResize}
+            title="Drag to resize"
+            className="absolute top-0 right-0 h-full w-2 cursor-col-resize flex justify-end group"
+          >
+            <div className="w-0.5 h-full bg-transparent group-hover:bg-move transition-colors" />
+          </div>
+        )}
       </aside>
       )}
 
       {/* Main panel */}
       <section className="flex-1 min-w-0 flex flex-col bg-surface border border-hairline rounded-2xl overflow-hidden">
         {isWelcome ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6">
             <div className="w-full max-w-2xl">
               {incognito ? (
-                <h1 className="flex items-center justify-center gap-3 text-[40px] leading-[1.05] font-semibold tracking-tight text-white">
-                  <IconGhost className="w-9 h-9 text-move" />
+                <h1 className="flex items-center justify-center gap-2 sm:gap-3 text-[28px] sm:text-[40px] leading-[1.1] font-semibold tracking-tight text-white">
+                  <IconGhost className="w-7 h-7 sm:w-9 sm:h-9 text-move" />
                   You're incognito
                 </h1>
               ) : (
-                <h1 className="text-center text-[44px] leading-[1.05] font-semibold tracking-tight text-white">
+                <h1 className="text-center text-[30px] sm:text-[44px] leading-[1.1] font-semibold tracking-tight text-white">
                   Hi, <span className="text-move-gradient">{greetName}</span>
                 </h1>
               )}
-              <p className="text-center text-muted text-[15px] mt-3 mb-9">
+              <p className="text-center text-muted text-sm sm:text-[15px] mt-3 mb-7 sm:mb-9">
                 {incognito
                   ? "This chat won't be saved to your history."
                   : "How can I help you with your documents today?"}
@@ -388,8 +424,8 @@ export default function ChatPage() {
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto px-4 py-6">
-              <div className="max-w-3xl mx-auto space-y-6">
+            <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6">
+              <div className="max-w-3xl mx-auto space-y-5 sm:space-y-6">
                 {messages.map((m) => (
                   <MessageBubble key={m.message_id} message={m} />
                 ))}
@@ -402,7 +438,7 @@ export default function ChatPage() {
                 <div ref={bottomRef} />
               </div>
             </div>
-            <div className="px-4 pb-4 pt-1">
+            <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-1">
               <div className="max-w-3xl mx-auto">{composer}</div>
             </div>
           </>

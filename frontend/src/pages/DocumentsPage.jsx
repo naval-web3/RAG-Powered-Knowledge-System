@@ -71,8 +71,8 @@ export default function DocumentsPage() {
 
       {error && <div className="mb-4 text-sm text-danger bg-danger/10 px-3 py-2 rounded-lg">{error}</div>}
 
-      <div className="bg-surface border border-hairline rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-surface border border-hairline rounded-2xl overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm">
           <thead className="text-muted text-left border-b border-hairline">
             <tr>
               <th className="px-5 py-3 font-medium">Title</th>
