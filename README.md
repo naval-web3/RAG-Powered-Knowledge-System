@@ -51,7 +51,9 @@ python -m venv .venv
 .venv\Scripts\activate          # Windows
 pip install -r requirements.txt
 copy .env.example .env          # then edit values (DB password, OpenAI key)
-uvicorn app.main:app --reload   # http://localhost:8000  (docs at /docs)
+# --reload-dir app watches only source code (not uploads/ or chroma_db/), so
+# document processing isn't interrupted by the reloader.
+uvicorn app.main:app --reload --reload-dir app   # http://localhost:8000 (docs at /docs)
 ```
 
 Create an admin user:

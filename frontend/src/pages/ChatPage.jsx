@@ -185,16 +185,24 @@ export default function ChatPage() {
       });
       setUploadMsg({ kind: "info", text: `Processing ${file.name}…` });
       let status = data.processing_status;
-      for (let i = 0; i < 90 && !["done", "failed"].includes(status); i++) {
+      let reason = "";
+      // Poll up to ~4 minutes (large PDFs + first-time model load can be slow).
+      for (let i = 0; i < 120 && !["done", "failed"].includes(status); i++) {
         await new Promise((r) => setTimeout(r, 2000));
         const d = (await client.get(`/api/documents/${data.document_id}`)).data;
         status = d.processing_status;
+        reason = d.error_message || "";
       }
-      setUploadMsg(
-        status === "done"
-          ? { kind: "ok", text: `“${file.name}” is ready — ask a question about it.` }
-          : { kind: "err", text: `“${file.name}” could not be processed.` }
-      );
+      if (status === "done") {
+        setUploadMsg({ kind: "ok", text: `“${file.name}” is ready — ask a question about it.` });
+      } else if (status === "failed") {
+        setUploadMsg({ kind: "err", text: reason || `“${file.name}” could not be processed.` });
+      } else {
+        setUploadMsg({
+          kind: "info",
+          text: `“${file.name}” is still processing — check the Documents tab shortly.`,
+        });
+      }
       loadDocCount();
     } catch (err) {
       setUploadMsg({ kind: "err", text: `Upload failed: ${err.response?.data?.detail || err.message}` });

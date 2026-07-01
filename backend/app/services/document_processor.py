@@ -150,7 +150,13 @@ def process_document(db: Session, document: Document) -> None:
                     chunk_idx += 1
 
         if not chunks:
-            raise ValueError("No extractable text found in document.")
+            if document.file_type == "pdf":
+                raise ValueError(
+                    "No selectable text found — this looks like a scanned or "
+                    "image-only PDF. OCR isn't supported, so please upload a "
+                    "text-based PDF (one where you can select/copy the text)."
+                )
+            raise ValueError("No extractable text found in the document.")
 
         vector_store.add_chunks(chunks, ids)
 
