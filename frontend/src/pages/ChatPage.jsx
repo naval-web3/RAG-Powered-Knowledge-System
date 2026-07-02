@@ -550,6 +550,18 @@ function Composer({
   );
 }
 
+// A local model whose parameter count exceeds what fits in this machine's GPU
+// (~4GB VRAM) spills onto the CPU and becomes very slow. Flag anything >= 5B
+// params (at typical Q4 quantization ~5B is already too big for 4GB) so the
+// user can prefer a smaller, faster model. Derived from the model name's
+// "<n>b" tag (e.g. qwen3:8b -> 8, gpt-oss:20b -> 20, llama3.2:3b -> 3).
+const SLOW_MODEL_PARAM_B = 5;
+function isSlowLocalModel(model) {
+  const tag = model.includes(":") ? model.split(":").pop() : model;
+  const match = tag.match(/(\d+(?:\.\d+)?)\s*b/i);
+  return match ? parseFloat(match[1]) >= SLOW_MODEL_PARAM_B : false;
+}
+
 function ModelMenu({ models, sel, setSel }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -564,7 +576,7 @@ function ModelMenu({ models, sel, setSel }) {
     return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  const Item = ({ value, name }) => {
+  const Item = ({ value, name, slow }) => {
     const active = value === sel;
     return (
       <button
@@ -575,7 +587,17 @@ function ModelMenu({ models, sel, setSel }) {
         }}
         className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm text-white hover:bg-surface3/70 transition"
       >
-        <span className="truncate">{name}</span>
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="truncate">{name}</span>
+          {slow && (
+            <span
+              title="Larger than your GPU's memory — runs on CPU and is slow. Prefer a smaller model."
+              className="shrink-0 text-[10px] font-medium text-amber-400/90 border border-amber-400/30 rounded px-1 py-0.5 leading-none"
+            >
+              slow
+            </span>
+          )}
+        </span>
         {active && <IconCheck className="w-4 h-4 text-move shrink-0" />}
       </button>
     );
@@ -602,7 +624,7 @@ function ModelMenu({ models, sel, setSel }) {
             <>
               <SectionLabel>Local LLMs</SectionLabel>
               {models.ollama.map((m) => (
-                <Item key={m} value={`ollama|${m}`} name={m} />
+                <Item key={m} value={`ollama|${m}`} name={m} slow={isSlowLocalModel(m)} />
               ))}
             </>
           )}
