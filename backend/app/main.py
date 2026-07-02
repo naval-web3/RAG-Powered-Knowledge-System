@@ -44,7 +44,7 @@ def on_startup() -> None:
     try:
         db.execute(
             update(Document)
-            .where(Document.processing_status.in_(("processing", "pending")))
+            .where(Document.processing_status.in_(("processing", "pending", "ocr")))
             .values(
                 processing_status="failed",
                 error_message="Processing was interrupted (server restarted). Please re-upload.",

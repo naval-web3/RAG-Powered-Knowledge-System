@@ -186,12 +186,21 @@ export default function ChatPage() {
       setUploadMsg({ kind: "info", text: `Processing ${file.name}…` });
       let status = data.processing_status;
       let reason = "";
-      // Poll up to ~4 minutes (large PDFs + first-time model load can be slow).
-      for (let i = 0; i < 120 && !["done", "failed"].includes(status); i++) {
+      let ocrNotified = false;
+      // Poll up to ~6 minutes (scanned PDFs go through OCR, which is slow on CPU).
+      for (let i = 0; i < 180 && !["done", "failed"].includes(status); i++) {
         await new Promise((r) => setTimeout(r, 2000));
         const d = (await client.get(`/api/documents/${data.document_id}`)).data;
         status = d.processing_status;
         reason = d.error_message || "";
+        // Scanned / image-only PDF detected: OCR is running (slow). Tell the user.
+        if (status === "ocr" && !ocrNotified) {
+          ocrNotified = true;
+          setUploadMsg({
+            kind: "info",
+            text: `“${file.name}” looks like a scanned document — running OCR to read the text. This can take a few minutes…`,
+          });
+        }
       }
       if (status === "done") {
         setUploadMsg({ kind: "ok", text: `“${file.name}” is ready — ask a question about it.` });

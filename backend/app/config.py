@@ -53,8 +53,14 @@ class Settings(BaseSettings):
     # render the page to an image and read it with RapidOCR. Disable to reject
     # scanned PDFs instead. OCR runs on CPU and is slow (~seconds per page).
     OCR_ENABLED: bool = True
-    OCR_DPI: int = 300  # render resolution; higher = better accuracy, slower
+    OCR_DPI: int = 240  # render resolution; higher = better accuracy, slower
     OCR_MAX_PAGES: int = 30  # cap OCR'd pages so a huge scan can't run forever
+
+    # Hard ceiling (seconds) on processing a single document in its own worker
+    # process. A normal PDF finishes in seconds; a 30-page scanned PDF (OCR) in
+    # a couple of minutes. Past this the worker is killed and the upload is
+    # marked failed, so it can never hang on "processing" forever.
+    DOC_PROCESS_TIMEOUT: float = 600.0
 
     # ---- LLM provider ----
     DEFAULT_LLM_PROVIDER: str = "ollama"

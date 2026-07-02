@@ -71,7 +71,7 @@ class Document(Base):
         CheckConstraint("file_type IN ('pdf','docx','txt')", name="ck_documents_file_type"),
         CheckConstraint("file_size > 0", name="ck_documents_file_size"),
         CheckConstraint(
-            "processing_status IN ('pending','processing','done','failed')",
+            "processing_status IN ('pending','processing','ocr','done','failed')",
             name="ck_documents_status",
         ),
     )

@@ -57,9 +57,10 @@ def _ocr_pdf_pages(path: str, page_indices: list[int]) -> dict[int, str]:
 
 
 # ---------- Text extraction ----------
-def _extract_pdf(path: str) -> list[tuple[int, str]]:
+def _extract_pdf(path: str, on_ocr_start=None) -> list[tuple[int, str]]:
     """Return (page_number, text) for each page. Pages with no embedded
-    (selectable) text fall back to OCR when OCR_ENABLED."""
+    (selectable) text fall back to OCR when OCR_ENABLED. If OCR is triggered,
+    on_ocr_start(n_pages) is called first so the caller can flag the slow step."""
     from pypdf import PdfReader
 
     reader = PdfReader(path)
@@ -74,6 +75,8 @@ def _extract_pdf(path: str) -> list[tuple[int, str]]:
     # OCR only the pages that yielded no text, so normal (text-based) PDFs and
     # the text pages of mixed PDFs stay fast and are unaffected.
     if settings.OCR_ENABLED and empty_indices:
+        if on_ocr_start is not None:
+            on_ocr_start(min(len(empty_indices), settings.OCR_MAX_PAGES))
         for idx, ocr_text in _ocr_pdf_pages(path, empty_indices).items():
             pages[idx] = (pages[idx][0], ocr_text)
     return pages
@@ -92,9 +95,9 @@ def _extract_txt(path: str) -> list[tuple[int, str]]:
         return [(1, f.read())]
 
 
-def extract_text(path: str, file_type: str) -> list[tuple[int, str]]:
+def extract_text(path: str, file_type: str, on_ocr_start=None) -> list[tuple[int, str]]:
     if file_type == "pdf":
-        return _extract_pdf(path)
+        return _extract_pdf(path, on_ocr_start=on_ocr_start)
     if file_type == "docx":
         return _extract_docx(path)
     if file_type == "txt":
@@ -162,8 +165,16 @@ def process_document(db: Session, document: Document) -> None:
     document.processing_status = "processing"
     db.commit()
 
+    def _mark_ocr(n_pages: int) -> None:
+        # A scanned / image-only PDF was detected: OCR is about to run, which is
+        # slow. Flag it so the UI can tell the user this document is being
+        # scanned and will take longer.
+        document.processing_status = "ocr"
+        document.error_message = None
+        db.commit()
+
     try:
-        pages = extract_text(document.file_path, document.file_type)
+        pages = extract_text(document.file_path, document.file_type, on_ocr_start=_mark_ocr)
 
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=settings.CHUNK_SIZE,

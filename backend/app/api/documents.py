@@ -1,6 +1,8 @@
 """Document management + processing routes (synopsis Modules 2 & 3)."""
 
 import os
+import subprocess
+import sys
 import uuid
 
 from fastapi import (
@@ -12,6 +14,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -20,7 +23,6 @@ from app.deps import get_current_user
 from app.models import Document, User
 from app.schemas import DocumentOut
 from app.services import vector_store
-from app.services.document_processor import process_document
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -28,14 +30,56 @@ ALLOWED = {"pdf", "docx", "txt"}
 
 
 def _run_pipeline(document_id: uuid.UUID) -> None:
-    """Background worker: own DB session, process one document."""
+    """Background worker: process one document in a SEPARATE process.
+
+    The ingest pipeline does heavy native work (PyMuPDF page rendering, OCR via
+    onnxruntime, local embeddings via torch). Running that in the server's
+    thread pool can deadlock the worker thread and leave uploads stuck on
+    "processing" forever. Running it as its own process (app.worker) is isolated
+    and can be given a hard timeout, so a bad file fails cleanly instead of
+    hanging. On timeout / crash we mark the document failed here.
+    """
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "app.worker", str(document_id)],
+            cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            capture_output=True,
+            text=True,
+            timeout=settings.DOC_PROCESS_TIMEOUT,
+        )
+        if proc.returncode == 0:
+            return
+        # Non-zero exit: the worker already persisted a specific 'failed' status
+        # in most cases. Only backfill a generic failure if it's still unfinished.
+        _mark_failed_if_unfinished(
+            document_id,
+            "Processing failed unexpectedly. Please try re-uploading.",
+        )
+    except subprocess.TimeoutExpired:
+        _mark_failed_if_unfinished(
+            document_id,
+            "Processing took too long and was stopped. If this is a large scanned "
+            "PDF, try a smaller file or a text-based PDF.",
+        )
+    except Exception:  # noqa: BLE001 - never let the background task blow up
+        _mark_failed_if_unfinished(
+            document_id, "Processing failed unexpectedly. Please try re-uploading."
+        )
+
+
+def _mark_failed_if_unfinished(document_id: uuid.UUID, message: str) -> None:
+    """Flip a still-unfinished document to 'failed' with a user-facing message."""
     db = SessionLocal()
     try:
-        doc = db.get(Document, document_id)
-        if doc is not None:
-            process_document(db, doc)
-    except Exception:  # noqa: BLE001 - status already persisted as 'failed'
-        pass
+        db.execute(
+            update(Document)
+            .where(
+                Document.document_id == document_id,
+                Document.processing_status.in_(("pending", "processing", "ocr")),
+            )
+            .values(processing_status="failed", error_message=message)
+        )
+        db.commit()
     finally:
         db.close()
 
