@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     # render the page to an image and read it with RapidOCR. Disable to reject
     # scanned PDFs instead. OCR runs on CPU and is slow (~seconds per page).
     OCR_ENABLED: bool = True
-    OCR_DPI: int = 200  # render resolution; higher = better accuracy, slower
+    OCR_DPI: int = 300  # render resolution; higher = better accuracy, slower
     OCR_MAX_PAGES: int = 30  # cap OCR'd pages so a huge scan can't run forever
 
     # ---- LLM provider ----
