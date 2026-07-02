@@ -41,6 +41,14 @@ tiktoken==0.8.0
 pypdf==5.1.0
 python-docx==1.1.2
 
+# ===== OCR for scanned / image-only PDFs =====
+# PyMuPDF renders PDF pages to images; RapidOCR (onnxruntime-based, no system
+# Tesseract needed) recognizes the text. numpy is pinned <2 because chromadb
+# 0.5.4 requires it (rapidocr's opencv would otherwise pull numpy>=2).
+pymupdf==1.28.0
+rapidocr-onnxruntime==1.4.4
+numpy<2.0.0
+
 # ===== Testing =====
 pytest==8.3.4
 httpx==0.28.1

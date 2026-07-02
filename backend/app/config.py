@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 200
     RETRIEVAL_TOP_K: int = 5
 
+    # ---- OCR (scanned / image-only PDFs) ----
+    # When a PDF page has no embedded (selectable) text, fall back to OCR:
+    # render the page to an image and read it with RapidOCR. Disable to reject
+    # scanned PDFs instead. OCR runs on CPU and is slow (~seconds per page).
+    OCR_ENABLED: bool = True
+    OCR_DPI: int = 200  # render resolution; higher = better accuracy, slower
+    OCR_MAX_PAGES: int = 30  # cap OCR'd pages so a huge scan can't run forever
+
     # ---- LLM provider ----
     DEFAULT_LLM_PROVIDER: str = "ollama"
     # Hard ceiling (seconds) on a single LLM generation. If the model doesn't
