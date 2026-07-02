@@ -41,6 +41,13 @@ class OllamaProvider(LLMProvider):
             # Keep the model resident in memory so we don't pay the multi-second
             # load cost on every query (important on low-VRAM hardware).
             keep_alive="30m",
+            # Bound the response length so a looping model can't run forever.
+            num_predict=settings.LLM_MAX_TOKENS,
+            # Hard timeout on the underlying HTTP call. Without this, a model
+            # that's too big for VRAM (and crawling on CPU) makes the request
+            # hang indefinitely. On timeout the client raises, which we turn
+            # into a friendly "model too slow" message in the RAG engine.
+            client_kwargs={"timeout": settings.LLM_TIMEOUT},
         )
 
 
@@ -59,6 +66,9 @@ class OpenAIProvider(LLMProvider):
             model=self.model_name,
             api_key=settings.OPENAI_API_KEY,
             temperature=0.2,
+            timeout=settings.LLM_TIMEOUT,
+            max_tokens=settings.LLM_MAX_TOKENS,
+            max_retries=1,
         )
 
 

@@ -147,7 +147,18 @@ def _llm_error_message(llm, exc: Exception) -> str:
         return "OpenAI authentication failed — please check your API key in the backend .env."
     if "openai_api_key" in text or "api key is not set" in text:
         return "OpenAI isn't configured. Add OPENAI_API_KEY to the backend .env, or use a Local model."
-    if llm.name == "ollama" and any(w in text for w in ("connection", "refused", "11434", "timed out")):
+    # Timeout: the model took longer than LLM_TIMEOUT to respond. Most common
+    # cause locally is a model too large for the GPU (it falls back to CPU and
+    # crawls). Point the user at a smaller/faster model rather than hanging.
+    if any(w in text for w in ("timeout", "timed out", "readtimeout", "read timed out")):
+        if llm.name == "ollama":
+            return (
+                f"The model '{llm.model_name}' took too long to respond and timed out. "
+                "It may be too large for your GPU. Try a smaller, faster model such as "
+                "llama3.2:3b."
+            )
+        return "The model took too long to respond and timed out. Please try again or switch models."
+    if llm.name == "ollama" and any(w in text for w in ("connection", "refused", "11434")):
         return "Couldn't reach the local Ollama server. Make sure Ollama is running."
     return f"The {llm.name} model request failed. Please try again or switch models."
 
