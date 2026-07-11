@@ -1,61 +1,123 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Icon from "../components/Icon";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, demoLogin } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  function validate() {
+    const e = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = true;
+    if (password.length < 6) e.password = true;
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
+  async function handleSubmit(ev) {
+    ev.preventDefault();
+    setApiError("");
+    if (!validate()) return;
+    setBusy(true);
     try {
       await login(email, password);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.detail || "Login failed");
+      setApiError(err?.response?.data?.detail || "Sign in failed. Please try again.");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
-  const field =
-    "w-full px-3.5 py-2.5 bg-surface2 border border-hairline rounded-xl text-white placeholder:text-muted/60 focus:outline-none focus:border-move/60 transition";
+  async function handleDemo(kind) {
+    setApiError("");
+    setBusy(true);
+    try {
+      await demoLogin(kind);
+      navigate("/");
+    } catch (err) {
+      setApiError(err?.response?.data?.detail || "Demo sign in failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-ink">
-      <form onSubmit={handleSubmit} className="bg-surface p-8 rounded-2xl border border-hairline w-full max-w-md">
-        <h1 className="text-2xl font-semibold tracking-tight text-white mb-1">Welcome back</h1>
-        <p className="text-sm text-muted mb-6">Sign in to your knowledge base</p>
+    <div className="screen auth-screen">
+      <aside className="auth-side">
+        <Link className="brand" to="/welcome">
+          <span className="brand-mark"><Icon name="spark" /></span>
+          <span className="brand-name">Retrieva</span>
+        </Link>
+        <div className="auth-quote">
+          <h2>Ask your documents.<br /><em>Get cited answers.</em></h2>
+          <ul className="auth-points">
+            <li><Icon name="check" className="icon-sm" /><span><b>Grounded responses.</b> Every answer traces back to real passages in your corpus.</span></li>
+            <li><Icon name="check" className="icon-sm" /><span><b>Your choice of model.</b> Use cloud GPT-4o or local Ollama, and switch per query.</span></li>
+            <li><Icon name="check" className="icon-sm" /><span><b>Private by design.</b> JWT-secured sessions with role-based access control.</span></li>
+          </ul>
+        </div>
+        <div className="side-foot">MCSP-232 · MCA Project · IGNOU</div>
+      </aside>
 
-        {error && <div className="mb-4 text-sm text-danger bg-danger/10 px-3 py-2 rounded-lg">{error}</div>}
+      <main className="auth-main">
+        <div className="auth-card">
+          <h1>Welcome back</h1>
+          <p className="sub">Sign in to continue to your knowledge base.</p>
 
-        <label className="block text-sm font-medium text-muted mb-1.5">Email</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={`${field} mb-4`} />
+          {apiError && (
+            <div className="badge badge-red" style={{ display: "flex", width: "100%", marginBottom: 18, padding: "10px 14px", borderRadius: 12 }}>
+              <Icon name="alert" className="icon-sm" /> {apiError}
+            </div>
+          )}
 
-        <label className="block text-sm font-medium text-muted mb-1.5">Password</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={`${field} mb-6`} />
+          <form onSubmit={handleSubmit} noValidate>
+            <div className={`field ${errors.email ? "invalid" : ""}`}>
+              <label className="label" htmlFor="login-email">Email address</label>
+              <input className="input" type="email" id="login-email" placeholder="you@example.com"
+                autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <span className="field-error">Please enter a valid email address.</span>
+            </div>
+            <div className={`field ${errors.password ? "invalid" : ""}`}>
+              <div className="label-row">
+                <label className="label" htmlFor="login-pass">Password</label>
+              </div>
+              <div className="input-wrap">
+                <input className="input" type={showPass ? "text" : "password"} id="login-pass"
+                  placeholder="••••••••" autoComplete="current-password"
+                  value={password} onChange={(e) => setPassword(e.target.value)} />
+                <button type="button" className="btn-icon trail" aria-label="Show password"
+                  onClick={() => setShowPass((s) => !s)}>
+                  <Icon name={showPass ? "eye-off" : "eye"} className="icon-sm" />
+                </button>
+              </div>
+              <span className="field-error">Password must be at least 6 characters.</span>
+            </div>
+            <button className="btn btn-primary btn-block" type="submit" disabled={busy}>
+              {busy ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-move-gradient text-white py-2.5 rounded-xl font-semibold hover:opacity-95 disabled:opacity-50 transition ring-glow"
-        >
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
+          <div className="auth-divider">or try a demo account</div>
+          <div className="demo-row">
+            <button className="btn btn-ghost" type="button" disabled={busy} onClick={() => handleDemo("user")}>
+              <Icon name="user" className="icon-sm" /> Demo user
+            </button>
+            <button className="btn btn-ghost" type="button" disabled={busy} onClick={() => handleDemo("admin")}>
+              <Icon name="shield" className="icon-sm" /> Demo admin
+            </button>
+          </div>
 
-        <p className="text-sm text-muted mt-5 text-center">
-          No account?{" "}
-          <Link to="/register" className="text-stand font-medium hover:underline">
-            Register
-          </Link>
-        </p>
-      </form>
+          <p className="auth-alt">New here? <Link to="/register">Create an account</Link></p>
+        </div>
+      </main>
     </div>
   );
 }

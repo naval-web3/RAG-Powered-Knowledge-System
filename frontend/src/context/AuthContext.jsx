@@ -37,8 +37,31 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  /** Update the cached user object in place (after a profile change). */
+  function updateUser(patch) {
+    setUser((prev) => {
+      const next = { ...prev, ...patch };
+      localStorage.setItem("user", JSON.stringify(next));
+      return next;
+    });
+  }
+
+  /** Quick sign-in for the demo buttons on the login screen. */
+  async function demoLogin(kind) {
+    if (kind === "admin") return login("admin@example.com", "admin1234");
+    // Demo user: sign in, self-provisioning the account on first use.
+    try {
+      return await login("demo@example.com", "demo1234");
+    } catch (e) {
+      if (e?.response?.status === 401) {
+        return register("demo", "demo@example.com", "demo1234");
+      }
+      throw e;
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, register, logout, demoLogin, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -4,22 +4,31 @@ import { useAuth } from "./context/AuthContext";
 import AdminPage from "./pages/AdminPage";
 import ChatPage from "./pages/ChatPage";
 import DocumentsPage from "./pages/DocumentsPage";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Settings from "./pages/Settings";
 
 function Protected({ children, adminOnly = false }) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/welcome" replace />;
   if (adminOnly && user.role !== "admin") return <Navigate to="/" replace />;
+  return children;
+}
+
+/** Public routes redirect to the app if the visitor is already signed in. */
+function PublicOnly({ children }) {
+  const { user } = useAuth();
+  if (user) return <Navigate to="/" replace />;
   return children;
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/welcome" element={<PublicOnly><Landing /></PublicOnly>} />
+      <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+      <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
       <Route
         path="/"
         element={
@@ -32,7 +41,7 @@ export default function App() {
         <Route path="settings" element={<Settings />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route
-          path="admin"
+          path="dashboard"
           element={
             <Protected adminOnly>
               <AdminPage />
@@ -40,6 +49,7 @@ export default function App() {
           }
         />
       </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
