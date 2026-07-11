@@ -1,648 +1,345 @@
 import { useEffect, useRef, useState } from "react";
-import { useOutletContext } from "react-router-dom";
-import client from "../api/client";
+import Icon from "../components/Icon";
 import { useAuth } from "../context/AuthContext";
-import {
-  IconArrowUp,
-  IconChat,
-  IconCheck,
-  IconChevron,
-  IconEdit,
-  IconGhost,
-  IconMore,
-  IconPlus,
-  IconSidebar,
-  IconSpinner,
-  IconTrash,
-} from "../components/icons";
-import pinIcon from "../assets/pin.svg";
+import { useChat } from "../context/ChatContext";
+import { useToast } from "../context/ToastContext";
+import { greetingFor } from "../utils";
+
+const SUGGESTIONS = [
+  { icon: "book", q: "Summarize the key points of my documents." },
+  { icon: "zap", q: "What topics do my uploaded documents cover?" },
+  { icon: "file-text", q: "List the main sections of my most recent document." },
+  { icon: "info", q: "What is this knowledge base about?" },
+];
 
 export default function ChatPage() {
   const { user } = useAuth();
-  const { incognito } = useOutletContext();
-  const [conversations, setConversations] = useState([]);
-  const [activeId, setActiveId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [models, setModels] = useState({ ollama: [], openai: [] });
-  const [sel, setSel] = useState("ollama|llama3.2:3b");
-  const [loading, setLoading] = useState(false);
-  const [docsReady, setDocsReady] = useState(0);
-  const [uploading, setUploading] = useState(false);
-  const [uploadMsg, setUploadMsg] = useState(null);
-  const [menuId, setMenuId] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
-  );
-  const [sidebarOpen, setSidebarOpen] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth >= 768 : true
-  );
-  const [sidebarWidth, setSidebarWidth] = useState(288);
-  const resizing = useRef(false);
+  const chat = useChat();
+  const scrollRef = useRef(null);
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
+  const [sourceModal, setSourceModal] = useState(null);
 
-  const firstName = (user?.username || "there").split(" ")[0];
-  const greetName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
-  const isWelcome = messages.length === 0 && !loading;
-
-  useEffect(() => {
-    loadConversations();
-    loadDocCount();
-    loadModels();
-  }, []);
-
-  async function loadModels() {
-    const { data } = await client.get("/api/models");
-    setModels({ ollama: data.ollama || [], openai: data.openai || [] });
-    // Pick a sensible default selection.
-    if ((data.ollama || []).length) {
-      const def = data.ollama.includes(data.default_ollama_model)
-        ? data.default_ollama_model
-        : data.ollama[0];
-      setSel(`ollama|${def}`);
-    } else if ((data.openai || []).length) {
-      setSel(`openai|${data.openai[0]}`);
-    }
-  }
+  const empty = chat.messages.length === 0 && !chat.sending;
+  const totalChunks = chat.docs.reduce((n, d) => n + (d.chunk_count || 0), 0);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [chat.messages, chat.sending]);
 
-  // Close the conversation menu on any outside click.
-  useEffect(() => {
-    if (menuId == null) return;
-    const close = () => setMenuId(null);
-    window.addEventListener("click", close);
-    return () => window.removeEventListener("click", close);
-  }, [menuId]);
-
-  // Toggling incognito starts a fresh ephemeral session.
-  useEffect(() => {
-    setActiveId(null);
-    setMessages([]);
-    setInput("");
-  }, [incognito]);
-
-  // Track mobile vs desktop; collapse the sidebar into a drawer on mobile.
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    const apply = () => {
-      setIsMobile(mq.matches);
-      setSidebarOpen(!mq.matches);
-    };
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
-
-  // Sidebar drag-to-resize.
-  useEffect(() => {
-    function onMove(e) {
-      if (!resizing.current) return;
-      // The sidebar's left edge sits at the main content's left padding (~24px).
-      const w = Math.min(460, Math.max(220, e.clientX - 24));
-      setSidebarWidth(w);
-    }
-    function onUp() {
-      resizing.current = false;
-      document.body.style.userSelect = "";
-    }
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, []);
-
-  function startResize(e) {
-    e.preventDefault();
-    resizing.current = true;
-    document.body.style.userSelect = "none";
+  function onAttach(e) {
+    const f = e.target.files?.[0];
+    if (f) chat.uploadFile(f);
+    if (fileRef.current) fileRef.current.value = "";
   }
-
-  async function loadConversations() {
-    const { data } = await client.get("/api/conversations");
-    setConversations(data);
-  }
-
-  async function loadDocCount() {
-    const { data } = await client.get("/api/documents");
-    setDocsReady(data.filter((d) => d.processing_status === "done").length);
-  }
-
-  async function openConversation(id) {
-    const { data } = await client.get(`/api/conversations/${id}`);
-    setActiveId(id);
-    setMessages(data.messages);
-    if (isMobile) setSidebarOpen(false);
-  }
-
-  function newConversation() {
-    setActiveId(null);
-    setMessages([]);
-    setInput("");
-    if (isMobile) setSidebarOpen(false);
-  }
-
-  async function deleteConversation(id, e) {
-    e.stopPropagation();
-    setMenuId(null);
-    await client.delete(`/api/conversations/${id}`);
-    if (id === activeId) newConversation();
-    loadConversations();
-  }
-
-  function startRename(c, e) {
-    e.stopPropagation();
-    setMenuId(null);
-    setEditingId(c.conversation_id);
-    setEditTitle(c.title);
-  }
-
-  async function saveRename(id) {
-    const title = editTitle.trim();
-    setEditingId(null);
-    if (!title) return;
-    await client.patch(`/api/conversations/${id}`, { title });
-    loadConversations();
-  }
-
-  async function handleUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setUploadMsg({ kind: "info", text: `Uploading ${file.name}…` });
-    const form = new FormData();
-    form.append("file", file);
-    try {
-      const { data } = await client.post("/api/documents", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setUploadMsg({ kind: "info", text: `Processing ${file.name}…` });
-      let status = data.processing_status;
-      let reason = "";
-      let ocrNotified = false;
-      // Poll up to ~6 minutes (scanned PDFs go through OCR, which is slow on CPU).
-      for (let i = 0; i < 180 && !["done", "failed"].includes(status); i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        const d = (await client.get(`/api/documents/${data.document_id}`)).data;
-        status = d.processing_status;
-        reason = d.error_message || "";
-        // Scanned / image-only PDF detected: OCR is running (slow). Tell the user.
-        if (status === "ocr" && !ocrNotified) {
-          ocrNotified = true;
-          setUploadMsg({
-            kind: "info",
-            text: `“${file.name}” looks like a scanned document — running OCR to read the text. This can take a few minutes…`,
-          });
-        }
-      }
-      if (status === "done") {
-        setUploadMsg({ kind: "ok", text: `“${file.name}” is ready — ask a question about it.` });
-      } else if (status === "failed") {
-        setUploadMsg({ kind: "err", text: reason || `“${file.name}” could not be processed.` });
-      } else {
-        setUploadMsg({
-          kind: "info",
-          text: `“${file.name}” is still processing — check the Documents tab shortly.`,
-        });
-      }
-      loadDocCount();
-    } catch (err) {
-      setUploadMsg({ kind: "err", text: `Upload failed: ${err.response?.data?.detail || err.message}` });
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
-  }
-
-  async function send() {
-    const query = input.trim();
-    if (!query || loading) return;
-    setMessages((m) => [...m, { role: "user", content: query, message_id: `tmp-${Date.now()}` }]);
-    setInput("");
-    setLoading(true);
-    try {
-      const [prov, mdl] = sel.split("|");
-      const { data } = await client.post("/api/chat", {
-        query,
-        conversation_id: activeId,
-        provider: prov,
-        model: mdl,
-        incognito,
-      });
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content: data.answer,
-          message_id: `a-${Date.now()}`,
-          source_documents: { sources: data.sources },
-          meta: { provider: data.provider, model: data.model, ms: data.response_time_ms },
-        },
-      ]);
-      // Incognito chats are never saved to history.
-      if (!incognito) {
-        setActiveId(data.conversation_id);
-        loadConversations();
-      }
-    } catch (err) {
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: `Error: ${err.response?.data?.detail || err.message}`, message_id: `e-${Date.now()}` },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const composer = (
-    <Composer
-      value={input}
-      onChange={setInput}
-      onSubmit={send}
-      onAttach={() => fileRef.current?.click()}
-      uploading={uploading}
-      loading={loading}
-      models={models}
-      sel={sel}
-      setSel={setSel}
-      uploadMsg={uploadMsg}
-      dismissUpload={() => setUploadMsg(null)}
-      autoFocus={isWelcome}
-    />
-  );
 
   return (
-    <div className="flex h-full">
-      <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" onChange={handleUpload} className="hidden" />
+    <section className="page" id="page-chat" style={{ display: "flex", flexDirection: "column" }}>
+      <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={onAttach} />
 
-      {/* Reopen button when collapsed */}
-      {!sidebarOpen && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          title="Open sidebar"
-          className="shrink-0 self-start mr-2 sm:mr-3 p-2 rounded-lg text-muted hover:text-white hover:bg-surface transition"
-        >
-          <IconSidebar className="w-5 h-5" />
-        </button>
-      )}
-
-      {/* Mobile drawer backdrop */}
-      {isMobile && sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* History sidebar (inline column on desktop, slide-in drawer on mobile) */}
-      {sidebarOpen && (
-      <aside
-        style={isMobile ? undefined : { width: sidebarWidth }}
-        className={
-          isMobile
-            ? "fixed inset-y-0 left-0 z-40 w-[84%] max-w-xs flex flex-col bg-ink border-r border-hairline p-3"
-            : "relative shrink-0 flex flex-col pr-4"
-        }
-      >
-        <div className="flex items-center gap-2 mb-1">
-          <button
-            onClick={newConversation}
-            className="flex items-center justify-center gap-2 flex-1 px-3.5 py-2.5 rounded-xl bg-move-gradient text-white text-sm font-semibold hover:opacity-95 transition ring-glow"
-          >
-            <IconPlus className="w-4 h-4" />
-            New chat
-          </button>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            title="Collapse sidebar"
-            className="p-2 rounded-lg text-muted hover:text-white hover:bg-surface transition"
-          >
-            <IconSidebar className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="mt-5 mb-2 px-2 text-[11px] font-semibold tracking-wider text-muted uppercase">
-          Recents
-        </div>
-        <div className="flex-1 overflow-y-auto -mx-1 px-1 space-y-0.5">
-          {conversations.length === 0 && (
-            <p className="px-3 py-2 text-sm text-muted/70">No conversations yet.</p>
-          )}
-          {conversations.map((c) => {
-            const active = c.conversation_id === activeId;
-            if (editingId === c.conversation_id) {
-              return (
-                <div key={c.conversation_id} className="px-1 py-0.5">
-                  <input
-                    autoFocus
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") saveRename(c.conversation_id);
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                    onBlur={() => saveRename(c.conversation_id)}
-                    className="w-full bg-surface2 border border-move/60 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none"
-                  />
-                </div>
-              );
-            }
-            return (
-              <div
-                key={c.conversation_id}
-                onClick={() => openConversation(c.conversation_id)}
-                className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors ${
-                  active ? "bg-surface2 text-white" : "text-muted hover:bg-surface hover:text-white"
-                }`}
-              >
-                <IconChat className="w-4 h-4 shrink-0 opacity-60" />
-                <span className="truncate flex-1">{c.title}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuId(menuId === c.conversation_id ? null : c.conversation_id);
-                  }}
-                  className={`${active || menuId === c.conversation_id ? "opacity-100" : "opacity-0"} group-hover:opacity-100 text-muted hover:text-white transition p-0.5 rounded`}
-                  title="More"
-                >
-                  <IconMore className="w-4 h-4" />
-                </button>
-                {menuId === c.conversation_id && (
-                  <div
-                    className="absolute right-2 top-9 z-20 w-36 bg-surface2 border border-hairline rounded-xl shadow-xl py-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={(e) => startRename(c, e)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-surface3/60 transition"
-                    >
-                      <IconEdit className="w-4 h-4" /> Rename
-                    </button>
-                    <button
-                      onClick={(e) => deleteConversation(c.conversation_id, e)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-surface3/60 transition"
-                    >
-                      <IconTrash className="w-4 h-4" /> Delete
-                    </button>
-                  </div>
-                )}
+      <div className="chat-scroll" ref={scrollRef}>
+        <div className="chat-col">
+          {empty ? (
+            <div className="chat-empty">
+              <div className="spark"><Icon name={chat.privateMode ? "ghost" : "spark"} /></div>
+              <h2>{chat.privateMode ? "Private chat" : greetingFor(user?.username)}</h2>
+              <p>
+                {chat.privateMode
+                  ? "This conversation won't be saved to your history."
+                  : "Ask anything. Answers come from your uploaded documents and carry citations."}
+              </p>
+              <div className="kb-stats">
+                {chat.docCount} document{chat.docCount === 1 ? "" : "s"} · {totalChunks} chunks indexed
+                {chat.scopeDoc && <> · scoped to “{chat.scopeDoc.title}”</>}
               </div>
-            );
-          })}
-        </div>
-
-        {/* Drag handle to resize the sidebar — desktop only, flush at the panel edge */}
-        {!isMobile && (
-          <div
-            onMouseDown={startResize}
-            title="Drag to resize"
-            className="absolute top-0 right-0 h-full w-2 cursor-col-resize flex justify-end group"
-          >
-            <div className="w-0.5 h-full bg-transparent group-hover:bg-move transition-colors" />
-          </div>
-        )}
-      </aside>
-      )}
-
-      {/* Main panel */}
-      <section className="flex-1 min-w-0 flex flex-col bg-surface border border-hairline rounded-2xl overflow-hidden">
-        {isWelcome ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6">
-            <div className="w-full max-w-2xl">
-              {incognito ? (
-                <h1 className="flex items-center justify-center gap-2 sm:gap-3 text-[28px] sm:text-[40px] leading-[1.1] font-semibold tracking-tight text-white">
-                  <IconGhost className="w-7 h-7 sm:w-9 sm:h-9 text-move" />
-                  You're incognito
-                </h1>
-              ) : (
-                <h1 className="text-center text-[30px] sm:text-[44px] leading-[1.1] font-semibold tracking-tight text-white">
-                  Hi, <span className="text-move-gradient">{greetName}</span>
-                </h1>
-              )}
-              <p className="text-center text-muted text-sm sm:text-[15px] mt-3 mb-7 sm:mb-9">
-                {incognito
-                  ? "This chat won't be saved to your history."
-                  : "How can I help you with your documents today?"}
-              </p>
-              {composer}
-              <p className="text-center text-xs text-muted/70 mt-4">
-                {incognito
-                  ? "Incognito chats aren't saved to history."
-                  : `${docsReady} ${docsReady === 1 ? "document" : "documents"} indexed`}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6">
-              <div className="max-w-3xl mx-auto space-y-5 sm:space-y-6">
-                {messages.map((m) => (
-                  <MessageBubble key={m.message_id} message={m} />
+              <div className="sugg-grid">
+                {SUGGESTIONS.map((s) => (
+                  <button key={s.q} className="sugg" onClick={() => chat.send(s.q)}>
+                    <Icon name={s.icon} className="icon-sm" /> {s.q}
+                  </button>
                 ))}
-                {loading && (
-                  <div className="flex items-center gap-2 text-muted text-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-move animate-pulse" />
-                    Thinking…
-                  </div>
-                )}
-                <div ref={bottomRef} />
               </div>
             </div>
-            <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-1">
-              <div className="max-w-3xl mx-auto">{composer}</div>
+          ) : (
+            <div id="chat-thread">
+              {chat.messages.map((m) =>
+                m.role === "user" ? (
+                  <UserMessage key={m.message_id} message={m} />
+                ) : (
+                  <AiMessage key={m.message_id} message={m} onOpenSource={setSourceModal} />
+                )
+              )}
+              {chat.sending && <Thinking />}
+              <div ref={bottomRef} />
             </div>
-          </>
-        )}
-      </section>
+          )}
+        </div>
+      </div>
+
+      <Composer fileRef={fileRef} />
+
+      {sourceModal && <SourceModal source={sourceModal} onClose={() => setSourceModal(null)} />}
+    </section>
+  );
+}
+
+function UserMessage({ message }) {
+  return (
+    <div className="msg msg-user">
+      <div className="bubble">{message.content}</div>
     </div>
   );
 }
 
-function Composer({
-  value,
-  onChange,
-  onSubmit,
-  onAttach,
-  uploading,
-  loading,
-  models,
-  sel,
-  setSel,
-  uploadMsg,
-  dismissUpload,
-  autoFocus,
-}) {
-  const taRef = useRef(null);
-
-  useEffect(() => {
-    if (autoFocus) taRef.current?.focus();
-  }, [autoFocus]);
-
-  function autoGrow(el) {
-    el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 200) + "px";
-  }
-
-  function onKeyDown(e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      onSubmit();
-    }
-  }
-
-  const uploadStyles = {
-    info: "bg-stand/10 text-stand",
-    ok: "bg-exercise/10 text-exercise",
-    err: "bg-move/15 text-movehi",
-  };
-
+function Thinking() {
   return (
-    <div>
-      {uploadMsg && (
-        <div className={`mb-2 px-3 py-2 rounded-lg text-xs flex items-center justify-between ${uploadStyles[uploadMsg.kind]}`}>
-          <span className="flex items-center gap-2">
-            {uploadMsg.kind === "info" && <IconSpinner className="w-3.5 h-3.5" />}
-            {uploadMsg.text}
-          </span>
-          <button onClick={dismissUpload} className="opacity-60 hover:opacity-100 ml-3">✕</button>
-        </div>
-      )}
-      <div className="rounded-2xl border border-hairline bg-surface2 focus-within:border-surface3 transition">
-        <textarea
-          ref={taRef}
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            autoGrow(e.target);
-          }}
-          onKeyDown={onKeyDown}
-          rows={1}
-          placeholder="Ask anything about your documents…"
-          className="w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-[15px] text-white placeholder:text-muted/70 focus:outline-none"
-        />
-        <div className="flex items-center justify-between px-2.5 pb-2.5">
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={onAttach}
-              disabled={uploading}
-              title="Attach a document (PDF / DOCX / TXT)"
-              className="p-2 rounded-lg text-muted hover:bg-surface3/50 disabled:opacity-50 transition flex items-center justify-center"
-            >
-              {uploading ? (
-                <IconSpinner className="w-[18px] h-[18px]" />
-              ) : (
-                <img src={pinIcon} alt="Attach" className="w-[18px] h-[18px] invert opacity-80" />
-              )}
-            </button>
-            <ModelMenu models={models} sel={sel} setSel={setSel} />
-          </div>
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={loading || !value.trim()}
-            title="Send"
-            className="w-9 h-9 rounded-full bg-move-gradient text-white flex items-center justify-center hover:opacity-95 disabled:bg-none disabled:bg-surface3 disabled:text-muted/50 transition"
-          >
-            <IconArrowUp className="w-[18px] h-[18px]" />
-          </button>
+    <div className="msg msg-ai">
+      <div className="ai-avatar"><Icon name="spark" /></div>
+      <div className="body">
+        <div className="ai-meta"><span className="who">Retrieva</span></div>
+        <div className="ai-content">
+          <span className="cursor-blink" />
         </div>
       </div>
     </div>
   );
 }
 
-// A local model whose parameter count exceeds what fits in this machine's GPU
-// (~4GB VRAM) spills onto the CPU and becomes very slow. Flag anything >= 5B
-// params (at typical Q4 quantization ~5B is already too big for 4GB) so the
-// user can prefer a smaller, faster model. Derived from the model name's
-// "<n>b" tag (e.g. qwen3:8b -> 8, gpt-oss:20b -> 20, llama3.2:3b -> 3).
+function AiMessage({ message, onOpenSource }) {
+  const { toast } = useToast();
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [vote, setVote] = useState(null);
+  const sources = message.source_documents?.sources || [];
+  const meta = message.meta;
+
+  const paragraphs = String(message.content || "").split(/\n{2,}/);
+
+  function copy() {
+    navigator.clipboard?.writeText(message.content).then(
+      () => toast("Answer copied.", "ok"),
+      () => toast("Couldn't copy.", "err")
+    );
+  }
+
+  return (
+    <div className="msg msg-ai">
+      <div className="ai-avatar"><Icon name="spark" /></div>
+      <div className="body">
+        <div className="ai-meta">
+          <span className="who">Retrieva</span>
+          {meta?.model && <span className="model-tag">{meta.provider} · {meta.model}</span>}
+        </div>
+        <div className="ai-content">
+          {paragraphs.map((p, i) => <p key={i}>{p}</p>)}
+        </div>
+
+        {sources.length > 0 && (
+          <>
+            <div className="retrieval-line">
+              {meta?.chunks != null && <span>⌁ retrieved <b>{meta.chunks}</b> chunk{meta.chunks === 1 ? "" : "s"}</span>}
+              {meta?.top_score != null && <span>top match <b>{(meta.top_score * 100).toFixed(1)}%</b></span>}
+              {meta?.ms != null && <span><b>{(meta.ms / 1000).toFixed(1)}s</b></span>}
+            </div>
+            <div className={`sources-wrap ${sourcesOpen ? "open" : ""}`}>
+              <button className="sources-toggle" onClick={() => setSourcesOpen((o) => !o)}>
+                <Icon name="chev-r" className="icon-sm chev" />
+                {sources.length} source{sources.length === 1 ? "" : "s"}
+              </button>
+              <div className="source-list">
+                {sources.map((s, i) => (
+                  <button key={i} className="source-card" onClick={() => onOpenSource(s)}>
+                    <span className="s-idx">{i + 1}</span>
+                    <span className="s-body">
+                      <span className="s-title">{s.title}</span>
+                      <span className="s-meta">
+                        {s.page_number != null && <>page {s.page_number} · </>}
+                        {s.section ? s.section : `chunk ${s.chunk_index ?? i}`}
+                        {s.score != null && <> · {(s.score * 100).toFixed(0)}%</>}
+                      </span>
+                      {s.snippet && <span className="s-snip">{s.snippet}</span>}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {!message.error && (
+          <div className="msg-actions">
+            <button className="btn-icon" title="Copy" onClick={copy}><Icon name="copy" className="icon-sm" /></button>
+            <button className={`btn-icon ${vote === "up" ? "voted" : ""}`} title="Good answer"
+              onClick={() => { setVote("up"); toast("Thanks for the feedback!", "ok"); }}>
+              <Icon name="thumb-up" className="icon-sm" />
+            </button>
+            <button className={`btn-icon ${vote === "down" ? "voted" : ""}`} title="Needs work"
+              onClick={() => { setVote("down"); toast("Thanks — we'll use this to improve.", "info"); }}>
+              <Icon name="thumb-down" className="icon-sm" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Composer({ fileRef }) {
+  const chat = useChat();
+  const { toast } = useToast();
+  const [text, setText] = useState("");
+  const [recording, setRecording] = useState(false);
+  const taRef = useRef(null);
+  const recRef = useRef(null);
+
+  function autoGrow(el) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 190) + "px";
+  }
+  function submit() {
+    const q = text.trim();
+    if (!q || chat.sending) return;
+    chat.send(q);
+    setText("");
+    if (taRef.current) taRef.current.style.height = "auto";
+  }
+  function onKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submit();
+    }
+  }
+
+  function toggleDictation() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      toast("Voice input isn't supported in this browser.", "warn");
+      return;
+    }
+    if (recording) {
+      recRef.current?.stop();
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.interimResults = false;
+    rec.onresult = (ev) => {
+      const said = Array.from(ev.results).map((r) => r[0].transcript).join(" ");
+      setText((t) => (t ? `${t} ${said}` : said));
+    };
+    rec.onend = () => setRecording(false);
+    rec.onerror = () => setRecording(false);
+    recRef.current = rec;
+    rec.start();
+    setRecording(true);
+  }
+
+  return (
+    <div className="composer-zone">
+      <div className="composer">
+        {(chat.privateMode || chat.scopeDoc) && (
+          <div className="mode-strip">
+            {chat.privateMode && (
+              <span className="mode-pill private">
+                <Icon name="ghost" className="icon-sm" />
+                <span><b>Private</b> — not saved</span>
+                <button className="pill-x" onClick={() => chat.togglePrivate()} aria-label="Exit private">
+                  <Icon name="x" className="icon-sm" />
+                </button>
+              </span>
+            )}
+            {chat.scopeDoc && (
+              <span className="mode-pill scope">
+                <Icon name="target" className="icon-sm" />
+                <span>Scoped to <b>{chat.scopeDoc.title}</b></span>
+                <button className="pill-x" onClick={() => chat.setScopeDocId(null)} aria-label="Clear scope">
+                  <Icon name="x" className="icon-sm" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+        <div className="composer-box">
+          <textarea ref={taRef} rows={1} placeholder="Ask your knowledge base…" aria-label="Message"
+            value={text}
+            onChange={(e) => { setText(e.target.value); autoGrow(e.target); }}
+            onKeyDown={onKeyDown} />
+          <div className="composer-row">
+            <button className="btn-icon" title="Upload documents" disabled={chat.uploading}
+              onClick={() => fileRef.current?.click()}>
+              <Icon name={chat.uploading ? "refresh" : "clip"} className="icon-sm" />
+            </button>
+            <ModelMenu />
+            <ScopeMenu />
+            <div className="grow" style={{ flex: 1 }} />
+            <button className={`btn-icon mic-btn ${recording ? "rec" : ""}`} title="Dictate with your voice"
+              aria-label="Dictate" onClick={toggleDictation}>
+              <Icon name="mic" className="icon-sm" />
+            </button>
+            <button className="send-btn" disabled={chat.sending || !text.trim()} aria-label="Send message"
+              onClick={submit}>
+              <Icon name="send" className="icon-sm" />
+            </button>
+          </div>
+        </div>
+        <div className="composer-hint">
+          Retrieva answers only from indexed documents. Verify critical facts against the cited source.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const SLOW_MODEL_PARAM_B = 5;
 function isSlowLocalModel(model) {
   const tag = model.includes(":") ? model.split(":").pop() : model;
-  const match = tag.match(/(\d+(?:\.\d+)?)\s*b/i);
-  return match ? parseFloat(match[1]) >= SLOW_MODEL_PARAM_B : false;
+  const m = tag.match(/(\d+(?:\.\d+)?)\s*b/i);
+  return m ? parseFloat(m[1]) >= SLOW_MODEL_PARAM_B : false;
 }
 
-function ModelMenu({ models, sel, setSel }) {
+function ModelMenu() {
+  const chat = useChat();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const currentName = sel.split("|")[1] || "Select model";
+  const current = chat.sel.split("|")[1] || "model";
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     window.addEventListener("mousedown", onDown);
     return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  const Item = ({ value, name, slow }) => {
-    const active = value === sel;
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          setSel(value);
-          setOpen(false);
-        }}
-        className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm text-white hover:bg-surface3/70 transition"
-      >
-        <span className="flex items-center gap-2 min-w-0">
-          <span className="truncate">{name}</span>
-          {slow && (
-            <span
-              title="Larger than your GPU's memory — runs on CPU and is slow. Prefer a smaller model."
-              className="shrink-0 text-[10px] font-medium text-amber-400/90 border border-amber-400/30 rounded px-1 py-0.5 leading-none"
-            >
-              slow
-            </span>
-          )}
-        </span>
-        {active && <IconCheck className="w-4 h-4 text-move shrink-0" />}
-      </button>
-    );
-  };
-
-  const SectionLabel = ({ children }) => (
-    <div className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">{children}</div>
+  const Item = ({ value, name, sub, slow }) => (
+    <button className={`drop-item ${value === chat.sel ? "selected" : ""}`}
+      onClick={() => { chat.setSel(value); setOpen(false); }}>
+      <span>
+        <span className="d-name">{name}{slow && <span className="badge badge-amber" style={{ marginLeft: 6 }}>slow</span>}</span>
+        <span className="d-sub">{sub}</span>
+      </span>
+      <Icon name="check" className="icon-sm check" />
+    </button>
   );
 
   return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        title="Choose model"
-        className="flex items-center gap-1.5 text-xs text-muted bg-transparent rounded-lg px-2 py-1.5 hover:bg-surface3/50 transition"
-      >
-        <span className="max-w-[160px] truncate">{currentName}</span>
-        <IconChevron className="w-3.5 h-3.5" />
+    <div className="menu-anchor" ref={ref}>
+      <button className="model-btn" aria-haspopup="true" onClick={() => setOpen((o) => !o)}>
+        <span className="dot" /><span>{current}</span><Icon name="chev-d" className="icon-sm" />
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-60 bg-surface2 border border-hairline rounded-2xl shadow-2xl p-1.5 z-30">
-          {models.ollama.length > 0 && (
+        <div className="drop-menu">
+          {chat.models.ollama.length > 0 && (
             <>
-              <SectionLabel>Local LLMs</SectionLabel>
-              {models.ollama.map((m) => (
-                <Item key={m} value={`ollama|${m}`} name={m} slow={isSlowLocalModel(m)} />
+              <div className="drop-label">Ollama · local</div>
+              {chat.models.ollama.map((m) => (
+                <Item key={m} value={`ollama|${m}`} name={m} sub="localhost:11434" slow={isSlowLocalModel(m)} />
               ))}
             </>
           )}
-          {models.openai.length > 0 && (
+          {chat.models.openai.length > 0 && (
             <>
-              <div className="my-1.5 border-t border-hairline" />
-              <SectionLabel>Cloud LLMs</SectionLabel>
-              {models.openai.map((m) => (
-                <Item key={m} value={`openai|${m}`} name={m} />
+              <div className="drop-label">OpenAI · cloud</div>
+              {chat.models.openai.map((m) => (
+                <Item key={m} value={`openai|${m}`} name={m} sub={chat.models.openai_enabled ? "cloud inference" : "add API key"} />
               ))}
             </>
           )}
@@ -652,36 +349,71 @@ function ModelMenu({ models, sel, setSel }) {
   );
 }
 
-function MessageBubble({ message }) {
-  const isUser = message.role === "user";
-  const source = message.source_documents?.sources?.[0];
+function ScopeMenu() {
+  const chat = useChat();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const ready = chat.docs.filter((d) => d.processing_status === "done");
 
-  if (isUser) {
-    return (
-      <div className="flex justify-end">
-        <div className="max-w-2xl rounded-2xl rounded-br-md bg-surface2 text-white px-4 py-2.5 text-[15px] whitespace-pre-wrap">
-          {message.content}
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const label = chat.scopeDoc ? chat.scopeDoc.title : "All documents";
 
   return (
-    <div className="flex justify-start">
-      <div className="max-w-2xl">
-        <p className="text-[15px] leading-relaxed text-white/90 whitespace-pre-wrap">{message.content}</p>
-        {source && (
-          <p className="mt-3 text-[13px] text-muted">
-            <span className="font-semibold text-stand">Source:</span> {source.title}
-            {source.page_number != null && <> · Page {source.page_number}</>}
-            {source.section && <> · {source.section}</>}
+    <div className="menu-anchor" ref={ref}>
+      <button className={`model-btn scope-btn ${chat.scopeDoc ? "scoped" : ""}`} aria-haspopup="true"
+        title="Retrieval scope" onClick={() => setOpen((o) => !o)}>
+        <Icon name="target" className="icon-sm" />
+        <span id="scope-btn-label">{label}</span>
+        <Icon name="chev-d" className="icon-sm" />
+      </button>
+      {open && (
+        <div className="drop-menu" id="scope-menu">
+          <div className="drop-label">Retrieval scope</div>
+          <button className={`drop-item ${!chat.scopeDoc ? "selected" : ""}`}
+            onClick={() => { chat.setScopeDocId(null); setOpen(false); }}>
+            <span><span className="d-name">All documents</span><span className="d-sub">search the whole corpus</span></span>
+            <Icon name="check" className="icon-sm check" />
+          </button>
+          {ready.length === 0 && <div className="scope-empty">No indexed documents to scope to yet.</div>}
+          {ready.map((d) => (
+            <button key={d.document_id} className={`drop-item ${chat.scopeDocId === d.document_id ? "selected" : ""}`}
+              onClick={() => { chat.setScopeDocId(d.document_id); setOpen(false); }}>
+              <span><span className="d-name d-name"><span style={{ display: "block", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</span></span>
+                <span className="d-sub">{d.chunk_count} chunks</span></span>
+              <Icon name="check" className="icon-sm check" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SourceModal({ source, onClose }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-lg" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>{source.title}</h3>
+          <button className="btn-icon" aria-label="Close" onClick={onClose}><Icon name="x" className="icon-sm" /></button>
+        </div>
+        <div className="modal-body">
+          <div className="meta-grid">
+            {source.page_number != null && <div className="mg"><b>Page</b><span>{source.page_number}</span></div>}
+            {source.section && <div className="mg"><b>Section</b><span>{source.section}</span></div>}
+            {source.chunk_index != null && <div className="mg"><b>Chunk</b><span>#{source.chunk_index}</span></div>}
+            {source.score != null && <div className="mg"><b>Relevance</b><span>{(source.score * 100).toFixed(1)}%</span></div>}
+          </div>
+          <p style={{ fontFamily: "var(--serif)", fontSize: 15, lineHeight: 1.7, color: "var(--text)" }}>
+            {source.snippet || "No preview available for this passage."}
           </p>
-        )}
-        {message.meta && (
-          <p className="mt-1.5 text-[11px] text-muted/50">
-            {message.meta.provider} · {message.meta.model} · {message.meta.ms} ms
-          </p>
-        )}
+        </div>
       </div>
     </div>
   );
