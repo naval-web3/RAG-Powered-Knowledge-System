@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
     RETRIEVAL_TOP_K: int = 5
+    LLM_TEMPERATURE: float = 0.2  # generation randomness (0 = deterministic)
 
     # ---- OCR (scanned / image-only PDFs) ----
     # When a PDF page has no embedded (selectable) text, fall back to OCR:

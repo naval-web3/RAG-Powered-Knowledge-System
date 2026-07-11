@@ -38,6 +38,14 @@ def chat(
         db.query(Document.document_id).filter(Document.user_id == current_user.user_id).first() is not None
     )
 
+    # Retrieval scope: optionally restrict to a single document the user owns.
+    scope_id: str | None = None
+    if payload.scope_document_id:
+        doc = db.get(Document, payload.scope_document_id)
+        if doc is None or doc.user_id != current_user.user_id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Scoped document not found")
+        scope_id = str(payload.scope_document_id)
+
     # Incognito / private chat: answer but persist nothing (no conversation,
     # no messages, no query log).
     if payload.incognito:
@@ -47,6 +55,7 @@ def chat(
             provider=payload.provider,
             model=payload.model,
             has_documents=has_documents,
+            scope_document_id=scope_id,
         )
         return ChatResponse(
             conversation_id=None,
@@ -55,6 +64,8 @@ def chat(
             provider=result["provider"],
             model=result["model"],
             response_time_ms=result["response_time_ms"],
+            chunks_retrieved=result["chunks_retrieved"],
+            top_score=result["top_score"],
         )
 
     # Resolve or create the conversation.
@@ -82,6 +93,7 @@ def chat(
         provider=payload.provider,
         model=payload.model,
         has_documents=has_documents,
+        scope_document_id=scope_id,
     )
 
     sources_payload = [s.model_dump() for s in result["sources"]]
@@ -116,6 +128,8 @@ def chat(
         provider=result["provider"],
         model=result["model"],
         response_time_ms=result["response_time_ms"],
+        chunks_retrieved=result["chunks_retrieved"],
+        top_score=result["top_score"],
     )
 
 

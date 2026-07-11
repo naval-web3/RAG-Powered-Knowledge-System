@@ -11,7 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import update
 
 from app.api import admin, auth, chat, documents
+from app.api import settings as settings_api
 from app.config import settings
+from app import runtime_settings
 from app.database import Base, SessionLocal, engine
 from app.models import Document
 
@@ -35,6 +37,8 @@ def on_startup() -> None:
     # Ensure runtime directories exist.
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     os.makedirs(settings.CHROMA_PERSIST_DIR, exist_ok=True)
+    # Apply any persisted runtime settings overrides on top of .env defaults.
+    runtime_settings.apply_saved()
     # Create tables if they don't exist (dev convenience; use Alembic for prod).
     Base.metadata.create_all(bind=engine)
 
@@ -75,3 +79,4 @@ app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(chat.router)
 app.include_router(admin.router)
+app.include_router(settings_api.router)

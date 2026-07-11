@@ -90,6 +90,7 @@ def _format_context(results) -> tuple[str, list[SourceCitation]]:
                 section=(meta.get("section") or None),
                 chunk_index=meta.get("chunk_index"),
                 snippet=doc.page_content[:200],
+                score=round(float(score), 4),
             )
         )
     return "\n\n---\n\n".join(context_parts), sources
@@ -163,13 +164,14 @@ def _llm_error_message(llm, exc: Exception) -> str:
     return f"The {llm.name} model request failed. Please try again or switch models."
 
 
-def _result(answer: str, sources: list, llm, chunks: int, start: float) -> dict:
+def _result(answer: str, sources: list, llm, chunks: int, start: float, top_score: float = 0.0) -> dict:
     return {
         "answer": answer,
         "sources": sources,
         "provider": llm.name,
         "model": llm.model_name,
         "chunks_retrieved": chunks,
+        "top_score": round(float(top_score), 4) if top_score else None,
         "response_time_ms": int((time.perf_counter() - start) * 1000),
     }
 
@@ -222,24 +224,28 @@ def answer_query(
     provider: str | None = None,
     model: str | None = None,
     has_documents: bool = True,
+    scope_document_id: str | None = None,
 ) -> dict:
     """Execute one turn: greeting/small-talk -> friendly reply; otherwise a
-    grounded RAG answer with a single source (or a friendly not-found)."""
+    grounded RAG answer with cited sources (or a friendly not-found). When
+    scope_document_id is set, retrieval is restricted to that one document."""
     start = time.perf_counter()
     llm = get_provider(provider, model)
 
     # 1) Greetings / small talk -> conversational reply, skip retrieval.
-    chit = _smalltalk_reply(query)
-    if chit is not None:
-        return _result(chit, [], llm, 0, start)
+    #    (Only when not scoped to a document: a scoped chat is always about docs.)
+    if not scope_document_id:
+        chit = _smalltalk_reply(query)
+        if chit is not None:
+            return _result(chit, [], llm, 0, start)
 
     # 2) No documents uploaded at all -> tell the user to upload first.
     if not has_documents:
         msg = "No documents uploaded yet. Please upload a relevant document to get started."
         return _result(msg, [], llm, 0, start)
 
-    # 3) Retrieve from the user's documents.
-    results = vector_store.similarity_search(query, user_id=user_id)
+    # 3) Retrieve from the user's documents (optionally scoped to one).
+    results = vector_store.similarity_search(query, user_id=user_id, document_id=scope_document_id)
     top_score = results[0][1] if results else 0.0
 
     # 4) Documents exist, but nothing relevant was found.
@@ -248,22 +254,20 @@ def answer_query(
             "I couldn't find anything about that in your uploaded documents. "
             "Try rephrasing your question or uploading a document that covers it."
         )
-        return _result(msg, [], llm, len(results), start)
+        return _result(msg, [], llm, len(results), start, top_score)
 
-    # 4) Grounded answer from the retrieved context.
+    # 5) Grounded answer from the retrieved context.
     context, sources = _format_context(results)
     try:
         chain = _build_prompt(llm) | llm.chat_model()
         answer = _clean_answer(chain.invoke({"context": context, "question": query}).content)
     except Exception as exc:  # noqa: BLE001 - surface a friendly message instead of a 500
-        return _result(_llm_error_message(llm, exc), [], llm, len(results), start)
+        return _result(_llm_error_message(llm, exc), [], llm, len(results), start, top_score)
 
-    # The question is on-topic (relevant chunks were found), so always show the
-    # source. But if the answer says the specific fact isn't actually present,
-    # drop the (misleading) page number while keeping the document + section.
-    source = sources[0]
+    # The question is on-topic (relevant chunks were found), so show the cited
+    # sources. But if the answer says the specific fact isn't actually present,
+    # drop the (misleading) page numbers while keeping the documents + sections.
     if any(h in answer.lower() for h in _NOT_PRESENT_HINTS):
-        source = source.model_copy(update={"page_number": None})
-    display_sources = [source]
+        sources = [s.model_copy(update={"page_number": None}) for s in sources]
 
-    return _result(answer, display_sources, llm, len(results), start)
+    return _result(answer, sources, llm, len(results), start, top_score)

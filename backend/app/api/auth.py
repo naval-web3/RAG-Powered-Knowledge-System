@@ -12,7 +12,7 @@ from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import QueryLog, User
-from app.schemas import Token, UserLogin, UserOut, UserRegister
+from app.schemas import PasswordChange, ProfileUpdate, Token, UserLogin, UserOut, UserRegister
 from app.security import create_access_token, hash_password, verify_password
 from app.services import vector_store
 
@@ -62,6 +62,40 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)) -> UserOut:
     return UserOut.model_validate(current_user)
+
+
+@router.patch("/me", response_model=UserOut)
+def update_profile(
+    payload: ProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserOut:
+    """Update the current user's display name (username)."""
+    new_name = payload.username.strip()
+    clash = (
+        db.query(User)
+        .filter(User.username == new_name, User.user_id != current_user.user_id)
+        .first()
+    )
+    if clash:
+        raise HTTPException(status.HTTP_409_CONFLICT, "That username is already taken")
+    current_user.username = new_name
+    db.commit()
+    db.refresh(current_user)
+    return UserOut.model_validate(current_user)
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    payload: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Change the current user's password after verifying the old one."""
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
+    current_user.password_hash = hash_password(payload.new_password)
+    db.commit()
 
 
 @router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)

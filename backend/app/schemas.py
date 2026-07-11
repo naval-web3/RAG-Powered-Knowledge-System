@@ -60,6 +60,8 @@ class ChatRequest(BaseModel):
     provider: str | None = None  # "ollama" | "openai" (overrides default)
     model: str | None = None
     incognito: bool = False  # private chat: not saved to history
+    # Restrict retrieval to a single document (retrieval scope). None = all docs.
+    scope_document_id: uuid.UUID | None = None
 
 
 class SourceCitation(BaseModel):
@@ -69,6 +71,7 @@ class SourceCitation(BaseModel):
     section: str | None = None
     chunk_index: int | None = None
     snippet: str | None = None
+    score: float | None = None  # retrieval relevance (1 - cosine distance)
 
 
 class ChatResponse(BaseModel):
@@ -78,6 +81,8 @@ class ChatResponse(BaseModel):
     provider: str
     model: str
     response_time_ms: int
+    chunks_retrieved: int = 0  # how many chunks the retriever returned
+    top_score: float | None = None  # relevance of the best-matching chunk
 
 
 class MessageOut(BaseModel):
@@ -101,15 +106,16 @@ class ConversationRename(BaseModel):
     title: str = Field(min_length=1, max_length=255)
 
 
-class ConversationRename(BaseModel):
-    title: str = Field(min_length=1, max_length=255)
-
-
 class ConversationDetail(ConversationOut):
     messages: list[MessageOut] = []
 
 
 # ---------- Admin ----------
+class DayCount(BaseModel):
+    date: str  # YYYY-MM-DD
+    count: int
+
+
 class AdminStats(BaseModel):
     total_users: int
     active_users: int
@@ -117,3 +123,65 @@ class AdminStats(BaseModel):
     total_queries: int
     avg_response_time_ms: float
     queries_by_provider: dict[str, int]
+    queries_by_day: list[DayCount] = []  # last 14 days, oldest first
+    documents_by_type: dict[str, int] = {}
+
+
+class AdminUserOut(UserOut):
+    document_count: int = 0
+    query_count: int = 0
+
+
+class QueryLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    log_id: uuid.UUID
+    query_text: str
+    username: str | None = None
+    llm_provider: str
+    model_name: str
+    chunks_retrieved: int
+    response_time_ms: int
+    status: str
+    created_at: datetime
+
+
+class ServiceStatus(BaseModel):
+    name: str
+    ok: bool
+    detail: str
+
+
+class SystemStatus(BaseModel):
+    services: list[ServiceStatus] = []
+
+
+# ---------- Settings / profile ----------
+class SettingsOut(BaseModel):
+    DEFAULT_LLM_PROVIDER: str
+    OLLAMA_MODEL: str
+    OPENAI_CHAT_MODEL: str
+    RETRIEVAL_TOP_K: int
+    LLM_TEMPERATURE: float
+    CHUNK_SIZE: int
+    CHUNK_OVERLAP: int
+    openai_enabled: bool = False
+    ollama_base_url: str = ""
+
+
+class SettingsUpdate(BaseModel):
+    DEFAULT_LLM_PROVIDER: str | None = None
+    OLLAMA_MODEL: str | None = None
+    OPENAI_CHAT_MODEL: str | None = None
+    RETRIEVAL_TOP_K: int | None = None
+    LLM_TEMPERATURE: float | None = None
+    CHUNK_SIZE: int | None = None
+    CHUNK_OVERLAP: int | None = None
+
+
+class ProfileUpdate(BaseModel):
+    username: str = Field(min_length=3, max_length=100)
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=6, max_length=128)

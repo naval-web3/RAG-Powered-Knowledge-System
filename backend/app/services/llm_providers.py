@@ -37,7 +37,7 @@ class OllamaProvider(LLMProvider):
         return ChatOllama(
             model=self.model_name,
             base_url=settings.OLLAMA_BASE_URL,
-            temperature=0.2,
+            temperature=settings.LLM_TEMPERATURE,
             # Keep the model resident in memory so we don't pay the multi-second
             # load cost on every query (important on low-VRAM hardware).
             keep_alive="30m",
@@ -65,7 +65,7 @@ class OpenAIProvider(LLMProvider):
         return ChatOpenAI(
             model=self.model_name,
             api_key=settings.OPENAI_API_KEY,
-            temperature=0.2,
+            temperature=settings.LLM_TEMPERATURE,
             timeout=settings.LLM_TIMEOUT,
             max_tokens=settings.LLM_MAX_TOKENS,
             max_retries=1,

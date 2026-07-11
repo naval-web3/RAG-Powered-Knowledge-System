@@ -34,20 +34,32 @@ def add_chunks(chunks: list[LCDocument], ids: list[str]) -> None:
     get_collection().add(ids=ids, embeddings=vectors, documents=texts, metadatas=metadatas)
 
 
-def similarity_search(query: str, user_id: str, k: int | None = None) -> list[tuple[LCDocument, float]]:
+def similarity_search(
+    query: str,
+    user_id: str,
+    k: int | None = None,
+    document_id: str | None = None,
+) -> list[tuple[LCDocument, float]]:
     """
     Return up to k (document, relevance_score) pairs for a query, restricted
-    to the requesting user's own documents via metadata filtering.
+    to the requesting user's own documents via metadata filtering. When
+    document_id is given, retrieval is further scoped to that one document.
     Relevance score = 1 - cosine_distance (higher is better).
     """
     k = k or settings.RETRIEVAL_TOP_K
     embeddings = get_embeddings()
     query_vec = embeddings.embed_query(query)
 
+    # Chroma requires $and to combine multiple metadata conditions.
+    if document_id:
+        where = {"$and": [{"user_id": user_id}, {"document_id": document_id}]}
+    else:
+        where = {"user_id": user_id}
+
     res = get_collection().query(
         query_embeddings=[query_vec],
         n_results=k,
-        where={"user_id": user_id},
+        where=where,
         include=["documents", "metadatas", "distances"],
     )
 
