@@ -17,12 +17,16 @@ from app.services import vector_store
 from app.services.llm_providers import LLMProvider, get_provider
 
 SYSTEM_PROMPT = (
-    "You are a knowledge assistant. Answer the user's question directly and "
-    "concisely using ONLY the excerpts provided below, which come from the "
-    "user's documents. Give just the answer in one or a few short sentences. "
-    "Do NOT mention the source, document name, or page number in your answer - "
-    "the source is shown separately to the user. If the answer is not in the "
-    "excerpts, say you don't have enough information in the provided documents."
+    "You are a knowledge assistant. Answer the user's question using ONLY the "
+    "excerpts provided below, which come from the user's documents. Give a "
+    "complete answer that covers all relevant details found in the excerpts — "
+    "do not omit information the user asked for. Format for readability using "
+    "Markdown: use short paragraphs, and when the answer has multiple items, "
+    "steps, or points, present them as a bullet list (each line starting with "
+    "'- ') or a numbered list. Use **bold** for key terms. Do NOT mention the "
+    "source, document name, or page number in your answer - the source is shown "
+    "separately to the user. If the answer is not in the excerpts, say you don't "
+    "have enough information in the provided documents."
 )
 
 # Phrases that indicate the specific fact is NOT present in the document even

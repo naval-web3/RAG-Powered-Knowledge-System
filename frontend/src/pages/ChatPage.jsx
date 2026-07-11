@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "../components/Icon";
+import MarkdownLite from "../components/MarkdownLite";
 import { useAuth } from "../context/AuthContext";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
@@ -112,8 +113,6 @@ function AiMessage({ message, onOpenSource }) {
   const sources = message.source_documents?.sources || [];
   const meta = message.meta;
 
-  const paragraphs = String(message.content || "").split(/\n{2,}/);
-
   function copy() {
     navigator.clipboard?.writeText(message.content).then(
       () => toast("Answer copied.", "ok"),
@@ -130,7 +129,7 @@ function AiMessage({ message, onOpenSource }) {
           {meta?.model && <span className="model-tag">{meta.provider} · {meta.model}</span>}
         </div>
         <div className="ai-content">
-          {paragraphs.map((p, i) => <p key={i}>{p}</p>)}
+          <MarkdownLite text={message.content} />
         </div>
 
         {sources.length > 0 && (

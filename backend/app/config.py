@@ -72,8 +72,9 @@ class Settings(BaseSettings):
     # 4GB VRAM can take minutes, so anything past this is effectively unusable.
     LLM_TIMEOUT: float = 90.0
     # Cap generated tokens so a runaway/looping model can't produce an
-    # unbounded response that appears to "never finish".
-    LLM_MAX_TOKENS: int = 512
+    # unbounded response that appears to "never finish". Roomy enough for a
+    # full, multi-point answer without allowing an endless generation.
+    LLM_MAX_TOKENS: int = 1024
 
     # ---- Ollama ----
     OLLAMA_BASE_URL: str = "http://localhost:11434"
