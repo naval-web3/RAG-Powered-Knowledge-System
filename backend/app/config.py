@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     # to CPU), the request fails fast with a friendly message instead of hanging
     # forever. Calibrated: llama3.2:3b answers in ~1-3s; models that overflow
     # 4GB VRAM can take minutes, so anything past this is effectively unusable.
-    LLM_TIMEOUT: float = 90.0
+    LLM_TIMEOUT: float = 240.0
     # Cap generated tokens so a runaway/looping model can't produce an
     # unbounded response that appears to "never finish". Roomy enough for a
     # full, multi-point answer without allowing an endless generation.

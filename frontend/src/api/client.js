@@ -1,10 +1,11 @@
 import axios from "axios";
 
 // All calls go through the Vite proxy to the FastAPI backend at /api.
-// The 120s timeout is a safety net: the backend caps generation at LLM_TIMEOUT
-// (90s) and returns a friendly message, so this only fires if the whole request
-// stalls. Without it, axios waits forever and the chat "keeps thinking".
-const client = axios.create({ baseURL: "/", timeout: 120000 });
+// The 300s timeout is a safety net: the backend caps generation at LLM_TIMEOUT
+// and returns a friendly message first, so this only fires if the whole request
+// stalls. It's generous because large local models (8B) offloaded to CPU on a
+// 4 GB GPU can take a couple of minutes per answer.
+const client = axios.create({ baseURL: "/", timeout: 300000 });
 
 // Attach JWT from localStorage on every request.
 client.interceptors.request.use((config) => {

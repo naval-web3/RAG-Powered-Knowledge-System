@@ -295,6 +295,13 @@ function isSlowLocalModel(model) {
   return m ? parseFloat(m[1]) >= SLOW_MODEL_PARAM_B : false;
 }
 
+/** Short speed/accuracy hint shown under each local model. */
+function modelHint(model) {
+  return isSlowLocalModel(model)
+    ? "More accurate · slower on your GPU"
+    : "Faster · may make mistakes";
+}
+
 function ModelMenu() {
   const chat = useChat();
   const [open, setOpen] = useState(false);
@@ -330,7 +337,7 @@ function ModelMenu() {
             <>
               <div className="drop-label">Ollama · local</div>
               {chat.models.ollama.map((m) => (
-                <Item key={m} value={`ollama|${m}`} name={m} sub="localhost:11434" slow={isSlowLocalModel(m)} />
+                <Item key={m} value={`ollama|${m}`} name={m} sub={modelHint(m)} slow={isSlowLocalModel(m)} />
               ))}
             </>
           )}
