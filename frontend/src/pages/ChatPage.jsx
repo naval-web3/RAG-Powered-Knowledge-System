@@ -309,11 +309,9 @@ function ModelMenu() {
   const current = chat.sel.split("|")[1] || "model";
 
   function toggleOpen() {
-    setOpen((o) => {
-      const next = !o;
-      if (next) chat.loadModels(); // refresh list (picks up newly-pulled models)
-      return next;
-    });
+    const next = !open;
+    setOpen(next);
+    if (next) chat.loadModels?.(); // refresh list (picks up newly-pulled models)
   }
 
   useEffect(() => {

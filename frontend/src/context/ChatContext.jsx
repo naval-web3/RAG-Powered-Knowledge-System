@@ -262,6 +262,7 @@ export function ChatProvider({ children }) {
     uploading,
     loadConversations,
     loadDocs,
+    loadModels,
     newChat,
     openConversation,
     renameConversation,
