@@ -164,6 +164,43 @@ def _llm_error_message(llm, exc: Exception) -> str:
     return f"The {llm.name} model request failed. Please try again or switch models."
 
 
+# Cache the OpenAI health probe so we don't call the API on every query.
+_OPENAI_HEALTH: dict = {"checked_at": 0.0, "model": None, "error": None}
+_OPENAI_HEALTH_TTL = 60.0  # seconds
+
+
+def _provider_unavailable_message(llm) -> str | None:
+    """For the OpenAI provider, return a friendly error message if the provider
+    can't actually be used (no API key, no billing credit, or a bad key), so the
+    user is told about it up front instead of getting a misleading "not found".
+    Returns None when the provider is usable. Result is cached briefly to avoid
+    probing the API on every request. Ollama needs no probe here (its errors are
+    surfaced by the real generation call)."""
+    if llm.name != "openai":
+        return None
+    # No key configured -> definitive, no probe needed.
+    if not settings.OPENAI_API_KEY:
+        return _llm_error_message(llm, RuntimeError("openai_api_key is not set"))
+
+    now = time.perf_counter()
+    if (
+        _OPENAI_HEALTH["model"] == llm.model_name
+        and (now - _OPENAI_HEALTH["checked_at"]) < _OPENAI_HEALTH_TTL
+    ):
+        return _OPENAI_HEALTH["error"]
+
+    error: str | None = None
+    try:
+        # Minimal probe: if the account has no credit / a bad key, this raises
+        # (e.g. insufficient_quota) without producing a billable completion.
+        llm.chat_model().invoke("ping")
+    except Exception as exc:  # noqa: BLE001
+        error = _llm_error_message(llm, exc)
+
+    _OPENAI_HEALTH.update({"checked_at": now, "model": llm.model_name, "error": error})
+    return error
+
+
 def _result(answer: str, sources: list, llm, chunks: int, start: float, top_score: float = 0.0) -> dict:
     return {
         "answer": answer,
@@ -231,6 +268,12 @@ def answer_query(
     scope_document_id is set, retrieval is restricted to that one document."""
     start = time.perf_counter()
     llm = get_provider(provider, model)
+
+    # 0) Provider health: if OpenAI is selected but unusable (no credit / no key
+    #    / bad key), say so directly instead of masking it as "nothing found".
+    unavailable = _provider_unavailable_message(llm)
+    if unavailable is not None:
+        return _result(unavailable, [], llm, 0, start)
 
     # 1) Greetings / small talk -> conversational reply, skip retrieval.
     #    (Only when not scoped to a document: a scoped chat is always about docs.)
