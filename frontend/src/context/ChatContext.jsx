@@ -47,19 +47,24 @@ export function ChatProvider({ children }) {
   const loadModels = useCallback(async () => {
     try {
       const { data } = await client.get("/api/models");
-      setModels({
-        ollama: data.ollama || [],
-        openai: data.openai || [],
-        openai_enabled: !!data.openai_enabled,
+      const ollama = data.ollama || [];
+      const openai = data.openai || [];
+      setModels({ ollama, openai, openai_enabled: !!data.openai_enabled });
+      // Only (re)pick a default when the current selection isn't actually
+      // available — so re-fetching the list never clobbers the user's choice.
+      setSel((cur) => {
+        const [prov, mdl] = cur.split("|");
+        const valid =
+          (prov === "ollama" && ollama.includes(mdl)) ||
+          (prov === "openai" && openai.includes(mdl));
+        if (valid) return cur;
+        if (ollama.length) {
+          const def = ollama.includes(data.default_ollama_model) ? data.default_ollama_model : ollama[0];
+          return `ollama|${def}`;
+        }
+        if (openai.length) return `openai|${openai[0]}`;
+        return cur;
       });
-      if ((data.ollama || []).length) {
-        const def = data.ollama.includes(data.default_ollama_model)
-          ? data.default_ollama_model
-          : data.ollama[0];
-        setSel(`ollama|${def}`);
-      } else if ((data.openai || []).length) {
-        setSel(`openai|${data.openai[0]}`);
-      }
     } catch {
       /* ignore */
     }

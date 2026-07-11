@@ -308,6 +308,14 @@ function ModelMenu() {
   const ref = useRef(null);
   const current = chat.sel.split("|")[1] || "model";
 
+  function toggleOpen() {
+    setOpen((o) => {
+      const next = !o;
+      if (next) chat.loadModels(); // refresh list (picks up newly-pulled models)
+      return next;
+    });
+  }
+
   useEffect(() => {
     if (!open) return;
     const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -328,7 +336,7 @@ function ModelMenu() {
 
   return (
     <div className="menu-anchor" ref={ref}>
-      <button className="model-btn" aria-haspopup="true" onClick={() => setOpen((o) => !o)}>
+      <button className="model-btn" aria-haspopup="true" onClick={toggleOpen}>
         <span className="dot" /><span>{current}</span><Icon name="chev-d" className="icon-sm" />
       </button>
       {open && (
