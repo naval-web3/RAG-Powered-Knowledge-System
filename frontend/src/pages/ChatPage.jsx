@@ -85,9 +85,98 @@ export default function ChatPage() {
 }
 
 function UserMessage({ message }) {
+  const chat = useChat();
+  const { toast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(message.content);
+  const editRef = useRef(null);
+
+  // Focus + size the editor, and put the caret at the end, when edit opens.
+  useEffect(() => {
+    if (!editing || !editRef.current) return;
+    const el = editRef.current;
+    el.focus();
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 220) + "px";
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [editing]);
+
+  function copy() {
+    navigator.clipboard?.writeText(message.content).then(
+      () => toast("Prompt copied.", "ok"),
+      () => toast("Couldn't copy.", "err")
+    );
+  }
+
+  function startEdit() {
+    setDraft(message.content);
+    setEditing(true);
+  }
+
+  function cancelEdit() {
+    setEditing(false);
+    setDraft(message.content);
+  }
+
+  function saveEdit() {
+    const q = draft.trim();
+    if (!q || chat.sending) return;
+    setEditing(false);
+    chat.send(q); // resend the edited text as a new prompt
+  }
+
+  function onKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      saveEdit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEdit();
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="msg msg-user">
+        <div className="user-col">
+          <div className="bubble bubble-editing">
+            <textarea
+              ref={editRef}
+              className="bubble-edit"
+              rows={1}
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 220) + "px";
+              }}
+              onKeyDown={onKeyDown}
+            />
+          </div>
+          <div className="bubble-edit-actions">
+            <button className="btn btn-ghost btn-sm" onClick={cancelEdit}>Cancel</button>
+            <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={!draft.trim() || chat.sending}>
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="msg msg-user">
-      <div className="bubble">{message.content}</div>
+      <div className="user-col">
+        <div className="bubble">{message.content}</div>
+        <div className="msg-actions user-actions">
+          <button className="btn-icon" title="Copy" onClick={copy}>
+            <Icon name="copy" className="icon-sm" />
+          </button>
+          <button className="btn-icon" title="Edit & resend" onClick={startEdit}>
+            <Icon name="pencil" className="icon-sm" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
