@@ -4,6 +4,7 @@ import { useAuth } from "./context/AuthContext";
 import AdminPage from "./pages/AdminPage";
 import ChatPage from "./pages/ChatPage";
 import DocumentsPage from "./pages/DocumentsPage";
+import ForgotPassword from "./pages/ForgotPassword";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -29,6 +30,7 @@ export default function App() {
       <Route path="/welcome" element={<PublicOnly><Landing /></PublicOnly>} />
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
       <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
+      <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
       <Route
         path="/"
         element={

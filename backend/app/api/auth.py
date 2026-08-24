@@ -1,8 +1,9 @@
-"""Authentication routes: register, login, account deletion (synopsis Module 1)."""
+"""Authentication routes: register, login, password reset, account deletion (synopsis Module 1)."""
 
 import os
+import secrets
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
@@ -11,12 +12,31 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import QueryLog, User
-from app.schemas import PasswordChange, ProfileUpdate, Token, UserLogin, UserOut, UserRegister
+from app.models import PasswordResetToken, QueryLog, User
+from app.schemas import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    PasswordChange,
+    ProfileUpdate,
+    ResetPasswordRequest,
+    Token,
+    UserLogin,
+    UserOut,
+    UserRegister,
+)
 from app.security import create_access_token, hash_password, verify_password
 from app.services import vector_store
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+# Forgotten-password reset codes: short-lived, single-use. The alphabet omits
+# easily confused characters (0/O, 1/I/L) so an on-screen code is easy to retype.
+RESET_CODE_TTL_MINUTES = 15
+_RESET_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+
+def _generate_reset_code() -> str:
+    return "".join(secrets.choice(_RESET_ALPHABET) for _ in range(6))
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
@@ -57,6 +77,68 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
 
     token = create_access_token(subject=str(user.user_id), role=user.role)
     return Token(access_token=token, user=UserOut.model_validate(user))
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> ForgotPasswordResponse:
+    """Issue a single-use reset code for a forgotten password.
+
+    No email service is configured, so the code is returned for on-screen display
+    (it stands in for an emailed reset link). Because the code is shown to whoever
+    makes the request, this necessarily confirms whether an account exists — an
+    accepted trade-off of the on-screen approach for this project.
+    """
+    user = db.query(User).filter(User.email == payload.email).first()
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No account found with that email address.")
+
+    # Invalidate any earlier unused codes so only the latest one works.
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.user_id,
+        PasswordResetToken.used.is_(False),
+    ).update({"used": True})
+
+    code = _generate_reset_code()
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=RESET_CODE_TTL_MINUTES)
+    db.add(
+        PasswordResetToken(
+            user_id=user.user_id,
+            code_hash=hash_password(code),
+            expires_at=expires_at,
+        )
+    )
+    db.commit()
+    return ForgotPasswordResponse(
+        code=code, expires_at=expires_at, expires_in_minutes=RESET_CODE_TTL_MINUTES
+    )
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> None:
+    """Set a new password using a valid, unexpired, unused reset code."""
+    user = db.query(User).filter(User.email == payload.email).first()
+    # Uniform error so a bad email and a bad code look the same to the caller.
+    invalid = HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired reset code.")
+    if user is None:
+        raise invalid
+
+    token = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.user_id == user.user_id,
+            PasswordResetToken.used.is_(False),
+        )
+        .order_by(PasswordResetToken.created_at.desc())
+        .first()
+    )
+    if token is None or token.expires_at < datetime.now(timezone.utc):
+        raise invalid
+    if not verify_password(payload.code.strip().upper(), token.code_hash):
+        raise invalid
+
+    user.password_hash = hash_password(payload.new_password)
+    token.used = True
+    db.commit()
 
 
 @router.get("/me", response_model=UserOut)

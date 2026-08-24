@@ -88,6 +88,7 @@ export default function Login() {
             <div className={`field ${errors.password ? "invalid" : ""}`}>
               <div className="label-row">
                 <label className="label" htmlFor="login-pass">Password</label>
+                <Link className="label-link" to="/forgot-password">Forgot password?</Link>
               </div>
               <div className="input-wrap">
                 <input className="input" type={showPass ? "text" : "password"} id="login-pass"

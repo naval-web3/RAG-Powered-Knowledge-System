@@ -606,7 +606,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .composer-box textarea {
   width: 100%; border: 0; background: transparent; resize: none;
   padding: 15px 18px 6px; font-size: 15px; line-height: 1.5;
-  max-height: 190px; min-height: 52px; outline: none;
+  max-height: 190px; min-height: 52px; outline: none; overflow-y: auto;
 }
 .composer-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px 10px; }
 .model-btn {

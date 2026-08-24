@@ -185,3 +185,22 @@ class ProfileUpdate(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str = Field(min_length=6, max_length=128)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    # No email service is configured, so the reset code is returned for on-screen
+    # display (it stands in for an emailed reset link). In production this would
+    # be emailed instead and never returned in the response body.
+    code: str
+    expires_at: datetime
+    expires_in_minutes: int
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=4, max_length=12)
+    new_password: str = Field(min_length=6, max_length=128)

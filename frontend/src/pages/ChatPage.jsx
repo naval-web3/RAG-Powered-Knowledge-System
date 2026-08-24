@@ -189,14 +189,39 @@ function Composer({ fileRef }) {
   const [recording, setRecording] = useState(false);
   const taRef = useRef(null);
   const recRef = useRef(null);
+  // Dictation keeps listening through pauses until the user explicitly stops it
+  // (toggles the mic, sends, or clicks away). shouldListenRef is that intent;
+  // baseTextRef holds the finalized text so interim results don't clobber it.
+  const shouldListenRef = useRef(false);
+  const baseTextRef = useRef("");
+
+  function joinText(a, b) {
+    const left = (a || "").trim();
+    const right = (b || "").trim();
+    if (!left) return right;
+    if (!right) return left;
+    return `${left} ${right}`;
+  }
 
   function autoGrow(el) {
+    if (!el) return;
+    // Grow the box line by line (upward, since it's anchored at the bottom)
+    // until the max height, then scroll so the newest line stays visible.
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 190) + "px";
+    el.scrollTop = el.scrollHeight;
   }
+
+  // Recompute height on ANY text change — typing, dictation, or programmatic
+  // updates — so long input never overflows or gets clipped.
+  useEffect(() => {
+    autoGrow(taRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
   function submit() {
     const q = text.trim();
     if (!q || chat.sending) return;
+    stopDictation();
     chat.send(q);
     setText("");
     if (taRef.current) taRef.current.style.height = "auto";
@@ -208,29 +233,83 @@ function Composer({ fileRef }) {
     }
   }
 
-  function toggleDictation() {
+  function startDictation() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       toast("Voice input isn't supported in this browser.", "warn");
       return;
     }
-    if (recording) {
-      recRef.current?.stop();
-      return;
-    }
     const rec = new SR();
     rec.lang = "en-US";
-    rec.interimResults = false;
+    rec.continuous = true; // keep listening across pauses
+    rec.interimResults = true; // show words as they're spoken
     rec.onresult = (ev) => {
-      const said = Array.from(ev.results).map((r) => r[0].transcript).join(" ");
-      setText((t) => (t ? `${t} ${said}` : said));
+      let interim = "";
+      let finalized = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const res = ev.results[i];
+        if (res.isFinal) finalized += res[0].transcript;
+        else interim += res[0].transcript;
+      }
+      if (finalized) baseTextRef.current = joinText(baseTextRef.current, finalized);
+      setText(joinText(baseTextRef.current, interim));
     };
-    rec.onend = () => setRecording(false);
-    rec.onerror = () => setRecording(false);
+    rec.onend = () => {
+      // Chrome ends the session after a silence even with continuous=true.
+      // Restart it ourselves so dictation only stops on an explicit action.
+      if (shouldListenRef.current) {
+        try { rec.start(); } catch { /* already restarting */ }
+      } else {
+        setRecording(false);
+      }
+    };
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        shouldListenRef.current = false;
+        setRecording(false);
+        toast("Microphone is blocked. Allow it in the browser to dictate.", "warn");
+      }
+      // Transient errors (e.g. "no-speech") are ignored; onend will restart.
+    };
     recRef.current = rec;
-    rec.start();
+    baseTextRef.current = text ? text.trim() : "";
+    shouldListenRef.current = true;
+    try { rec.start(); } catch { /* start() can throw if called twice */ }
     setRecording(true);
   }
+
+  function stopDictation() {
+    if (!shouldListenRef.current && !recording) return;
+    shouldListenRef.current = false;
+    try { recRef.current?.stop(); } catch { /* ignore */ }
+    setRecording(false);
+  }
+
+  function toggleDictation() {
+    if (recording) stopDictation();
+    else startDictation();
+  }
+
+  // While dictating, a click/tap anywhere except the mic button stops it
+  // (like Windows dictation). The mic button toggles via its own handler.
+  useEffect(() => {
+    if (!recording) return;
+    function onPointerDown(e) {
+      if (e.target.closest && e.target.closest(".mic-btn")) return;
+      stopDictation();
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording]);
+
+  // Stop recognition if the composer unmounts mid-dictation.
+  useEffect(() => {
+    return () => {
+      shouldListenRef.current = false;
+      try { recRef.current?.stop(); } catch { /* ignore */ }
+    };
+  }, []);
 
   return (
     <div className="composer-zone">

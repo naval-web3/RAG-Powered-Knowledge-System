@@ -136,3 +136,26 @@ class QueryLog(Base):
     model_name: Mapped[str] = mapped_column(String(100), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="success")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class PasswordResetToken(Base):
+    """Short-lived code that lets a user reset a forgotten password.
+
+    No email service is configured for this project, so the generated code is
+    shown to the user on screen (it stands in for an emailed reset link). Only a
+    hash of the code is stored, and each code is single-use and time-limited.
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    token_id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    code_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
