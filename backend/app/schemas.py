@@ -66,6 +66,9 @@ class ChatRequest(BaseModel):
     incognito: bool = False  # private chat: not saved to history
     # Restrict retrieval to a single document (retrieval scope). None = all docs.
     scope_document_id: uuid.UUID | None = None
+    # Only used when starting a NEW conversation; an existing conversation
+    # already knows which project it belongs to.
+    project_id: uuid.UUID | None = None
 
 
 class SourceCitation(BaseModel):
@@ -101,6 +104,7 @@ class MessageOut(BaseModel):
 class ConversationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     conversation_id: uuid.UUID
+    project_id: uuid.UUID | None = None
     title: str
     created_at: datetime
     updated_at: datetime
@@ -208,3 +212,33 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr
     code: str = Field(min_length=4, max_length=12)
     new_password: str = Field(min_length=6, max_length=128)
+
+
+# ---------- Projects ----------
+class ProjectCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    instructions: str | None = None
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    instructions: str | None = None
+
+
+class ProjectDocumentsUpdate(BaseModel):
+    """Replace a project's document selection wholesale."""
+
+    doc_scope: str = Field(pattern="^(all|selected)$")
+    document_ids: list[uuid.UUID] = []
+
+
+class ProjectOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    project_id: uuid.UUID
+    name: str
+    instructions: str | None = None
+    doc_scope: str
+    created_at: datetime
+    updated_at: datetime
+    document_ids: list[uuid.UUID] = []
+    conversation_count: int = 0

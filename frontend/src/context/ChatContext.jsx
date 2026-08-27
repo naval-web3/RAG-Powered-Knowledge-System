@@ -9,6 +9,12 @@ export function ChatProvider({ children }) {
 
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [activeProjectId, setActiveProjectIdState] = useState(null);
+  // Mirrored in a ref because send() often runs in the same tick as the call
+  // that switched project (starting a chat from the project page), and a state
+  // update would not be visible to send's closure until the next render.
+  const activeProjectRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const [loadingConv, setLoadingConv] = useState(false);
@@ -77,12 +83,73 @@ export function ChatProvider({ children }) {
     loadConversations();
     loadDocs();
     loadModels();
-  }, [loadConversations, loadDocs, loadModels]);
+    loadProjects();
+  }, [loadConversations, loadDocs, loadModels, loadProjects]);
 
-  const newChat = useCallback(() => {
-    setActiveId(null);
-    setMessages([]);
+  const setActiveProject = useCallback((id) => {
+    activeProjectRef.current = id || null;
+    setActiveProjectIdState(id || null);
   }, []);
+
+  const loadProjects = useCallback(async () => {
+    try {
+      const { data } = await client.get("/api/projects");
+      setProjects(data || []);
+    } catch {
+      /* non-fatal: the sidebar simply shows no projects */
+    }
+  }, []);
+
+  const createProject = useCallback(
+    async (name) => {
+      const { data } = await client.post("/api/projects", { name });
+      await loadProjects();
+      return data;
+    },
+    [loadProjects]
+  );
+
+  const updateProject = useCallback(
+    async (id, patch) => {
+      const { data } = await client.patch(`/api/projects/${id}`, patch);
+      await loadProjects();
+      return data;
+    },
+    [loadProjects]
+  );
+
+  const setProjectDocuments = useCallback(
+    async (id, docScope, documentIds) => {
+      const { data } = await client.put(`/api/projects/${id}/documents`, {
+        doc_scope: docScope,
+        document_ids: documentIds,
+      });
+      await loadProjects();
+      return data;
+    },
+    [loadProjects]
+  );
+
+  const deleteProject = useCallback(
+    async (id) => {
+      await client.delete(`/api/projects/${id}`);
+      if (activeProjectRef.current === id) setActiveProject(null);
+      await loadProjects();
+      loadConversations();
+    },
+    [loadProjects, loadConversations, setActiveProject]
+  );
+
+  // projectId is optional; guard against being wired straight to an onClick,
+  // which would otherwise pass the click event in as the project.
+  const newChat = useCallback(
+    (projectId) => {
+      setActiveProject(typeof projectId === "string" ? projectId : null);
+      setActiveId(null);
+      setMessages([]);
+    },
+    [setActiveProject]
+  );
 
   const openConversation = useCallback(
     async (id) => {
@@ -91,6 +158,7 @@ export function ChatProvider({ children }) {
       try {
         const { data } = await client.get(`/api/conversations/${id}`);
         setActiveId(id);
+        setActiveProject(data.project_id || null);
         setMessages(data.messages || []);
       } catch {
         toast("Couldn't open that conversation.", "err");
@@ -98,7 +166,7 @@ export function ChatProvider({ children }) {
         setLoadingConv(false);
       }
     },
-    [privateMode, toast]
+    [privateMode, setActiveProject, toast]
   );
 
   const renameConversation = useCallback(
@@ -167,6 +235,7 @@ export function ChatProvider({ children }) {
           model,
           incognito: privateMode,
           scope_document_id: scopeDocId || null,
+          project_id: activeProjectRef.current,
         });
         setMessages((m) => [
           ...m,
@@ -203,13 +272,14 @@ export function ChatProvider({ children }) {
 
   /** Upload a document with pipeline polling; progress surfaced via toasts. */
   const uploadFile = useCallback(
-    async (file) => {
+    async (file, projectId = null) => {
       if (!file) return;
       setUploading(true);
       setUploadProgress({ name: file.name, pct: 0 });
       const tid = toast(`Uploading “${file.name}”…`, "info");
       const form = new FormData();
       form.append("file", file);
+      if (projectId) form.append("project_id", projectId);
       try {
         const { data } = await client.post("/api/documents", form, {
           headers: { "Content-Type": "multipart/form-data" },
@@ -220,6 +290,7 @@ export function ChatProvider({ children }) {
         });
         // The bytes are in; the server pipeline takes over from here.
         setUploadProgress(null);
+        if (projectId) loadProjects();
         loadDocs();
         let status = data.processing_status;
         let reason = "";
@@ -250,12 +321,21 @@ export function ChatProvider({ children }) {
         setUploadProgress(null);
       }
     },
-    [toast, loadDocs]
+    [toast, loadDocs, loadProjects]
   );
 
   const value = {
     conversations,
     activeId,
+    projects,
+    activeProjectId,
+    activeProject: projects.find((p) => p.project_id === activeProjectId) || null,
+    setActiveProject,
+    loadProjects,
+    createProject,
+    updateProject,
+    deleteProject,
+    setProjectDocuments,
     messages,
     sending,
     loadingConv,

@@ -91,6 +91,14 @@ class Conversation(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True
     )
+    # A conversation may belong to a project, which supplies its instructions
+    # and restricts retrieval to that project's documents. NULL = a loose chat
+    # that searches the whole library, which is how every chat worked before
+    # projects existed.
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.project_id", ondelete="SET NULL"),
+        nullable=True, index=True,
+    )
     title: Mapped[str] = mapped_column(String(255), default="New Chat")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -166,3 +174,59 @@ class PasswordResetToken(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Project(Base):
+    """A workspace that pins its own instructions and its own set of documents.
+
+    The point is isolation: a chat inside a project retrieves only from the
+    documents attached to that project, so answers cannot be assembled from
+    unrelated files that happen to sit in the same library.
+    """
+
+    __tablename__ = "projects"
+
+    project_id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    # Free-text standing instructions applied to every chat in the project.
+    instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # "all"      -> retrieve from the user's whole library
+    # "selected" -> retrieve only from the linked documents below
+    doc_scope: Mapped[str] = mapped_column(String(10), default="selected", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), index=True
+    )
+
+    owner: Mapped["User"] = relationship()
+    links: Mapped[list["ProjectDocument"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        CheckConstraint("doc_scope IN ('all','selected')", name="ck_projects_doc_scope"),
+    )
+
+
+class ProjectDocument(Base):
+    """Link row putting one document in one project.
+
+    A document can sit in several projects at once and still be the single copy
+    in the user's library, so attaching it to a project never re-uploads or
+    re-indexes anything.
+    """
+
+    __tablename__ = "project_documents"
+
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.project_id", ondelete="CASCADE"), primary_key=True
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("documents.document_id", ondelete="CASCADE"), primary_key=True
+    )
+
+    project: Mapped["Project"] = relationship(back_populates="links")
+    document: Mapped["Document"] = relationship()

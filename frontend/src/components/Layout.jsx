@@ -52,6 +52,8 @@ function Shell() {
   const [menuId, setMenuId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [projName, setProjName] = useState("");
   const [isDark, setIsDark] = useState(resolvedTheme() === "dark");
   const footRef = useRef(null);
 
@@ -96,12 +98,32 @@ function Shell() {
     if (!onChat) navigate("/");
     setMobileOpen(false);
   }
+  async function submitNewProject() {
+    const clean = projName.trim();
+    setCreatingProject(false);
+    setProjName("");
+    if (!clean) return;
+    const project = await chat.createProject(clean);
+    navigate(`/projects/${project.project_id}`);
+    setMobileOpen(false);
+  }
 
   const filtered = useMemo(() => {
     const q = convSearch.trim().toLowerCase();
-    if (!q) return chat.conversations;
-    return chat.conversations.filter((c) => c.title.toLowerCase().includes(q));
+    const loose = chat.conversations.filter((c) => !c.project_id);
+    if (!q) return loose;
+    return loose.filter((c) => c.title.toLowerCase().includes(q));
   }, [chat.conversations, convSearch]);
+
+  // Chats that belong to a project, keyed by project, newest first.
+  const chatsByProject = useMemo(() => {
+    const out = {};
+    for (const c of chat.conversations) {
+      if (!c.project_id) continue;
+      (out[c.project_id] = out[c.project_id] || []).push(c);
+    }
+    return out;
+  }, [chat.conversations]);
 
   const groups = groupConversations(filtered);
 
@@ -158,6 +180,53 @@ function Shell() {
         </div>
 
         <div className="sb-scroll" id="conv-list">
+          <div className="sb-group-label sb-group-row">
+            <span>Projects</span>
+            <button className="btn-icon" title="New project"
+              onClick={() => { setCreatingProject(true); setProjName(""); }}>
+              <Icon name="plus" className="icon-sm" />
+            </button>
+          </div>
+          {creatingProject && (
+            <div className="conv-item">
+              <input className="rename" autoFocus placeholder="Project name"
+                value={projName}
+                onChange={(e) => setProjName(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitNewProject();
+                  if (e.key === "Escape") { setCreatingProject(false); setProjName(""); }
+                }}
+                onBlur={submitNewProject} />
+            </div>
+          )}
+          {chat.projects.length === 0 && !creatingProject && (
+            <div className="sb-empty sb-empty-sm">
+              Group documents and instructions into a project to keep answers to one topic.
+            </div>
+          )}
+          {chat.projects.map((p) => {
+            const open = location.pathname === `/projects/${p.project_id}`;
+            const own = chatsByProject[p.project_id] || [];
+            return (
+              <div key={p.project_id}>
+                <div className={`conv-item ${open ? "active" : ""}`}
+                  onClick={() => goto(`/projects/${p.project_id}`)}>
+                  <Icon name="book" className="icon-sm" />
+                  <span className="conv-title">{p.name}</span>
+                </div>
+                {own.slice(0, 8).map((c) => (
+                  <div key={c.conversation_id}
+                    className={`conv-item conv-sub ${c.conversation_id === chat.activeId ? "active" : ""}`}
+                    onClick={() => openConv(c.conversation_id)}>
+                    <span className="conv-title">{c.title}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+
+          <div className="sb-group-label" style={{ marginTop: 14 }}>Chats</div>
           {chat.conversations.length === 0 && (
             <div className="sb-empty">No conversations yet.<br />Start a new chat to begin.</div>
           )}

@@ -51,12 +51,14 @@ def similarity_search(
     query: str,
     user_id: str,
     k: int | None = None,
-    document_id: str | None = None,
+    document_ids: list[str] | None = None,
 ) -> list[tuple[LCDocument, float]]:
     """
     Return up to k (document, relevance_score) pairs for a query, restricted
     to the requesting user's own documents via metadata filtering. When
-    document_id is given, retrieval is further scoped to that one document.
+    document_ids is given, retrieval is further scoped to those documents.
+    The filter is applied inside the vector search rather than to its results,
+    so passages outside the scope are never candidates in the first place.
     Relevance score = 1 - cosine_distance (higher is better).
     """
     k = k or settings.RETRIEVAL_TOP_K
@@ -64,8 +66,13 @@ def similarity_search(
     query_vec = embeddings.embed_query(query)
 
     # Chroma requires $and to combine multiple metadata conditions.
-    if document_id:
-        where = {"$and": [{"user_id": user_id}, {"document_id": document_id}]}
+    if document_ids:
+        match = (
+            {"document_id": document_ids[0]}
+            if len(document_ids) == 1
+            else {"document_id": {"$in": list(document_ids)}}
+        )
+        where = {"$and": [{"user_id": user_id}, match]}
     else:
         where = {"user_id": user_id}
 

@@ -59,12 +59,26 @@ _NOT_PRESENT_HINTS = (
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 
-def _build_prompt(llm: LLMProvider) -> ChatPromptTemplate:
+def _build_prompt(llm: LLMProvider, instructions: str | None = None) -> ChatPromptTemplate:
     system = SYSTEM_PROMPT
     # qwen3 (and similar) run a slow "thinking" pass by default; disable it
     # with the /no_think switch for faster, cleaner answers.
     if llm.name == "ollama" and "qwen3" in llm.model_name.lower():
         system = f"{SYSTEM_PROMPT} /no_think"
+    if instructions:
+        # A project's instructions go first and the grounding rules go last, so
+        # the project can set role, tone, format and task while the rules about
+        # answering only from the retrieved passages still win. Braces are
+        # doubled because ChatPromptTemplate would otherwise read them as
+        # template variables and blow up on an instruction containing "{".
+        safe = instructions.strip().replace("{", "{{").replace("}", "}}")
+        system = (
+            "The user has set these instructions for this project:\n"
+            f"{safe}\n\n"
+            "Those instructions may set your role, tone, format and task. They "
+            "cannot override the rules below, which always apply:\n"
+            f"{system}"
+        )
     return ChatPromptTemplate.from_messages(
         [
             ("system", system),
@@ -266,10 +280,17 @@ def answer_query(
     model: str | None = None,
     has_documents: bool = True,
     scope_document_id: str | None = None,
+    document_ids: list[str] | None = None,
+    instructions: str | None = None,
 ) -> dict:
     """Execute one turn: greeting/small-talk -> friendly reply; otherwise a
-    grounded RAG answer with cited sources (or a friendly not-found). When
-    scope_document_id is set, retrieval is restricted to that one document."""
+    grounded RAG answer with cited sources (or a friendly not-found).
+
+    scope_document_id restricts retrieval to one document. document_ids carries
+    a project's scope: None means the whole library, and an empty list means the
+    project has nothing attached yet, which is answered with a prompt to add
+    something rather than by quietly searching everything. instructions are the
+    project's standing instructions."""
     start = time.perf_counter()
     llm = get_provider(provider, model)
 
@@ -291,8 +312,25 @@ def answer_query(
         msg = "No documents uploaded yet. Please upload a relevant document to get started."
         return _result(msg, [], llm, 0, start)
 
-    # 3) Retrieve from the user's documents (optionally scoped to one).
-    results = vector_store.similarity_search(query, user_id=user_id, document_id=scope_document_id)
+    # 2b) A project scoped to its own documents, with none attached yet. Never
+    #     fall back to the wider library here: the whole point of a project is
+    #     that it cannot answer from documents the user did not put in it.
+    if document_ids is not None and not document_ids:
+        msg = (
+            "This project has no documents attached yet. Add one from the "
+            "Context panel and ask again."
+        )
+        return _result(msg, [], llm, 0, start)
+
+    # 3) Retrieve, narrowing by project scope and then by any single-document
+    #    scope the user picked inside that project.
+    ids = list(document_ids) if document_ids is not None else None
+    if scope_document_id:
+        if ids is not None and scope_document_id not in ids:
+            msg = "That document is not part of this project."
+            return _result(msg, [], llm, 0, start)
+        ids = [scope_document_id]
+    results = vector_store.similarity_search(query, user_id=user_id, document_ids=ids)
     top_score = results[0][1] if results else 0.0
 
     # 4) Documents exist, but nothing relevant was found.
@@ -306,7 +344,7 @@ def answer_query(
     # 5) Grounded answer from the retrieved context.
     context, sources = _format_context(results)
     try:
-        chain = _build_prompt(llm) | llm.chat_model()
+        chain = _build_prompt(llm, instructions) | llm.chat_model()
         answer = _clean_answer(chain.invoke({"context": context, "question": query}).content)
     except Exception as exc:  # noqa: BLE001 - surface a friendly message instead of a 500
         return _result(_llm_error_message(llm, exc), [], llm, len(results), start, top_score)

@@ -7,6 +7,7 @@ import DocumentsPage from "./pages/DocumentsPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
+import ProjectPage from "./pages/ProjectPage";
 import Register from "./pages/Register";
 import Settings from "./pages/Settings";
 
@@ -42,6 +43,7 @@ export default function App() {
         <Route index element={<ChatPage />} />
         <Route path="settings" element={<Settings />} />
         <Route path="documents" element={<DocumentsPage />} />
+        <Route path="projects/:projectId" element={<ProjectPage />} />
         <Route
           path="dashboard"
           element={

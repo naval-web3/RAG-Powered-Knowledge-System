@@ -10,6 +10,7 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     File,
+    Form,
     HTTPException,
     UploadFile,
     status,
@@ -20,7 +21,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import SessionLocal, get_db
 from app.deps import get_current_user
-from app.models import Document, User
+from app.models import Document, Project, ProjectDocument, User
 from app.schemas import DocumentOut
 from app.services import vector_store
 
@@ -88,9 +89,18 @@ def _mark_failed_if_unfinished(document_id: uuid.UUID, message: str) -> None:
 async def upload_document(
     background: BackgroundTasks,
     file: UploadFile = File(...),
+    # When the upload starts from inside a project, the new document is filed
+    # into it as well as the library, so the user does not have to attach it
+    # by hand afterwards.
+    project_id: uuid.UUID | None = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> DocumentOut:
+    project: Project | None = None
+    if project_id:
+        project = db.get(Project, project_id)
+        if project is None or project.user_id != current_user.user_id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
     ext = (file.filename or "").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else ""
     if ext not in ALLOWED:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unsupported file type '.{ext}'. Allowed: pdf, docx, txt")
@@ -120,6 +130,14 @@ async def upload_document(
     db.add(doc)
     db.commit()
     db.refresh(doc)
+
+    if project is not None:
+        db.add(ProjectDocument(project_id=project.project_id, document_id=doc.document_id))
+        # An upload into a project is an explicit choice to use that file there,
+        # so a project still set to "all documents" is switched to its own
+        # selection rather than silently ignoring the attachment.
+        project.doc_scope = "selected"
+        db.commit()
 
     background.add_task(_run_pipeline, doc.document_id)
     return DocumentOut.model_validate(doc)

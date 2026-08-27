@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Conversation, Document, Message, QueryLog, User
+from app.models import Conversation, Document, Message, Project, QueryLog, User
 from app.schemas import (
     ChatRequest,
     ChatResponse,
@@ -21,6 +21,17 @@ from app.schemas import (
 from app.services.rag_engine import answer_query, generate_title
 
 router = APIRouter(prefix="/api", tags=["chat"])
+
+
+def _project_document_ids(project: Project) -> list[str] | None:
+    """Which documents a project may retrieve from.
+
+    None means the whole library. A list restricts retrieval to those documents,
+    and an empty list means the project has nothing attached yet.
+    """
+    if project.doc_scope == "all":
+        return None
+    return [str(link.document_id) for link in project.links]
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -46,6 +57,21 @@ def chat(
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Scoped document not found")
         scope_id = str(payload.scope_document_id)
 
+    # Project scope. An existing conversation already belongs to a project, so
+    # only a brand new chat takes the project from the request.
+    project: Project | None = None
+    project_id = payload.project_id
+    if payload.conversation_id:
+        existing = db.get(Conversation, payload.conversation_id)
+        if existing is not None and existing.user_id == current_user.user_id:
+            project_id = existing.project_id
+    if project_id:
+        project = db.get(Project, project_id)
+        if project is None or project.user_id != current_user.user_id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    doc_ids = _project_document_ids(project) if project else None
+    instructions = project.instructions if project else None
+
     # Incognito / private chat: answer but persist nothing (no conversation,
     # no messages, no query log).
     if payload.incognito:
@@ -56,6 +82,8 @@ def chat(
             model=payload.model,
             has_documents=has_documents,
             scope_document_id=scope_id,
+            document_ids=doc_ids,
+            instructions=instructions,
         )
         return ChatResponse(
             conversation_id=None,
@@ -76,6 +104,7 @@ def chat(
     else:
         conv = Conversation(
             user_id=current_user.user_id,
+            project_id=project.project_id if project else None,
             title=generate_title(payload.query, payload.provider, payload.model),
         )
         db.add(conv)
@@ -94,6 +123,8 @@ def chat(
         model=payload.model,
         has_documents=has_documents,
         scope_document_id=scope_id,
+        document_ids=doc_ids,
+        instructions=instructions,
     )
 
     sources_payload = [s.model_dump() for s in result["sources"]]

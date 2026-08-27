@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy import text, update
 
-from app.api import admin, auth, chat, documents
+from app.api import admin, auth, chat, documents, projects
 from app.api import settings as settings_api
 from app.config import settings
 from app import runtime_settings
@@ -52,6 +52,14 @@ def on_startup() -> None:
             text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS progress INTEGER NOT NULL DEFAULT 0")
         )
         conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS stage_detail VARCHAR(120)"))
+        # projects / project_documents are new tables, so create_all makes them;
+        # conversations already exists, so its new column needs adding by hand.
+        conn.execute(
+            text(
+                "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS project_id UUID "
+                "REFERENCES projects(project_id) ON DELETE SET NULL"
+            )
+        )
 
     # Recover documents left mid-processing by a previous run/restart so they
     # don't stay stuck on "processing"/"pending" forever.
@@ -91,5 +99,6 @@ def health() -> dict:
 app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(chat.router)
+app.include_router(projects.router)
 app.include_router(admin.router)
 app.include_router(settings_api.router)
