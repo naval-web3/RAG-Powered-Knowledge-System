@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "smoke": "esbuild smoke/render-smoke.jsx --bundle --platform=node --format=cjs --jsx=automatic --loader:.js=jsx --outfile=smoke/out.cjs --log-level=error && node smoke/out.cjs"
   },
   "dependencies": {
     "axios": "^1.7.9",

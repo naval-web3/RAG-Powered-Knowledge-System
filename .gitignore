@@ -24,6 +24,7 @@ backend/uploads/
 node_modules/
 frontend/dist/
 frontend/build/
+frontend/smoke/out.cjs
 .vite/
 
 # ---- Dev tooling / screenshots (local only) ----

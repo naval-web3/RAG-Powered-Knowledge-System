@@ -79,13 +79,6 @@ export function ChatProvider({ children }) {
     }
   }, []);
 
-  useEffect(() => {
-    loadConversations();
-    loadDocs();
-    loadModels();
-    loadProjects();
-  }, [loadConversations, loadDocs, loadModels, loadProjects]);
-
   const setActiveProject = useCallback((id) => {
     activeProjectRef.current = id || null;
     setActiveProjectIdState(id || null);
@@ -99,6 +92,13 @@ export function ChatProvider({ children }) {
       /* non-fatal: the sidebar simply shows no projects */
     }
   }, []);
+
+  useEffect(() => {
+    loadConversations();
+    loadDocs();
+    loadModels();
+    loadProjects();
+  }, [loadConversations, loadDocs, loadModels, loadProjects]);
 
   const createProject = useCallback(
     async (name) => {
