@@ -709,7 +709,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 }
 .msg-chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .msg-chip .icon-sm { width: 13px; height: 13px; color: var(--accent); }
-.toast .t-act { flex: none;
+.toast .t-act {
   display: inline-flex; margin-top: 7px; padding: 5px 11px;
   border: 1px solid var(--accent); border-radius: 999px;
   font-size: 12px; font-weight: 600; color: var(--accent);
@@ -1006,7 +1006,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 /* Toasts */
 #toasts { position: fixed; top: 72px; right: 22px; z-index: 200; display: flex; flex-direction: column-reverse; gap: 10px; }
 .toast {
-  display: flex; align-items: center; gap: 11px; min-width: 280px; max-width: min(560px, calc(100vw - 44px));
+  display: flex; align-items: flex-start; gap: 11px; min-width: 280px; max-width: min(440px, calc(100vw - 44px));
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--r-md); box-shadow: var(--shadow-lg); padding: 12px 14px;
   animation: toastIn .28s var(--ease);
@@ -1027,21 +1027,24 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 
 /* The icon sits in a filled round chip so the tick reads as a status badge. */
 .toast .t-ic {
-  flex: none; width: 21px; height: 21px; border-radius: 50%;
+  flex: none; width: 21px; height: 21px; border-radius: 50%; margin-top: 1px;
   display: flex; align-items: center; justify-content: center; color: #FFF8F2;
 }
 .toast .t-ic svg { width: 12px; height: 12px; }
 .toast.ok .t-ic { background: var(--green); } .toast.err .t-ic { background: var(--red); }
 .toast.warn .t-ic { background: var(--amber); } .toast.info .t-ic { background: var(--blue); }
 
-/* One line: the sub-text sits beside the message instead of under it, and the
-   message ellipsises first so a long filename can never force a wrap. */
-.toast .t-msg {
-  display: flex; align-items: baseline; gap: 8px; flex: 1; min-width: 0;
-  font-size: 13.5px; font-weight: 500; white-space: nowrap;
+/* The headline keeps to a single line and ellipsises rather than wrapping, so
+   a long filename cannot break it mid-sentence. The detail below it is free to
+   wrap onto as many lines as it needs. */
+.toast .t-msg { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 500; }
+.toast .t-text {
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.toast .t-text { overflow: hidden; text-overflow: ellipsis; }
-.toast .t-sub { flex: none; font-size: 12px; font-weight: 400; color: var(--text-3); }
+.toast .t-sub {
+  display: block; margin-top: 3px; font-size: 12px; font-weight: 400;
+  line-height: 1.45; color: var(--text-3);
+}
 
 /* Mobile shell bits */
 #sb-backdrop { position: fixed; inset: 0; background: rgba(24,21,15,.4); z-index: 55; animation: fadeIn .2s; }
