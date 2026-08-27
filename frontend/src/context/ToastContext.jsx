@@ -35,7 +35,7 @@ export function ToastProvider({ children }) {
           <div key={t.id} className={`toast ${t.type} ${t.leaving ? "leaving" : ""}`}>
             <span className="t-ic"><Icon name={ICON[t.type] || "info"} className="icon-sm" /></span>
             <div className="t-msg">
-              {t.msg}
+              <span className="t-text">{t.msg}</span>
               {t.sub && <span className="t-sub">{t.sub}</span>}
               {t.action && (
                 <button
