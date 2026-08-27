@@ -138,18 +138,18 @@ def _smalltalk_reply(query: str) -> str | None:
     q = query.strip()
     if _GREETING_RE.match(q):
         return (
-            "Hi! I'm your knowledge assistant. Upload a document with the attach "
-            "button, then ask me anything about it and I'll answer with the exact source."
+            "Hi. Upload a document with the attach button, then ask me about it "
+            "and I'll point to the exact source."
         )
     if _THANKS_RE.match(q):
-        return "You're welcome! Feel free to ask anything else about your documents."
+        return "No problem. Ask whenever you have another question about your documents."
     if _HOWAREYOU_RE.search(q) and len(q.split()) <= 6:
-        return "Doing well, thanks! Ask me a question about your uploaded documents and I'll find the answer."
+        return "All good, thanks. Ask me something about your documents and I'll look it up."
     if _CAPABILITY_RE.search(q):
         return (
-            "I'm a document knowledge assistant. Upload PDFs, Word documents, or text "
-            "files, and I'll answer your questions using only the content of those "
-            "documents — citing the exact source, page, and section for every answer."
+            "I answer questions about documents you upload. Send me a PDF, Word file "
+            "or text file, and I'll answer using only what's in it and show you the "
+            "page I took it from."
         )
     return None
 
@@ -163,7 +163,7 @@ def _llm_error_message(llm, exc: Exception) -> str:
             "credit at platform.openai.com, or switch to a Local model."
         )
     if "invalid_api_key" in text or "incorrect api key" in text or "401" in text:
-        return "OpenAI authentication failed — please check your API key in the backend .env."
+        return "OpenAI rejected the API key. Check OPENAI_API_KEY in the backend .env file."
     if "openai_api_key" in text or "api key is not set" in text:
         return "OpenAI isn't configured. Add OPENAI_API_KEY to the backend .env, or use a Local model."
     # Timeout: the model took longer than LLM_TIMEOUT to respond. Most common
@@ -336,8 +336,8 @@ def answer_query(
     # 4) Documents exist, but nothing relevant was found.
     if not results or top_score < RELEVANCE_MIN:
         msg = (
-            "I couldn't find anything about that in your uploaded documents. "
-            "Try rephrasing your question or uploading a document that covers it."
+            "I couldn't find anything about that in your documents. Try wording it "
+            "differently, or upload a document that covers it."
         )
         return _result(msg, [], llm, len(results), start, top_score)
 

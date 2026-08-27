@@ -82,10 +82,10 @@ export default function ForgotPassword() {
           <span className="brand-name">Retrieva</span>
         </Link>
         <div className="auth-quote">
-          <h2>Locked out?<br /><em>Let's get you back in.</em></h2>
+          <h2>Locked out?<br /><em>Reset it here.</em></h2>
           <ul className="auth-points">
-            <li><Icon name="check" className="icon-sm" /><span><b>Single-use code.</b> Each reset code works once and expires automatically.</span></li>
-            <li><Icon name="check" className="icon-sm" /><span><b>Nothing stored in the clear.</b> Only a hash of the code is kept server-side.</span></li>
+            <li><Icon name="check" className="icon-sm" /><span>Each reset code works once and expires automatically.</span></li>
+            <li><Icon name="check" className="icon-sm" /><span>Only a hash of the code is kept on the server.</span></li>
           </ul>
         </div>
         <div className="side-foot">MCSP-232 · MCA Project · IGNOU</div>

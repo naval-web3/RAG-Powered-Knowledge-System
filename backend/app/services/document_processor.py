@@ -319,15 +319,15 @@ def process_document(db: Session, document: Document) -> None:
             if document.file_type == "pdf":
                 if settings.OCR_ENABLED:
                     raise ValueError(
-                        "No text could be read from this PDF. It has no selectable "
-                        "text and OCR couldn't recognize any text in the page images "
-                        "— the scan may be blank, very low quality, or rotated. Try a "
-                        "clearer scan or a text-based PDF."
+                        "Nothing could be read from this PDF. It has no selectable "
+                        "text, and OCR found none in the page images either. The scan "
+                        "may be blank, too low quality, or sideways. Try a clearer "
+                        "scan, or a PDF with real text."
                     )
                 raise ValueError(
-                    "No selectable text found — this looks like a scanned or "
-                    "image-only PDF. OCR is disabled, so please upload a "
-                    "text-based PDF (one where you can select/copy the text)."
+                    "This PDF has no selectable text, so it looks like a scan. OCR "
+                    "is switched off, so please upload a PDF whose text you can "
+                    "select and copy."
                 )
             raise ValueError("No extractable text found in the document.")
 

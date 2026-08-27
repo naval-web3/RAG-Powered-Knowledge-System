@@ -97,7 +97,7 @@ export default function ProjectPage() {
     setConfirmDelete(false);
     try {
       await chat.deleteProject(projectId);
-      toast("Project deleted.", "ok", "Its chats and documents were kept.");
+      toast("Project deleted.", "ok", "Its chats and documents are still here.");
       navigate("/");
     } catch {
       toast("Couldn't delete the project.", "err");
@@ -313,7 +313,7 @@ export default function ProjectPage() {
       {confirmDelete && (
         <ConfirmModal
           title="Delete this project?"
-          text="The project and its instructions are removed. Its chats move back to the main list and its documents stay in your library."
+          text="This removes the project and its instructions. Its chats move back to the main list and its documents stay in your library."
           okLabel="Delete project"
           onCancel={() => setConfirmDelete(false)}
           onConfirm={removeProject}
@@ -368,7 +368,7 @@ function DocPicker({ project, docs, onClose, onSave }) {
               <input type="radio" name="docscope" checked={scope === "selected"} onChange={() => setScope("selected")} />
               <span>
                 <b>Only these documents</b>
-                <small>Pick one or several. Nothing else can be used to answer in this project.</small>
+                <small>Pick one or several. This project will not look at anything else.</small>
               </span>
             </label>
           </div>

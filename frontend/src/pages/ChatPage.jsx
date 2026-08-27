@@ -7,10 +7,10 @@ import { useToast } from "../context/ToastContext";
 import { greetingFor } from "../utils";
 
 const SUGGESTIONS = [
-  { icon: "book", q: "Summarize the key points of my documents." },
-  { icon: "zap", q: "What topics do my uploaded documents cover?" },
-  { icon: "file-text", q: "List the main sections of my most recent document." },
-  { icon: "info", q: "What is this knowledge base about?" },
+  { icon: "book", q: "Summarize what my documents say." },
+  { icon: "zap", q: "What subjects do my documents cover?" },
+  { icon: "file-text", q: "List the sections of my most recent upload." },
+  { icon: "info", q: "What's in this knowledge base?" },
 ];
 
 export default function ChatPage() {
@@ -47,7 +47,7 @@ export default function ChatPage() {
               <p>
                 {chat.privateMode
                   ? "This conversation won't be saved to your history."
-                  : "Ask anything. Answers come from your uploaded documents and carry citations."}
+                  : "Answers come from the documents you've uploaded, with the source shown underneath."}
               </p>
               <div className="kb-stats">
                 {chat.docCount} document{chat.docCount === 1 ? "" : "s"} · {totalChunks} chunks indexed
@@ -257,11 +257,11 @@ function AiMessage({ message, onOpenSource }) {
           <div className="msg-actions">
             <button className="btn-icon" title="Copy" onClick={copy}><Icon name="copy" className="icon-sm" /></button>
             <button className={`btn-icon ${vote === "up" ? "voted" : ""}`} title="Good answer"
-              onClick={() => { setVote("up"); toast("Thanks for the feedback!", "ok"); }}>
+              onClick={() => { setVote("up"); toast("Marked as a good answer.", "ok"); }}>
               <Icon name="thumb-up" className="icon-sm" />
             </button>
             <button className={`btn-icon ${vote === "down" ? "voted" : ""}`} title="Needs work"
-              onClick={() => { setVote("down"); toast("Thanks — we'll use this to improve.", "info"); }}>
+              onClick={() => { setVote("down"); toast("Marked as needing work.", "info"); }}>
               <Icon name="thumb-down" className="icon-sm" />
             </button>
           </div>
@@ -408,7 +408,7 @@ function Composer({ fileRef }) {
             {chat.privateMode && (
               <span className="mode-pill private">
                 <Icon name="ghost" className="icon-sm" />
-                <span><b>Private</b> — not saved</span>
+                <span><b>Private</b>, not saved</span>
                 <button className="pill-x" onClick={() => chat.togglePrivate()} aria-label="Exit private">
                   <Icon name="x" className="icon-sm" />
                 </button>
@@ -591,7 +591,7 @@ function SourceModal({ source, onClose }) {
             {source.score != null && <div className="mg"><b>Relevance</b><span>{(source.score * 100).toFixed(1)}%</span></div>}
           </div>
           <p style={{ fontFamily: "var(--serif)", fontSize: 15, lineHeight: 1.7, color: "var(--text)" }}>
-            {source.snippet || "No preview available for this passage."}
+            {source.snippet || "This passage has no preview text."}
           </p>
         </div>
       </div>

@@ -302,7 +302,7 @@ export function ChatProvider({ children }) {
           reason = d.error_message || "";
           if (status === "ocr" && !ocrNotified) {
             ocrNotified = true;
-            toast(`“${file.name}” looks scanned — running OCR to read it.`, "info", "This can take a few minutes.");
+            toast(`“${file.name}” looks scanned, so we're reading it with OCR.`, "info", "This can take a few minutes.");
           }
         }
         loadDocs();

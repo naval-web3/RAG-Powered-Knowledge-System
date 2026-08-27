@@ -202,7 +202,7 @@ function Shell() {
           )}
           {chat.projects.length === 0 && !creatingProject && (
             <div className="sb-empty sb-empty-sm">
-              Group documents and instructions into a project to keep answers to one topic.
+              A project keeps its own documents and instructions, so answers stay on one topic.
             </div>
           )}
           {chat.projects.map((p) => {
@@ -228,7 +228,7 @@ function Shell() {
 
           <div className="sb-group-label" style={{ marginTop: 14 }}>Chats</div>
           {chat.conversations.length === 0 && (
-            <div className="sb-empty">No conversations yet.<br />Start a new chat to begin.</div>
+            <div className="sb-empty">No conversations yet.<br />Start a new chat.</div>
           )}
           {chat.conversations.length > 0 && groups.length === 0 && (
             <div className="sb-empty">No conversations match “{convSearch}”.</div>

@@ -59,7 +59,7 @@ export default function AdminPage() {
     <div className="page">
       <div className="page-pad">
         <h2 className="page-title">Admin dashboard</h2>
-        <p className="page-sub">System analytics, query logs and user management. Visible to admin accounts only.</p>
+        <p className="page-sub">Usage, query logs and accounts. Only admins can see this page.</p>
 
         <div className="kpi-grid">
           <Kpi icon="file" label="Total documents" value={stats.total_documents} sub="in the corpus" />

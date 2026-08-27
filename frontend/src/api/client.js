@@ -31,7 +31,7 @@ client.interceptors.response.use(
     // "timeout of 120000ms exceeded" that leaks into the chat UI.
     if (err.code === "ECONNABORTED" && !err.response) {
       err.friendlyMessage =
-        "The request took too long and was cancelled. The selected model may be too slow — try a smaller, faster model.";
+        "That took too long, so we stopped waiting. The model you picked may be too slow for this machine. Try a smaller one.";
     }
     return Promise.reject(err);
   }

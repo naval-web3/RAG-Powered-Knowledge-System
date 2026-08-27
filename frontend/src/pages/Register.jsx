@@ -55,9 +55,9 @@ export default function Register() {
         <div className="auth-quote">
           <h2>Build a knowledge base<br /><em>that answers back.</em></h2>
           <ul className="auth-points">
-            <li><Icon name="check" className="icon-sm" /><span><b>Upload anything.</b> PDF, DOCX and TXT files up to 25 MB each.</span></li>
-            <li><Icon name="check" className="icon-sm" /><span><b>Automatic pipeline.</b> Every upload is chunked and embedded without a single manual step.</span></li>
-            <li><Icon name="check" className="icon-sm" /><span><b>Conversation history.</b> Every chat is saved, so you can search it later and pick up where you left off.</span></li>
+            <li><Icon name="check" className="icon-sm" /><span>PDF, DOCX and TXT files, up to 25 MB each.</span></li>
+            <li><Icon name="check" className="icon-sm" /><span>Every upload is chunked and embedded for you.</span></li>
+            <li><Icon name="check" className="icon-sm" /><span>Chats are saved, so you can search them later and pick up where you left off.</span></li>
           </ul>
         </div>
         <div className="side-foot">MCSP-232 · MCA Project · IGNOU</div>

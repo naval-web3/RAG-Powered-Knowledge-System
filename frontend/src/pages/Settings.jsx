@@ -255,7 +255,7 @@ export default function Settings() {
             {/* Danger zone */}
             <div className="set-card danger-card" id="set-danger">
               <h2>Danger zone</h2>
-              <p className="c-sub">Irreversible actions. Tread carefully.</p>
+              <p className="c-sub">These cannot be undone.</p>
               <div className="danger-row">
                 <div><div className="d-t">Clear all conversations</div><div className="d-s">Deletes every chat session and message for this account.</div></div>
                 <button className="btn btn-danger" onClick={() => setConfirmClear(true)}>Clear history</button>
@@ -281,7 +281,7 @@ export default function Settings() {
       {confirmDelete && (
         <ConfirmModal
           title="Delete your account?"
-          text="This permanently removes your account and all associated data — documents, indexed vectors, and chat history. This cannot be undone."
+          text="This permanently removes your account, your documents, their indexed vectors and your chat history. It cannot be undone."
           okLabel="Delete account"
           onConfirm={deleteAccount}
           onCancel={() => setConfirmDelete(false)}

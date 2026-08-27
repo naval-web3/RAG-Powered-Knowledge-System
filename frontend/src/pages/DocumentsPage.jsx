@@ -166,7 +166,7 @@ export default function DocumentsPage() {
     <div className="page">
       <div className="page-pad">
         <h2 className="page-title">Document library</h2>
-        <p className="page-sub">Upload sources, watch the processing pipeline, and manage your indexed corpus.</p>
+        <p className="page-sub">Upload files here and watch them move through the pipeline.</p>
 
         <div className="stat-row">
           <StatChip icon="file" label="Documents" value={stats.count} />

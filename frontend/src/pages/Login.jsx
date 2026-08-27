@@ -59,9 +59,9 @@ export default function Login() {
         <div className="auth-quote">
           <h2>Ask your documents.<br /><em>Get cited answers.</em></h2>
           <ul className="auth-points">
-            <li><Icon name="check" className="icon-sm" /><span><b>Grounded responses.</b> Every answer traces back to real passages in your corpus.</span></li>
-            <li><Icon name="check" className="icon-sm" /><span><b>Your choice of model.</b> Use cloud GPT-4o or local Ollama, and switch per query.</span></li>
-            <li><Icon name="check" className="icon-sm" /><span><b>Private by design.</b> JWT-secured sessions with role-based access control.</span></li>
+            <li><Icon name="check" className="icon-sm" /><span>Every answer traces back to real passages in your own documents.</span></li>
+            <li><Icon name="check" className="icon-sm" /><span>Use cloud GPT-4o or a local Ollama model, and switch per question.</span></li>
+            <li><Icon name="check" className="icon-sm" /><span>Sessions are JWT-secured, with separate admin and user roles.</span></li>
           </ul>
         </div>
         <div className="side-foot">MCSP-232 · MCA Project · IGNOU</div>

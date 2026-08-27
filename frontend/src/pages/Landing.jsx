@@ -28,11 +28,10 @@ export default function Landing() {
       <header className="hero">
         <div>
           <span className="eyebrow"><Icon name="spark" className="icon-sm" /> Retrieval-Augmented Generation</span>
-          <h1>Ask your documents <em>anything.</em> Get answers you can trust.</h1>
+          <h1>Ask your documents <em>anything.</em> See where every answer came from.</h1>
           <p className="lede">
             Upload PDFs, Word files and plain text. Retrieva indexes them into a vector store and
-            answers your questions in natural language. Every claim comes from your own documents,
-            cited down to the page.
+            answers in plain language. Each answer names the document and page it came from.
           </p>
           <div className="hero-cta">
             <button className="btn btn-primary btn-lg" onClick={() => navigate("/register")}>
@@ -41,9 +40,8 @@ export default function Landing() {
             <button className="btn btn-outline btn-lg" onClick={() => navigate("/login")}>Sign in</button>
           </div>
           <div className="hero-meta">
-            <span><Icon name="check" className="icon-sm" /> No hallucinated answers</span>
-            <span><Icon name="check" className="icon-sm" /> OpenAI or local Ollama</span>
-            <span><Icon name="check" className="icon-sm" /> Source-cited responses</span>
+            <span><Icon name="check" className="icon-sm" /> Answers quote your own documents</span>
+            <span><Icon name="check" className="icon-sm" /> Runs on OpenAI or a local Ollama model</span>
           </div>
         </div>
         <div className="demo-card" aria-hidden="true">
@@ -69,10 +67,11 @@ export default function Landing() {
 
       <section className="section" id="features">
         <div className="section-head">
-          <h2>Search on meaning, not keywords</h2>
+          <h2>Finding the right passage</h2>
           <p>
-            Traditional full-text search matches words. Retrieva matches meaning: it compares an
-            embedding of your question against every chunk in the corpus.
+            Full-text search looks for the words you typed. Retrieva compares an embedding of your
+            question against every chunk in the corpus, so a passage can match even when it uses
+            different words.
           </p>
         </div>
         <div className="feature-grid">
@@ -89,8 +88,8 @@ export default function Landing() {
             <div className="f-icon"><Icon name="shield" /></div>
             <h3>Grounded, cited answers</h3>
             <p>
-              Every response is generated only from retrieved context and carries source seals
-              linking back to the exact document, page and passage it came from.
+              Answers use only the passages that were retrieved. Each one links back to the
+              document and page it came from.
             </p>
           </div>
           <div className="feature-card">
@@ -106,8 +105,8 @@ export default function Landing() {
 
       <section className="section" id="how">
         <div className="section-head">
-          <h2>From file to answer in three steps</h2>
-          <p>The ingestion pipeline runs automatically the moment a document lands.</p>
+          <h2>What happens to a file after you upload it</h2>
+          <p>The pipeline runs on its own, and you can watch it in the document library.</p>
         </div>
         <div className="steps">
           <div className="step">
@@ -127,7 +126,7 @@ export default function Landing() {
 
       <section className="section" id="stack" style={{ paddingTop: 0 }}>
         <div className="section-head" style={{ marginBottom: 22 }}>
-          <h2>Built on a modern RAG stack</h2>
+          <h2>What it's built on</h2>
         </div>
         <div className="hero-meta" style={{ gap: 14 }}>
           <span className="badge badge-gray">LangChain 0.3</span>
