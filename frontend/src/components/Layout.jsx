@@ -24,6 +24,17 @@ export default function Layout() {
   );
 }
 
+const COLLAPSE_KEY = "retrieva-sidebar-collapsed";
+
+/** Which sidebar sections the user has collapsed, remembered per browser. */
+function readCollapsed() {
+  try {
+    return JSON.parse(localStorage.getItem(COLLAPSE_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
 /** Bucket conversations by recency for the sidebar sections. */
 function groupConversations(list) {
   const now = Date.now();
@@ -54,6 +65,7 @@ function Shell() {
   const [editTitle, setEditTitle] = useState("");
   const [creatingProject, setCreatingProject] = useState(false);
   const [projName, setProjName] = useState("");
+  const [collapsedGroups, setCollapsedGroups] = useState(readCollapsed);
   const [isDark, setIsDark] = useState(resolvedTheme() === "dark");
   const footRef = useRef(null);
 
@@ -83,6 +95,17 @@ function Shell() {
   function goto(path) {
     navigate(path);
     setMobileOpen(false);
+  }
+  function toggleGroup(key) {
+    setCollapsedGroups((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next));
+      } catch {
+        /* private mode or a full quota: the section still toggles for now */
+      }
+      return next;
+    });
   }
   function toggleThemeBtn() {
     toggleTheme();
@@ -180,13 +203,27 @@ function Shell() {
         </div>
 
         <div className="sb-scroll" id="conv-list">
-          <div className="sb-group-label sb-group-row">
-            <span>Projects</span>
+          <div className="sb-group-row">
+            <button className="sb-group-toggle" aria-expanded={!collapsedGroups.projects}
+              onClick={() => toggleGroup("projects")}>
+              <Icon name={collapsedGroups.projects ? "chev-r" : "chev-d"} className="chev" />
+              <span>Projects</span>
+              {collapsedGroups.projects && chat.projects.length > 0 && (
+                <span className="sb-group-count">{chat.projects.length}</span>
+              )}
+            </button>
             <button className="btn-icon" title="New project"
-              onClick={() => { setCreatingProject(true); setProjName(""); }}>
+              onClick={() => {
+                // Creating one while the section is shut would hide the input.
+                setCollapsedGroups((p) => ({ ...p, projects: false }));
+                setCreatingProject(true);
+                setProjName("");
+              }}>
               <Icon name="plus" className="icon-sm" />
             </button>
           </div>
+          {!collapsedGroups.projects && (
+          <>
           {creatingProject && (
             <div className="conv-item">
               <input className="rename" autoFocus placeholder="Project name"
@@ -226,7 +263,21 @@ function Shell() {
             );
           })}
 
-          <div className="sb-group-label" style={{ marginTop: 14 }}>Chats</div>
+          </>
+          )}
+
+          <div className="sb-group-row" style={{ marginTop: 10 }}>
+            <button className="sb-group-toggle" aria-expanded={!collapsedGroups.chats}
+              onClick={() => toggleGroup("chats")}>
+              <Icon name={collapsedGroups.chats ? "chev-r" : "chev-d"} className="chev" />
+              <span>Chats</span>
+              {collapsedGroups.chats && filtered.length > 0 && (
+                <span className="sb-group-count">{filtered.length}</span>
+              )}
+            </button>
+          </div>
+          {!collapsedGroups.chats && (
+          <>
           {chat.conversations.length === 0 && (
             <div className="sb-empty">No conversations yet.<br />Start a new chat.</div>
           )}
@@ -273,6 +324,8 @@ function Shell() {
               })}
             </div>
           ))}
+          </>
+          )}
         </div>
 
         <div className="sb-foot" ref={footRef}>

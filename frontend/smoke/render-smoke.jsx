@@ -12,6 +12,7 @@ import "./dom-shim.js"; // must come first: app modules read window at load
 import { renderToString } from "react-dom/server";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
+import Layout from "../src/components/Layout";
 import { AuthProvider } from "../src/context/AuthContext";
 import { ChatProvider } from "../src/context/ChatContext";
 import { ToastProvider } from "../src/context/ToastContext";
@@ -38,6 +39,15 @@ const STANDALONE = [
   ["Login", <Login />],
   ["Register", <Register />],
   ["ForgotPassword", <ForgotPassword />],
+];
+
+// The shell brings its own providers and renders the page through an Outlet,
+// so it needs its own route tree rather than the one used above. Worth its own
+// case: the sidebar holds most of the app's state and none of the page checks
+// mount it.
+const SHELL = [
+  ["Layout shell (sidebar)", "/"],
+  ["Layout shell on a project route", "/projects/abc"],
 ];
 
 let failed = 0;
@@ -77,6 +87,24 @@ for (const [name, path, element, at] of INSIDE_APP) {
               </Routes>
             </ChatProvider>
           </ToastProvider>
+        </AuthProvider>
+      </MemoryRouter>
+    )
+  );
+}
+
+console.log("rendering the app shell:");
+for (const [name, at] of SHELL) {
+  check(name, () =>
+    renderToString(
+      <MemoryRouter initialEntries={[at]}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<ChatPage />} />
+              <Route path="projects/:projectId" element={<ProjectPage />} />
+            </Route>
+          </Routes>
         </AuthProvider>
       </MemoryRouter>
     )
