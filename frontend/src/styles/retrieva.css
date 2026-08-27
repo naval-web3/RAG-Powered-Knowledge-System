@@ -396,6 +396,15 @@ body {
   background: color-mix(in srgb, var(--surface) 60%, transparent);
   border: 1px solid var(--border); border-radius: var(--r-md);
 }
+.sb-search input { padding-right: 32px; }
+.sb-search-clear {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border: 0; border-radius: 50%;
+  background: none; color: var(--text-3); cursor: pointer;
+}
+.sb-search-clear:hover { background: var(--surface-2); color: var(--text-1); }
+.sb-search-clear .icon-sm { position: static; transform: none; }
 .sb-search input:focus { outline: none; border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-soft); }
 .sb-nav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
 .sb-item {

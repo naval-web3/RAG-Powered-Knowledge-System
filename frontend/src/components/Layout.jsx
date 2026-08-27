@@ -120,22 +120,43 @@ function Shell() {
     setMobileOpen(false);
   }
 
-  const filtered = useMemo(() => {
-    const q = convSearch.trim().toLowerCase();
-    const loose = chat.conversations.filter((c) => !c.project_id);
-    if (!q) return loose;
-    return loose.filter((c) => c.title.toLowerCase().includes(q));
-  }, [chat.conversations, convSearch]);
+  const query = convSearch.trim().toLowerCase();
+  const searching = query.length > 0;
 
-  // Chats that belong to a project, keyed by project, newest first.
+  const filtered = useMemo(() => {
+    const loose = chat.conversations.filter((c) => !c.project_id);
+    if (!query) return loose;
+    return loose.filter((c) => c.title.toLowerCase().includes(query));
+  }, [chat.conversations, query]);
+
+  // Chats that belong to a project, keyed by project, newest first. A search
+  // narrows these too, otherwise a chat filed under a project could not be
+  // found at all.
   const chatsByProject = useMemo(() => {
     const out = {};
     for (const c of chat.conversations) {
       if (!c.project_id) continue;
+      if (query && !c.title.toLowerCase().includes(query)) continue;
       (out[c.project_id] = out[c.project_id] || []).push(c);
     }
     return out;
-  }, [chat.conversations]);
+  }, [chat.conversations, query]);
+
+  // While searching, keep only projects that match by name or hold a match.
+  const visibleProjects = useMemo(() => {
+    if (!query) return chat.projects;
+    return chat.projects.filter(
+      (p) =>
+        p.name.toLowerCase().includes(query) ||
+        (chatsByProject[p.project_id] || []).length > 0
+    );
+  }, [chat.projects, chatsByProject, query]);
+
+  // A collapsed section would swallow the results, making the search look
+  // broken, so searching forces both sections open regardless of the toggle.
+  const projectsOpen = searching || !collapsedGroups.projects;
+  const chatsOpen = searching || !collapsedGroups.chats;
+  const noMatches = searching && filtered.length === 0 && visibleProjects.length === 0;
 
   // The API already returns conversations newest first, so the most recent ones
   // are simply the head of the list.
@@ -178,9 +199,19 @@ function Shell() {
           </button>
           <div className="sb-search">
             <Icon name="search" className="icon-sm" />
-            <input type="text" placeholder="Search conversations…" autoComplete="off"
-              value={convSearch} onChange={(e) => setConvSearch(e.target.value)} />
+            <input type="text" placeholder="Search chats and projects…" autoComplete="off"
+              value={convSearch} onChange={(e) => setConvSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") setConvSearch(""); }} />
+            {searching && (
+              <button className="sb-search-clear" title="Clear search" aria-label="Clear search"
+                onClick={() => setConvSearch("")}>
+                <Icon name="x" className="icon-sm" />
+              </button>
+            )}
           </div>
+          {noMatches && (
+            <div className="sb-empty sb-empty-sm">Nothing matches “{convSearch}”.</div>
+          )}
           <nav className="sb-nav">
             {navItems.map((it) => (
               <button key={it.page}
@@ -197,9 +228,9 @@ function Shell() {
           <div className="sb-group-row">
             <button className="sb-group-toggle" aria-expanded={!collapsedGroups.projects}
               onClick={() => toggleGroup("projects")}>
-              <Icon name={collapsedGroups.projects ? "chev-r" : "chev-d"} className="chev" />
+              <Icon name={projectsOpen ? "chev-d" : "chev-r"} className="chev" />
               <span>Projects</span>
-              {collapsedGroups.projects && chat.projects.length > 0 && (
+              {!projectsOpen && chat.projects.length > 0 && (
                 <span className="sb-group-count">{chat.projects.length}</span>
               )}
             </button>
@@ -213,7 +244,7 @@ function Shell() {
               <Icon name="plus" className="icon-sm" />
             </button>
           </div>
-          {!collapsedGroups.projects && (
+          {projectsOpen && (
           <>
           {creatingProject && (
             <div className="conv-item">
@@ -228,12 +259,12 @@ function Shell() {
                 onBlur={submitNewProject} />
             </div>
           )}
-          {chat.projects.length === 0 && !creatingProject && (
+          {chat.projects.length === 0 && !creatingProject && !searching && (
             <div className="sb-empty sb-empty-sm">
               A project keeps its own documents and instructions, so answers stay on one topic.
             </div>
           )}
-          {chat.projects.map((p) => {
+          {visibleProjects.map((p) => {
             const open = location.pathname === `/projects/${p.project_id}`;
             const own = chatsByProject[p.project_id] || [];
             return (
@@ -260,14 +291,14 @@ function Shell() {
           <div className="sb-group-row" style={{ marginTop: 10 }}>
             <button className="sb-group-toggle" aria-expanded={!collapsedGroups.chats}
               onClick={() => toggleGroup("chats")}>
-              <Icon name={collapsedGroups.chats ? "chev-r" : "chev-d"} className="chev" />
+              <Icon name={chatsOpen ? "chev-d" : "chev-r"} className="chev" />
               <span>Chats</span>
-              {collapsedGroups.chats && filtered.length > 0 && (
+              {!chatsOpen && filtered.length > 0 && (
                 <span className="sb-group-count">{filtered.length}</span>
               )}
             </button>
           </div>
-          {!collapsedGroups.chats && (
+          {chatsOpen && (
           <>
           {chat.conversations.length === 0 && (
             <div className="sb-empty">No conversations yet.<br />Start a new chat.</div>
