@@ -35,20 +35,8 @@ function readCollapsed() {
   }
 }
 
-/** Bucket conversations by recency for the sidebar sections. */
-function groupConversations(list) {
-  const now = Date.now();
-  const day = 86400000;
-  const groups = { Today: [], Yesterday: [], "Previous 7 days": [], Older: [] };
-  for (const c of list) {
-    const age = now - new Date(c.updated_at).getTime();
-    if (age < day) groups["Today"].push(c);
-    else if (age < 2 * day) groups["Yesterday"].push(c);
-    else if (age < 7 * day) groups["Previous 7 days"].push(c);
-    else groups["Older"].push(c);
-  }
-  return Object.entries(groups).filter(([, arr]) => arr.length > 0);
-}
+// How many recent chats the sidebar shows before offering the full list.
+const RECENT_CHATS = 10;
 
 function Shell() {
   const { user, logout } = useAuth();
@@ -66,6 +54,7 @@ function Shell() {
   const [creatingProject, setCreatingProject] = useState(false);
   const [projName, setProjName] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState(readCollapsed);
+  const [showAllChats, setShowAllChats] = useState(false);
   const [isDark, setIsDark] = useState(resolvedTheme() === "dark");
   const footRef = useRef(null);
 
@@ -148,7 +137,9 @@ function Shell() {
     return out;
   }, [chat.conversations]);
 
-  const groups = groupConversations(filtered);
+  // The API already returns conversations newest first, so the most recent ones
+  // are simply the head of the list.
+  const shownChats = showAllChats ? filtered : filtered.slice(0, RECENT_CHATS);
 
   const navItems = [
     { page: "/", icon: "chat", label: "Chat" },
@@ -281,13 +272,11 @@ function Shell() {
           {chat.conversations.length === 0 && (
             <div className="sb-empty">No conversations yet.<br />Start a new chat.</div>
           )}
-          {chat.conversations.length > 0 && groups.length === 0 && (
+          {chat.conversations.length > 0 && filtered.length === 0 && (
             <div className="sb-empty">No conversations match “{convSearch}”.</div>
           )}
-          {groups.map(([label, items]) => (
-            <div key={label}>
-              <div className="sb-group-label">{label}</div>
-              {items.map((c) => {
+          <div className="sb-chat-list">
+            {shownChats.map((c) => {
                 const active = c.conversation_id === chat.activeId;
                 if (editingId === c.conversation_id) {
                   return (
@@ -321,9 +310,15 @@ function Shell() {
                     </div>
                   </div>
                 );
-              })}
-            </div>
-          ))}
+            })}
+          </div>
+          {filtered.length > RECENT_CHATS && (
+            <button className="sb-view-all" onClick={() => setShowAllChats((v) => !v)}>
+              {showAllChats
+                ? "Show recent only"
+                : `View all conversations (${filtered.length})`}
+            </button>
+          )}
           </>
           )}
         </div>
