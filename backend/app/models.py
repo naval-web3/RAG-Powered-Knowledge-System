@@ -64,6 +64,13 @@ class Document(Base):
     processing_status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False, index=True)
     chunk_count: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Live ingest progress for the pipeline UI. `processing_status` stays the
+    # coarse, queryable/filterable state; these three carry the fine detail the
+    # processor writes as it works. `progress` is overall percent (0-100) and is
+    # only ever moved forward, so the client can safely smooth between polls.
+    stage: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False, server_default="0")
+    stage_detail: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     owner: Mapped["User"] = relationship(back_populates="documents")
 

@@ -25,13 +25,26 @@ def get_collection():
     )
 
 
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    """Compute embedding vectors for a batch of chunk texts."""
+    return get_embeddings().embed_documents(texts)
+
+
+def index_embedded(
+    ids: list[str],
+    texts: list[str],
+    metadatas: list[dict],
+    vectors: list[list[float]],
+) -> None:
+    """Write already-embedded chunks into the Chroma index."""
+    get_collection().add(ids=ids, embeddings=vectors, documents=texts, metadatas=metadatas)
+
+
 def add_chunks(chunks: list[LCDocument], ids: list[str]) -> None:
-    """Embed and store a batch of document chunks."""
-    embeddings = get_embeddings()
+    """Embed and store a batch of document chunks in one step."""
     texts = [c.page_content for c in chunks]
     metadatas = [c.metadata for c in chunks]
-    vectors = embeddings.embed_documents(texts)
-    get_collection().add(ids=ids, embeddings=vectors, documents=texts, metadatas=metadatas)
+    index_embedded(ids, texts, metadatas, embed_texts(texts))
 
 
 def similarity_search(

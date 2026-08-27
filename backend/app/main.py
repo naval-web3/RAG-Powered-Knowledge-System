@@ -8,7 +8,7 @@ import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from sqlalchemy import update
+from sqlalchemy import text, update
 
 from app.api import admin, auth, chat, documents
 from app.api import settings as settings_api
@@ -42,6 +42,17 @@ def on_startup() -> None:
     # Create tables if they don't exist (dev convenience; use Alembic for prod).
     Base.metadata.create_all(bind=engine)
 
+    # create_all only creates MISSING TABLES -- it never adds columns to a table
+    # that already exists, and this project has no Alembic migrations wired up.
+    # Add the live-progress columns idempotently so existing installs pick them
+    # up without a manual migration or a database wipe.
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS stage VARCHAR(20)"))
+        conn.execute(
+            text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS progress INTEGER NOT NULL DEFAULT 0")
+        )
+        conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS stage_detail VARCHAR(120)"))
+
     # Recover documents left mid-processing by a previous run/restart so they
     # don't stay stuck on "processing"/"pending" forever.
     db = SessionLocal()
@@ -51,6 +62,8 @@ def on_startup() -> None:
             .where(Document.processing_status.in_(("processing", "pending", "ocr")))
             .values(
                 processing_status="failed",
+                stage="failed",
+                stage_detail=None,
                 error_message="Processing was interrupted (server restarted). Please re-upload.",
             )
         )

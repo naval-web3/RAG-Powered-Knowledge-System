@@ -77,7 +77,7 @@ def _mark_failed_if_unfinished(document_id: uuid.UUID, message: str) -> None:
                 Document.document_id == document_id,
                 Document.processing_status.in_(("pending", "processing", "ocr")),
             )
-            .values(processing_status="failed", error_message=message)
+            .values(processing_status="failed", stage="failed", error_message=message)
         )
         db.commit()
     finally:

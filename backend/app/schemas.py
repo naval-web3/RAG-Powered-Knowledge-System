@@ -51,6 +51,10 @@ class DocumentOut(BaseModel):
     processing_status: str
     chunk_count: int
     error_message: str | None = None
+    # Live pipeline position written by the document processor.
+    stage: str | None = None
+    progress: int = 0
+    stage_detail: str | None = None
 
 
 # ---------- Chat / RAG ----------

@@ -22,6 +22,9 @@ export function ChatProvider({ children }) {
   const [scopeDocId, setScopeDocId] = useState(null);
 
   const [uploading, setUploading] = useState(false);
+  // { name, pct } while a file is being sent to the server, else null.
+  // This is real byte progress from the request, not an estimate.
+  const [uploadProgress, setUploadProgress] = useState(null);
 
   const docCount = docs.filter((d) => d.processing_status === "done").length;
   const scopeDoc = docs.find((d) => d.document_id === scopeDocId) || null;
@@ -203,13 +206,20 @@ export function ChatProvider({ children }) {
     async (file) => {
       if (!file) return;
       setUploading(true);
+      setUploadProgress({ name: file.name, pct: 0 });
       const tid = toast(`Uploading “${file.name}”…`, "info");
       const form = new FormData();
       form.append("file", file);
       try {
         const { data } = await client.post("/api/documents", form, {
           headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (e) => {
+            if (!e.total) return;
+            setUploadProgress({ name: file.name, pct: Math.round((e.loaded / e.total) * 100) });
+          },
         });
+        // The bytes are in; the server pipeline takes over from here.
+        setUploadProgress(null);
         loadDocs();
         let status = data.processing_status;
         let reason = "";
@@ -237,6 +247,7 @@ export function ChatProvider({ children }) {
         toast("Upload failed", "err", err?.response?.data?.detail || err.message);
       } finally {
         setUploading(false);
+        setUploadProgress(null);
       }
     },
     [toast, loadDocs]
@@ -260,6 +271,7 @@ export function ChatProvider({ children }) {
     setScopeDocId,
     scopeDoc,
     uploading,
+    uploadProgress,
     loadConversations,
     loadDocs,
     loadModels,

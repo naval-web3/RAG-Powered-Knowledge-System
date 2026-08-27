@@ -24,6 +24,66 @@ const FILTER_MATCH = {
 
 const IN_PIPELINE = ["pending", "processing", "ocr"];
 
+// Fine-grained stage -> index of the pipeline step currently being worked on.
+// Steps before it are genuinely finished; steps after it have not started.
+const STAGE_STEP = { extracting: 1, ocr: 1, chunking: 2, embedding: 2, indexing: 3, done: 4 };
+
+// Human labels for the raw stage tokens the backend stores.
+const STAGE_LABEL = {
+  extracting: "Extracting text",
+  ocr: "Reading scan (OCR)",
+  chunking: "Chunking",
+  embedding: "Embedding",
+  indexing: "Indexing",
+  done: "Indexed",
+  failed: "Failed",
+};
+
+/**
+ * Ease the displayed percentage toward the real one reported by the backend.
+ * Progress only arrives on each poll, so without this the bar sits frozen in
+ * between; while work is still running we also let it creep a bounded amount
+ * past the last known value so it never looks stalled. It never moves
+ * backwards, and a finished document always lands exactly on 100.
+ */
+function useSmoothProgress(target, running) {
+  const [shown, setShown] = useState(target);
+  const v = useRef(target);
+  useEffect(() => {
+    let raf;
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = Math.min(now - last, 120) / 1000;
+      last = now;
+      // Never claim more than 99% until the backend actually says done.
+      const ceil = running ? Math.min(target + 6, 99) : Math.max(target, v.current);
+      if (v.current < ceil - 0.05) {
+        const gap = ceil - v.current;
+        // Catch up fast on a fresh poll, then creep slowly once caught up.
+        v.current = Math.min(ceil, v.current + Math.max(gap * 3, 2) * dt);
+        setShown(v.current);
+      } else if (!running) {
+        return; // settled on a final value - stop the loop instead of idling
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, running]);
+  return shown;
+}
+
+// Slim progress bar shown inside a library row while the document is ingesting.
+function RowProgress({ doc }) {
+  const running = ["processing", "ocr"].includes(doc.processing_status);
+  const pct = useSmoothProgress(doc.progress || 0, running);
+  return (
+    <div className="row-prog" title={doc.stage_detail || ""}>
+      <span style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
 export default function DocumentsPage() {
   const chat = useChat();
   const { toast } = useToast();
@@ -33,7 +93,7 @@ export default function DocumentsPage() {
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dragover, setDragover] = useState(false);
-  const [detail, setDetail] = useState(null);
+  const [detailId, setDetailId] = useState(null);
   const [toDelete, setToDelete] = useState(null);
 
   const docs = chat.docs;
@@ -41,7 +101,7 @@ export default function DocumentsPage() {
   // Poll while anything is still in the pipeline.
   useEffect(() => {
     if (!docs.some((d) => IN_PIPELINE.includes(d.processing_status))) return;
-    const t = setInterval(() => chat.loadDocs(), 2500);
+    const t = setInterval(() => chat.loadDocs(), 1500);
     return () => clearInterval(t);
   }, [docs, chat]);
 
@@ -61,6 +121,14 @@ export default function DocumentsPage() {
       return true;
     });
   }, [docs, search, typeFilter, statusFilter]);
+
+  // Resolve the open document from the live list on every render, so the detail
+  // modal tracks the polling updates instead of showing a stale snapshot taken
+  // when it was opened. Also closes itself if the document is deleted.
+  const detailDoc = useMemo(
+    () => docs.find((d) => d.document_id === detailId) || null,
+    [docs, detailId]
+  );
 
   async function handleFiles(list) {
     const files = Array.from(list || []);
@@ -116,8 +184,20 @@ export default function DocumentsPage() {
           onDrop={onDrop}
         >
           <div className="dz-icon"><Icon name="upload" /></div>
-          <h3>Drop files here or <b>browse</b></h3>
-          <p>PDF, DOCX or TXT · up to 25 MB each · chunked automatically</p>
+          {chat.uploadProgress ? (
+            <>
+              <h3>Uploading “{chat.uploadProgress.name}”</h3>
+              <div className="prog" onClick={(e) => e.stopPropagation()}>
+                <div className="prog-track"><span style={{ width: `${chat.uploadProgress.pct}%` }} /></div>
+                <div className="prog-meta"><span>Sending file</span><span>{chat.uploadProgress.pct}%</span></div>
+              </div>
+            </>
+          ) : (
+            <>
+              <h3>Drop files here or <b>browse</b></h3>
+              <p>PDF, DOCX or TXT · up to 25 MB each · chunked automatically</p>
+            </>
+          )}
           <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" multiple hidden
             onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} />
         </div>
@@ -173,6 +253,7 @@ export default function DocumentsPage() {
                       <td className="mono-cell">{d.chunk_count || "—"}</td>
                       <td>
                         <span className={`badge ${st.cls}`}><span className="dot" />{st.label}</span>
+                        {IN_PIPELINE.includes(d.processing_status) && <RowProgress doc={d} />}
                         {d.processing_status === "failed" && d.error_message && (
                           <div className="d-file" style={{ color: "var(--red)", marginTop: 4, maxWidth: 220, whiteSpace: "normal" }}>
                             {d.error_message}
@@ -187,7 +268,7 @@ export default function DocumentsPage() {
                               <Icon name="target" className="icon-sm" />
                             </button>
                           )}
-                          <button className="btn-icon" title="Details" onClick={() => setDetail(d)}>
+                          <button className="btn-icon" title="Details" onClick={() => setDetailId(d.document_id)}>
                             <Icon name="info" className="icon-sm" />
                           </button>
                           <button className="btn-icon" title="Delete" onClick={() => setToDelete(d)}>
@@ -211,7 +292,7 @@ export default function DocumentsPage() {
         </div>
       </div>
 
-      {detail && <DocDetail doc={detail} onClose={() => setDetail(null)} />}
+      {detailDoc && <DocDetail doc={detailDoc} onClose={() => setDetailId(null)} />}
       {toDelete && (
         <ConfirmModal
           title="Delete document?"
@@ -237,23 +318,49 @@ function StatChip({ icon, label, value }) {
 function DocDetail({ doc, onClose }) {
   const failed = doc.processing_status === "failed";
   const done = doc.processing_status === "done";
-  // Pipeline stages; mark done/current/failed based on status.
-  const order = ["pending", "processing", "ocr", "done"];
-  const idx = order.indexOf(doc.processing_status);
+  const queued = doc.processing_status === "pending";
+  const running = !done && !failed && !queued;
+  const pct = useSmoothProgress(doc.progress || 0, running);
+
+  // Which step is in flight right now. Documents uploaded before live progress
+  // existed have no stage, so fall back to the coarse status for those.
+  let active = STAGE_STEP[doc.stage];
+  if (active === undefined) active = done ? 4 : 1;
+
+  const detail = doc.stage_detail || "";
   const steps = [
     { key: "upload", title: "Uploaded", sub: doc.original_filename },
-    { key: "extract", title: "Text extracted", sub: `${doc.file_type.toUpperCase()} · ${fmtBytes(doc.file_size)}` },
-    { key: "chunk", title: "Chunked & embedded", sub: done ? `${doc.chunk_count} chunks` : "in progress" },
-    { key: "index", title: "Indexed in vector store", sub: done ? "ready for retrieval" : "pending" },
+    {
+      key: "extract",
+      title: "Text extracted",
+      sub:
+        active === 1
+          ? detail || (queued ? "queued" : "working\u2026")
+          : `${doc.file_type.toUpperCase()} \u00b7 ${fmtBytes(doc.file_size)}`,
+    },
+    {
+      key: "chunk",
+      title: "Chunked & embedded",
+      sub: active === 2 ? detail : active > 2 ? `${doc.chunk_count} chunks` : "pending",
+    },
+    {
+      key: "index",
+      title: "Indexed in vector store",
+      sub: active === 3 ? detail : active > 3 ? "ready for retrieval" : "pending",
+    },
   ];
+
+  // A step is only ticked once it is genuinely behind us. The step in flight
+  // pulses, and steps that have not started stay empty.
   function stepState(i) {
-    if (failed) return i === 0 ? "done" : i === 1 ? "fail" : "";
-    if (done) return "done";
-    // in progress: first step done, current at min(idx,steps)
-    if (i === 0) return "done";
-    if (i === 1) return idx >= 1 ? "now" : "";
-    return "";
+    if (i < active) return "done";
+    if (i > active) return "";
+    if (failed) return "fail";
+    return queued ? "" : "now";
   }
+
+  const statusLabel =
+    STAGE_LABEL[doc.stage] || (STATUS[doc.processing_status] || STATUS.pending).label;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -268,24 +375,39 @@ function DocDetail({ doc, onClose }) {
             <div className="mg"><b>Type</b><span>{doc.file_type.toUpperCase()}</span></div>
             <div className="mg"><b>Size</b><span>{fmtBytes(doc.file_size)}</span></div>
             <div className="mg"><b>Chunks</b><span>{doc.chunk_count}</span></div>
-            <div className="mg"><b>Status</b><span>{doc.processing_status}</span></div>
+            <div className="mg"><b>Status</b><span>{statusLabel}</span></div>
             <div className="mg"><b>Uploaded</b><span>{timeAgo(doc.upload_date)}</span></div>
           </div>
-          <div className="pipe">
-            {steps.map((s, i) => (
-              <div key={s.key} className={`pipe-step ${stepState(i)}`}>
-                <div className="pipe-rail">
-                  <span className="pipe-dot">
-                    <Icon name={stepState(i) === "fail" ? "x" : "check"} />
-                  </span>
-                  {i < steps.length - 1 && <span className="pipe-line" />}
-                </div>
-                <div className="pipe-body">
-                  <div className="pt">{s.title}</div>
-                  <div className="ps">{i === 1 && failed ? doc.error_message || "extraction failed" : s.sub}</div>
-                </div>
+          {(running || queued) && (
+            <div className="prog">
+              <div className="prog-track"><span style={{ width: `${pct}%` }} /></div>
+              <div className="prog-meta">
+                <span>{queued ? "Queued\u2026" : statusLabel}</span>
+                <span>{Math.round(pct)}%</span>
               </div>
-            ))}
+            </div>
+          )}
+          <div className="pipe">
+            {steps.map((s, i) => {
+              const state = stepState(i);
+              return (
+                <div key={s.key} className={`pipe-step ${state}`}>
+                  <div className="pipe-rail">
+                    <span className="pipe-dot">
+                      {state === "done" && <Icon name="check" />}
+                      {state === "fail" && <Icon name="x" />}
+                    </span>
+                    {i < steps.length - 1 && <span className="pipe-line" />}
+                  </div>
+                  <div className="pipe-body">
+                    <div className="pt">{s.title}</div>
+                    <div className="ps">
+                      {state === "fail" ? doc.error_message || "this step failed" : s.sub}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
