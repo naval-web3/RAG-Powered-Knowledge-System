@@ -590,7 +590,7 @@ function SourceModal({ source, onClose }) {
             {source.chunk_index != null && <div className="mg"><b>Chunk</b><span>#{source.chunk_index}</span></div>}
             {source.score != null && <div className="mg"><b>Relevance</b><span>{(source.score * 100).toFixed(1)}%</span></div>}
           </div>
-          <p style={{ fontFamily: "var(--serif)", fontSize: 15, lineHeight: 1.7, color: "var(--text)" }}>
+          <p style={{ fontFamily: "var(--sans)", fontSize: 15, lineHeight: 1.7, color: "var(--text)" }}>
             {source.snippet || "This passage has no preview text."}
           </p>
         </div>

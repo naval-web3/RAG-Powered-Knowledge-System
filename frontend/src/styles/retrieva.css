@@ -2,8 +2,8 @@
    RETRIEVA — RAG Powered Knowledge System (UI Prototype)
    MCSP-232 · IGNOU MCA · Front-end only, backend to be wired
    ------------------------------------------------------------
-   Design system: warm parchment canvas, Fraunces serif for
-   headings & AI answers, Inter for UI, JetBrains Mono for
+   Design system: warm parchment canvas, Inter throughout —
+   headings, UI and AI answers alike — with JetBrains Mono for
    retrieval telemetry. Signature: clay "source seal" citations.
    ============================================================ */
 
@@ -44,11 +44,16 @@ ul, ol { list-style: none; }
   --shadow-sm: 0 1px 2px rgba(33,30,24,.06), 0 1px 4px rgba(33,30,24,.05);
   --shadow-md: 0 4px 12px rgba(33,30,24,.08), 0 2px 4px rgba(33,30,24,.05);
   --shadow-lg: 0 16px 40px rgba(33,30,24,.16), 0 4px 12px rgba(33,30,24,.08);
-  --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
   --sans:  'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono:  'JetBrains Mono', 'SF Mono', Consolas, monospace;
   --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 22px;
   --ease: cubic-bezier(.25,.6,.3,1);
+  /* Side gutter for the landing page. Proportional rather than a fixed
+     max-width, so the content column holds the same ratio at every
+     width: 10.9% is what Nova sits at (168px at 1536, 206px at 1920).
+     Capped at 260px so a 2560px monitor does not stretch the hero out
+     past a readable measure. Narrow screens override this below. */
+  --gutter: clamp(20px, 10.9%, 260px);
 }
 [data-theme="dark"] {
   --bg:            #1D1B16;
@@ -114,6 +119,32 @@ body {
 .btn:active { transform: scale(.98); }
 .btn-primary { background: var(--accent); color: #FFF8F2; box-shadow: var(--shadow-sm); }
 .btn-primary:hover { background: var(--accent-hover); }
+
+/* Sheen sweep, measured off the reference: a soft white band about a third
+   of the button wide, crossing left to right in ~330ms, then idle until the
+   cycle repeats at 6s. The band travels 2x the button width, so the moving
+   phase is 512ms -- 8.5% of the cycle -- to leave ~330ms of visible crossing.
+   Opacity is 20%, not the reference's 13.5%: that figure was measured on a
+   near-black button, and the same white over the lighter clay accent would
+   barely register. 20% reproduces the reference's absolute lift in luminance. */
+.btn-shine { position: relative; overflow: hidden; }
+.btn-shine::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(100deg,
+    transparent 35%, rgba(255, 255, 255, .20) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: btn-sheen 6s linear infinite;
+}
+@keyframes btn-sheen {
+  0%   { transform: translateX(-100%); }
+  8.5% { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+/* The global reduce rule only shortens animations; an infinite one still
+   loops, so take the sheen out altogether. */
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine::after { display: none; }
+}
 .btn-outline { border-color: var(--border-strong); background: var(--surface); color: var(--text); }
 .btn-outline:hover { border-color: var(--text-3); background: var(--surface-2); }
 .btn-ghost { color: var(--text-2); }
@@ -204,23 +235,60 @@ body {
    LANDING / ONBOARDING ENTRY
    ============================================================ */
 .screen { min-height: 100vh; }
-#view-landing { display: flex; flex-direction: column; }
+#view-landing { display: flex; flex-direction: column; position: relative; }
+/* The nav's one trip point. Out of flow and pinned to the top of the page,
+   so nothing the nav does can move it — the dock state flips exactly once,
+   at 80px, instead of being re-derived from a scroll offset that the nav
+   itself was shifting. */
+.nav-trip { position: absolute; top: 0; left: 0; width: 1px; height: 80px; pointer-events: none; }
+/* The nav is a centred pill at the top of the page that docks into a
+   full-bleed bar on scroll. The wrapper only ever changes width; the 22px
+   gap above the floating pill is a transform on the bar, NOT padding on the
+   wrapper, so the nav's height in flow is constant and docking cannot shift
+   the page underneath it. (Shifting the page was the glitch: it moved the
+   scroll position, which re-fired the threshold.) The row keeps the contents
+   on the same gutter as .hero. */
 .land-nav {
   position: sticky; top: 0; z-index: 40;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px clamp(20px, 5vw, 56px);
+  padding-inline: max(20px, calc((100% - 880px) / 2));
+  transition: padding-inline .32s var(--ease);
+}
+.land-nav.is-docked { padding-inline: 0; }
+
+.land-nav-bar {
+  display: flex; align-items: center;
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 32px;
+  box-shadow: var(--shadow-md);
+  transform: translateY(22px);
+  transition: transform .32s var(--ease), border-radius .32s var(--ease),
+              box-shadow .32s var(--ease), border-color .32s var(--ease);
 }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; }
-.brand-mark {
-  width: 32px; height: 32px; border-radius: 9px; flex: none;
-  background: var(--accent); color: #FAF8F2;
-  display: flex; align-items: center; justify-content: center;
+.land-nav.is-docked .land-nav-bar { transform: translateY(0); }
+.land-nav.is-docked .land-nav-bar {
+  border-radius: 0;
+  box-shadow: none;
+  border-color: transparent;
+  border-bottom-color: var(--border);
 }
-.brand-mark svg { width: 18px; height: 18px; }
-.brand-name { font-family: var(--serif); font-size: 19px; font-weight: 600; }
+
+.land-nav-row {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  padding: 9px 9px 9px 18px;
+  transition: padding .3s var(--ease);
+}
+/* Docked, the row lines up with the hero on the shared gutter. */
+.land-nav.is-docked .land-nav-row { padding: 9px var(--gutter); }
+/* .brand is an <a> in the sidebar and a <Link> on the auth pages; the reset
+   only clears anchor colour, not decoration, so kill the underline here. */
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; text-decoration: none; }
+/* The logo artwork carries its own squircle and its own transparent
+   corners, so the mark needs no plate behind it and no radius of its own. */
+.brand-mark { width: 32px; height: 32px; flex: none; display: block; }
+.brand-name { font-size: 19px; font-weight: 600; }
 .brand-sub { font-size: 11px; font-weight: 500; color: var(--text-3); letter-spacing: .05em; text-transform: uppercase; display: block; margin-top: -3px; }
 .land-nav .nav-links { display: flex; gap: 26px; font-size: 14px; font-weight: 500; color: var(--text-2); }
 .land-nav .nav-links a { text-decoration: none; transition: color .15s; }
@@ -228,23 +296,23 @@ body {
 .land-nav .nav-cta { display: flex; align-items: center; gap: 10px; }
 
 .hero {
-  display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(32px, 5vw, 72px);
-  align-items: center; padding: clamp(48px, 8vh, 96px) clamp(20px, 6vw, 72px);
-  max-width: 1240px; margin: 0 auto; width: 100%;
+  display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(40px, 6vw, 96px);
+  align-items: center; padding: clamp(64px, 10vh, 120px) var(--gutter);
+  width: 100%;
 }
 .eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
   color: var(--accent); background: var(--accent-soft-2);
-  border: 1px solid var(--accent-soft); padding: 6px 14px; border-radius: 999px; margin-bottom: 22px;
+  border: 1px solid var(--accent-soft); padding: 6px 14px; border-radius: 999px; margin-bottom: 28px;
 }
 .hero h1 {
-  font-family: var(--serif); font-weight: 600; letter-spacing: -.02em;
-  font-size: clamp(38px, 5vw, 60px); line-height: 1.08; margin-bottom: 20px;
+  font-weight: 600; letter-spacing: -.02em;
+  font-size: clamp(38px, 5vw, 60px); line-height: 1.08; margin-bottom: 26px;
 }
 .hero h1 em { font-style: italic; color: var(--accent); }
-.hero .lede { font-size: 17px; color: var(--text-2); max-width: 52ch; margin-bottom: 32px; }
-.hero-cta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 30px; }
+.hero .lede { font-size: 17px; color: var(--text-2); max-width: 52ch; margin-bottom: 38px; }
+.hero-cta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 36px; }
 .hero-meta { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--text-3); }
 .hero-meta span { display: inline-flex; align-items: center; gap: 7px; }
 .hero-meta .icon-sm { color: var(--green); }
@@ -260,7 +328,12 @@ body {
   display: flex; align-items: center; gap: 8px; padding: 12px 16px;
   border-bottom: 1px solid var(--border); background: var(--surface-2);
 }
+/* Window-control dots, sampled from the reference. Named rather than
+   :nth-child so reordering the header cannot shuffle the colours. */
 .demo-head .dot-tl { width: 10px; height: 10px; border-radius: 50%; background: var(--border-strong); }
+.demo-head .dot-r { background: #F95B5D; }
+.demo-head .dot-y { background: #F9C600; }
+.demo-head .dot-g { background: #2EC551; }
 .demo-head .demo-title { margin-left: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
 .demo-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .demo-q {
@@ -268,7 +341,7 @@ body {
   background: var(--user-bubble); border-radius: 14px 14px 4px 14px;
   padding: 10px 14px; font-size: 13.5px;
 }
-.demo-a { font-family: var(--serif); font-size: 14.5px; line-height: 1.7; color: var(--text); }
+.demo-a { font-size: 14.5px; line-height: 1.7; color: var(--text); }
 .demo-a .cite { transform: translateY(-1px); }
 .demo-tele {
   font-family: var(--mono); font-size: 11px; color: var(--text-3);
@@ -283,9 +356,9 @@ body {
 .demo-src b { font-weight: 600; }
 .demo-src span { color: var(--text-3); }
 
-.section { max-width: 1240px; margin: 0 auto; padding: clamp(40px, 7vh, 80px) clamp(20px, 6vw, 72px); width: 100%; }
+.section { padding: clamp(40px, 7vh, 80px) var(--gutter); width: 100%; }
 .section-head { max-width: 620px; margin-bottom: 44px; }
-.section-head h2 { font-family: var(--serif); font-size: clamp(26px, 3vw, 36px); font-weight: 600; letter-spacing: -.015em; margin-bottom: 12px; }
+.section-head h2 { font-size: clamp(26px, 3vw, 36px); font-weight: 600; letter-spacing: -.015em; margin-bottom: 12px; }
 .section-head p { color: var(--text-2); font-size: 15.5px; }
 .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .feature-card {
@@ -311,14 +384,79 @@ body {
   font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent);
   display: block; margin-bottom: 14px;
 }
-.step h3 { font-family: var(--serif); font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.step h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
 .step p { font-size: 14px; color: var(--text-2); }
 
 .land-footer {
-  margin-top: auto; border-top: 1px solid var(--border);
-  padding: 26px clamp(20px, 6vw, 72px);
-  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: clamp(48px, 6vh, 76px) var(--gutter) 24px;
+}
+.foot-top {
+  display: grid; grid-template-columns: minmax(200px, 1fr) 2.4fr;
+  gap: clamp(32px, 5vw, 72px);
+  padding-bottom: clamp(40px, 6vh, 72px);
+}
+.foot-brand { display: flex; flex-direction: column; gap: 20px; }
+.foot-logo { display: flex; align-items: center; gap: 11px; }
+.foot-logo img { width: 30px; height: 30px; flex: none; }
+.foot-logo span { font-size: 19px; font-weight: 600; letter-spacing: -.01em; color: var(--text-2); }
+.foot-tagline { font-size: 14.5px; line-height: 1.6; color: var(--text-2); max-width: 30ch; }
+
+.foot-cols {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: clamp(24px, 3vw, 40px);
+  border-left: 1px solid var(--border);
+  padding-left: clamp(24px, 4vw, 64px);
+}
+.foot-col { display: flex; flex-direction: column; align-items: flex-start; gap: 15px; }
+.foot-col h4 { font-size: 13.5px; font-weight: 500; color: var(--text-3); margin-bottom: 3px; }
+.foot-col a, .foot-col > span { font-size: 14px; text-decoration: none; }
+.foot-col a { color: var(--text-2); transition: color .15s var(--ease); }
+.foot-col a:hover { color: var(--accent); }
+.foot-col > span { color: var(--text-3); }
+
+.foot-bottom {
+  border-top: 1px solid var(--border); padding-top: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
   font-size: 13px; color: var(--text-3);
+}
+
+/* Segmented theme switch — system / light / dark. Writes through to the
+   same preference Settings uses, so the two stay in step. */
+.theme-switch {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px; border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+.theme-switch button {
+  width: 34px; height: 28px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-3);
+  transition: background .18s var(--ease), color .18s var(--ease);
+}
+.theme-switch button:hover { color: var(--text-2); }
+.theme-switch button[aria-checked="true"] {
+  background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm);
+}
+/* In dark, --surface sits BELOW --surface-2, so the pill above would recede
+   into the track instead of lifting off it. Recess the track and raise the
+   pill explicitly rather than leaning on tokens whose relative lightness
+   flips between themes. */
+[data-theme="dark"] .theme-switch { background: rgba(0, 0, 0, .28); }
+[data-theme="dark"] .theme-switch button[aria-checked="true"] {
+  background: var(--border-strong); box-shadow: none;
+}
+.theme-switch svg { width: 15px; height: 15px; }
+
+@media (max-width: 920px) {
+  .foot-top { grid-template-columns: 1fr; }
+  .foot-cols { border-left: 0; padding-left: 0; }
+}
+@media (max-width: 560px) {
+  .foot-cols { grid-template-columns: repeat(2, 1fr); row-gap: 34px; }
 }
 /* ============================================================
    AUTH — LOGIN & REGISTER
@@ -335,7 +473,7 @@ body {
 }
 .auth-side .brand { margin-bottom: auto; }
 .auth-quote { max-width: 46ch; padding: 40px 0; }
-.auth-quote h2 { font-family: var(--serif); font-size: clamp(26px, 2.6vw, 34px); font-weight: 600; line-height: 1.25; letter-spacing: -.015em; margin-bottom: 26px; }
+.auth-quote h2 { font-size: clamp(26px, 2.6vw, 34px); font-weight: 600; line-height: 1.25; letter-spacing: -.015em; margin-bottom: 26px; }
 .auth-quote h2 em { font-style: italic; color: var(--accent); }
 .auth-points { display: flex; flex-direction: column; gap: 16px; }
 .auth-points li { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; color: var(--text-2); }
@@ -344,7 +482,7 @@ body {
 .auth-side .side-foot { margin-top: auto; font-size: 12.5px; color: var(--text-3); }
 .auth-main { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
 .auth-card { width: 100%; max-width: 400px; }
-.auth-card h1 { font-family: var(--serif); font-size: 30px; font-weight: 600; letter-spacing: -.015em; margin-bottom: 8px; }
+.auth-card h1 { font-size: 30px; font-weight: 600; letter-spacing: -.015em; margin-bottom: 8px; }
 .auth-card .sub { color: var(--text-2); font-size: 14.5px; margin-bottom: 30px; }
 .auth-alt { text-align: center; font-size: 13.5px; color: var(--text-2); margin-top: 24px; }
 .auth-alt a { color: var(--accent); font-weight: 600; text-decoration: none; }
@@ -481,7 +619,7 @@ body {
   background: color-mix(in srgb, var(--bg) 86%, transparent);
   backdrop-filter: blur(10px); flex: none;
 }
-.topbar h1 { font-family: var(--serif); font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.topbar h1 { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
 .topbar .grow { flex: 1; }
 .provider-pill {
   display: inline-flex; align-items: center; gap: 8px;
@@ -492,7 +630,7 @@ body {
 .provider-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2.2s ease-in-out infinite; }
 .page { flex: 1; overflow-y: auto; min-height: 0; }
 .page-pad { max-width: 1120px; margin: 0 auto; padding: 30px clamp(18px, 3vw, 36px) 60px; }
-.page-title { font-family: var(--serif); font-size: 26px; font-weight: 600; letter-spacing: -.015em; margin-bottom: 6px; }
+.page-title { font-size: 26px; font-weight: 600; letter-spacing: -.015em; margin-bottom: 6px; }
 .page-sub { color: var(--text-2); font-size: 14.5px; margin-bottom: 28px; }
 
 /* ============================================================
@@ -509,7 +647,7 @@ body {
   background: var(--accent); color: #FAF8F2; display: flex; align-items: center; justify-content: center;
   box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
-.chat-empty h2 { font-family: var(--serif); font-size: clamp(26px, 3.4vw, 34px); font-weight: 600; letter-spacing: -.02em; margin-bottom: 10px; }
+.chat-empty h2 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 600; letter-spacing: -.02em; margin-bottom: 10px; }
 .chat-empty p { color: var(--text-2); font-size: 15px; margin-bottom: 8px; }
 .kb-stats { font-family: var(--mono); font-size: 12px; color: var(--text-3); margin-bottom: 34px; }
 .sugg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 640px; margin: 0 auto; text-align: left; }
@@ -555,13 +693,17 @@ body {
 .ai-meta { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
 .ai-meta .who { font-size: 13px; font-weight: 700; }
 .ai-meta .model-tag { font-family: var(--mono); font-size: 10.5px; color: var(--text-3); }
-.ai-content { font-family: var(--serif); font-size: 16px; line-height: 1.75; color: var(--text); word-break: break-word; }
+.ai-content { font-size: 16px; line-height: 1.75; color: var(--text); word-break: break-word; }
 .ai-content p { margin-bottom: 13px; }
 .ai-content p:last-child { margin-bottom: 0; }
 .ai-content ul, .ai-content ol { margin: 4px 0 14px 22px; }
 .ai-content ul { list-style: disc; }
 .ai-content ol { list-style: decimal; }
+/* A nested list sits inside its parent <li>, so it must not carry the block
+   margin a standalone list gets, or each sub-group opens a gap. */
+.ai-content li > ul, .ai-content li > ol { margin: 6px 0 4px 20px; }
 .ai-content li { margin-bottom: 6px; }
+.ai-content li > ul li, .ai-content li > ol li { margin-bottom: 3px; }
 .ai-content strong { font-weight: 600; }
 .ai-content code { font-family: var(--mono); font-size: .82em; background: var(--surface-2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; }
 .cursor-blink { display: inline-block; width: 8px; height: 17px; background: var(--accent); border-radius: 2px; vertical-align: -2px; margin-left: 2px; animation: blink 1s steps(2) infinite; }
@@ -754,7 +896,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   padding: 16px 18px;
 }
 .stat-chip .s-label { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; display: flex; align-items: center; gap: 7px; }
-.stat-chip .s-value { font-family: var(--serif); font-size: 26px; font-weight: 600; letter-spacing: -.01em; }
+.stat-chip .s-value { font-size: 26px; font-weight: 600; letter-spacing: -.01em; }
 .stat-chip .s-value small { font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-3); margin-left: 4px; }
 
 .dropzone {
@@ -810,7 +952,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .row-actions { display: flex; gap: 2px; justify-content: flex-end; }
 .empty-block { padding: 54px 20px; text-align: center; color: var(--text-3); }
 .empty-block .e-icon { width: 44px; height: 44px; margin: 0 auto 14px; border-radius: 12px; background: var(--surface-2); color: var(--text-3); display: flex; align-items: center; justify-content: center; }
-.empty-block h3 { font-family: var(--serif); font-size: 17px; color: var(--text); margin-bottom: 6px; }
+.empty-block h3 { font-size: 17px; color: var(--text); margin-bottom: 6px; }
 .empty-block p { font-size: 13.5px; }
 
 /* ============================================================
@@ -823,7 +965,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 .kpi::after { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--accent); opacity: .85; }
 .kpi .k-label { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
-.kpi .k-value { font-family: var(--serif); font-size: 30px; font-weight: 600; letter-spacing: -.02em; line-height: 1; }
+.kpi .k-value { font-size: 30px; font-weight: 600; letter-spacing: -.02em; line-height: 1; }
 .kpi .k-delta { display: inline-flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 12px; font-weight: 600; }
 .k-delta.up { color: var(--green); } .k-delta.down { color: var(--red); }
 .dash-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; margin-bottom: 14px; }
@@ -850,7 +992,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .settings-grid { display: grid; grid-template-columns: 210px 1fr; gap: 26px; align-items: start; }
 .settings-nav { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 3px; }
 .set-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 26px; margin-bottom: 18px; scroll-margin-top: 20px; }
-.set-card h2 { font-family: var(--serif); font-size: 19px; font-weight: 600; margin-bottom: 4px; }
+.set-card h2 { font-size: 19px; font-weight: 600; margin-bottom: 4px; }
 .set-card .c-sub { font-size: 13.5px; color: var(--text-2); margin-bottom: 22px; }
 .set-card .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .provider-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
@@ -901,7 +1043,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 @keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
 .modal-lg { max-width: 620px; }
 .modal-head { display: flex; align-items: center; gap: 12px; padding: 20px 22px 0; }
-.modal-head h3 { font-family: var(--serif); font-size: 19px; font-weight: 600; flex: 1; }
+.modal-head h3 { font-size: 19px; font-weight: 600; flex: 1; }
 .modal-body { padding: 16px 22px 22px; overflow-y: auto; }
 .modal-body .m-text { font-size: 14px; color: var(--text-2); line-height: 1.6; }
 .modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 0 22px 22px; }
@@ -916,7 +1058,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   display: flex; align-items: center; justify-content: center; color: var(--accent);
 }
 .onb-art svg { width: 54px; height: 54px; }
-.onb-step h3 { font-family: var(--serif); font-size: 22px; font-weight: 600; margin-bottom: 10px; }
+.onb-step h3 { font-size: 22px; font-weight: 600; margin-bottom: 10px; }
 .onb-step p { font-size: 14px; color: var(--text-2); line-height: 1.65; }
 .onb-dots { display: flex; gap: 7px; }
 .onb-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--border-strong); transition: all .2s var(--ease); }
@@ -1081,6 +1223,9 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    RESPONSIVE
    ============================================================ */
 @media (max-width: 1080px) {
+  /* Once the hero drops to one column a 10.9% gutter eats too much of a
+     narrow screen, so fall back to the tighter fixed ramp. */
+  :root { --gutter: clamp(20px, 6vw, 72px); }
   .hero { grid-template-columns: 1fr; }
   .demo-card { max-width: 560px; }
   .kpi-grid, .stat-row { grid-template-columns: repeat(2, 1fr); }

@@ -53,7 +53,7 @@ export default function Login() {
     <div className="screen auth-screen">
       <aside className="auth-side">
         <Link className="brand" to="/welcome">
-          <span className="brand-mark"><Icon name="spark" /></span>
+          <img className="brand-mark" src="/logo.png" alt="" width="32" height="32" />
           <span className="brand-name">Retrieva</span>
         </Link>
         <div className="auth-quote">

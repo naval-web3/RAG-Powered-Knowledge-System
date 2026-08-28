@@ -34,7 +34,7 @@ export function DonutChart({ a, b, centerLabel = "OPENAI" }) {
         strokeDasharray={`${(pa * C).toFixed(1)} ${C.toFixed(1)}`} transform="rotate(-90 70 70)" />
       <circle cx="70" cy="70" r={R} fill="none" stroke="var(--blue)" strokeWidth="18" strokeLinecap="round"
         strokeDasharray={`${((1 - pa) * C).toFixed(1)} ${C.toFixed(1)}`} strokeDashoffset={`${(-pa * C).toFixed(1)}`} transform="rotate(-90 70 70)" />
-      <text x="70" y="66" textAnchor="middle" fontFamily="var(--serif)" fontSize="24" fontWeight="600" fill="var(--text)">{Math.round(pa * 100)}%</text>
+      <text x="70" y="66" textAnchor="middle" fontFamily="var(--sans)" fontSize="24" fontWeight="600" fill="var(--text)">{Math.round(pa * 100)}%</text>
       <text x="70" y="86" textAnchor="middle" fontFamily="var(--mono)" fontSize="9" fill="var(--text-3)">{centerLabel}</text>
     </svg>
   );

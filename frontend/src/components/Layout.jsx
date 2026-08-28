@@ -184,7 +184,7 @@ function Shell() {
       <aside id="sidebar">
         <div className="sb-head">
           <a className="brand" href="#" onClick={(e) => { e.preventDefault(); startNewChat(); }}>
-            <span className="brand-mark"><Icon name="spark" /></span>
+            <img className="brand-mark" src="/logo.png" alt="" width="32" height="32" />
             <span className="brand-name">Retrieva</span>
           </a>
           <button className="btn-icon" title="Collapse sidebar" aria-label="Collapse sidebar"
