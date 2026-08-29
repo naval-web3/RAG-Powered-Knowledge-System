@@ -17,6 +17,8 @@ export function ChatProvider({ children }) {
   const activeProjectRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
+  const [privateLeaving, setPrivateLeaving] = useState(false);
+  const abortRef = useRef(null);
   const [loadingConv, setLoadingConv] = useState(false);
 
   const [privateMode, setPrivateMode] = useState(false);
@@ -209,15 +211,30 @@ export function ChatProvider({ children }) {
     }
   }, [newChat, loadConversations, toast]);
 
+  // Matches the closing animation in CSS; the mode is held open just long
+  // enough for it to play.
+  const EXIT_MS = 180;
+
   function togglePrivate() {
-    setPrivateMode((p) => {
-      const next = !p;
+    const fresh = () => {
       // Entering or leaving private mode always starts a fresh session.
       setActiveId(null);
       setMessages([]);
-      if (next) setScopeDocId(null);
-      return next;
-    });
+    };
+    if (privateMode) {
+      // Stay in the mode until the closing animation has played, or the class
+      // that drives it would be gone before the first frame.
+      setPrivateLeaving(true);
+      setTimeout(() => {
+        setPrivateLeaving(false);
+        setPrivateMode(false);
+        fresh();
+      }, EXIT_MS);
+      return;
+    }
+    setScopeDocId(null);
+    setPrivateMode(true);
+    fresh();
   }
 
   const send = useCallback(
@@ -227,43 +244,119 @@ export function ChatProvider({ children }) {
       const [provider, model] = sel.split("|");
       setMessages((m) => [...m, { role: "user", content: query, message_id: `u-${idSeq()}` }]);
       setSending(true);
-      try {
-        const { data } = await client.post("/api/chat", {
-          query,
-          conversation_id: privateMode ? null : activeId,
-          provider,
-          model,
-          incognito: privateMode,
-          scope_document_id: scopeDocId || null,
-          project_id: activeProjectRef.current,
-        });
+      const replyId = `a-${idSeq()}`;
+      const askedAt = Date.now();
+      /* The placeholder is only added once the first token lands, so the
+         waiting row stays put during retrieval and hands over to real text
+         the moment there is some. */
+      let started = false;
+      let firstTokenMs = 0;
+      const startReply = () => {
+        started = true;
+        // How long the silent part lasted, for the "Thought for Ns" label.
+        const thoughtMs = Date.now() - askedAt;
+        firstTokenMs = thoughtMs;
         setMessages((m) => [
           ...m,
-          {
-            role: "assistant",
-            content: data.answer,
-            message_id: `a-${idSeq()}`,
-            source_documents: { sources: data.sources || [] },
-            meta: {
-              provider: data.provider,
-              model: data.model,
-              ms: data.response_time_ms,
-              chunks: data.chunks_retrieved,
-              top_score: data.top_score,
-            },
-          },
+          { role: "assistant", content: "", message_id: replyId, streaming: true, thoughtMs },
         ]);
+      };
+      const appendToken = (t) =>
+        setMessages((m) => m.map((x) => (x.message_id === replyId ? { ...x, content: x.content + t } : x)));
+
+      try {
+        const controller = new AbortController();
+        abortRef.current = controller;
+        const res = await fetch("/api/chat/stream", {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+          body: JSON.stringify({
+            query,
+            conversation_id: privateMode ? null : activeId,
+            provider,
+            model,
+            incognito: privateMode,
+            scope_document_id: scopeDocId || null,
+            project_id: activeProjectRef.current,
+          }),
+        });
+        if (!res.ok || !res.body) {
+          const detail = await res.text().catch(() => "");
+          throw new Error(detail || `Request failed (${res.status})`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let done = null;
+
+        for (;;) {
+          const { value, done: finished } = await reader.read();
+          if (finished) break;
+          buf += decoder.decode(value, { stream: true });
+          // SSE frames are separated by a blank line.
+          const frames = buf.split("\n\n");
+          buf = frames.pop() || "";
+          for (const frame of frames) {
+            const line = frame.split("\n").find((l) => l.startsWith("data: "));
+            if (!line) continue;
+            const payload = JSON.parse(line.slice(6));
+            if (typeof payload.t === "string") {
+              if (!started) startReply();
+              appendToken(payload.t);
+            } else if (payload.answer !== undefined) {
+              done = payload;
+            } else if (payload.message) {
+              throw new Error(payload.message);
+            }
+          }
+        }
+        if (!done) throw new Error("The answer ended unexpectedly.");
+
+        /* The streamed tokens are raw; the backend cleans the reply only once
+           it is complete, so the finished text replaces what was shown. */
+        const settled = {
+          role: "assistant",
+          content: done.answer,
+          message_id: replyId,
+          thoughtMs: firstTokenMs,
+          source_documents: { sources: done.sources || [] },
+          meta: {
+            provider: done.provider,
+            model: done.model,
+            ms: done.response_time_ms,
+            chunks: done.chunks_retrieved,
+            top_score: done.top_score,
+          },
+        };
+        setMessages((m) =>
+          started ? m.map((x) => (x.message_id === replyId ? settled : x)) : [...m, settled]
+        );
         if (!privateMode) {
-          setActiveId(data.conversation_id);
+          setActiveId(done.conversation_id);
           loadConversations();
         }
       } catch (err) {
+        if (err?.name === "AbortError") {
+          // Stopped on purpose: keep what arrived and close the message off.
+          setMessages((m) =>
+            m.map((x) =>
+              x.message_id === replyId ? { ...x, streaming: false, stopped: true } : x
+            )
+          );
+          return;
+        }
         const detail = err?.friendlyMessage || err?.response?.data?.detail || err.message;
         setMessages((m) => [
-          ...m,
+          ...m.filter((x) => x.message_id !== replyId),
           { role: "assistant", content: `Error: ${detail}`, message_id: `e-${idSeq()}`, error: true },
         ]);
       } finally {
+        abortRef.current = null;
         setSending(false);
       }
     },
@@ -324,7 +417,11 @@ export function ChatProvider({ children }) {
     [toast, loadDocs, loadProjects]
   );
 
+  /** Cut generation short; the text so far is kept. */
+  const stop = useCallback(() => abortRef.current?.abort(), []);
+
   const value = {
+    stop,
     conversations,
     activeId,
     projects,
@@ -340,6 +437,7 @@ export function ChatProvider({ children }) {
     sending,
     loadingConv,
     privateMode,
+    privateLeaving,
     setPrivateMode,
     togglePrivate,
     models,

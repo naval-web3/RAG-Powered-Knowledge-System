@@ -6,6 +6,7 @@ import { ToastProvider } from "../context/ToastContext";
 import { resolvedTheme, toggleTheme } from "../theme";
 import { initialsOf } from "../utils";
 import Icon from "./Icon";
+import Tooltip from "./Tooltip";
 
 const PAGE_TITLES = {
   "/": "Chat",
@@ -60,6 +61,23 @@ function Shell() {
 
   const onChat = location.pathname === "/";
   const privateActive = chat.privateMode && onChat;
+
+
+  /* Ctrl+Shift+P toggles private mode from anywhere. Ignored while typing, so
+     it cannot fire mid-message. */
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!e.ctrlKey || !e.shiftKey || e.key.toLowerCase() !== "p") return;
+      const el = document.activeElement;
+      const typing = el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT" || el.isContentEditable);
+      if (typing) return;
+      e.preventDefault();
+      if (!onChat) navigate("/");
+      chat.togglePrivate();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [chat, onChat, navigate]);
   const title = PAGE_TITLES[location.pathname] || "Retrieva";
 
   // Close popovers on outside click / route change.
@@ -173,6 +191,8 @@ function Shell() {
     collapsed ? "sb-collapsed" : "",
     mobileOpen ? "sb-open" : "",
     privateActive ? "private-chat" : "",
+
+    chat.privateLeaving ? "priv-leaving" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -375,7 +395,7 @@ function Shell() {
             <span className="avatar">{initialsOf(user?.username)}</span>
             <span className="u-meta">
               <span className="u-name">{user?.username}</span>
-              <span className="u-role">{user?.role === "admin" ? "Administrator" : "User"}</span>
+              <span className="u-mail">{user?.email}</span>
             </span>
             <Icon name="more" className="icon-sm" style={{ color: "var(--text-3)" }} />
           </button>
@@ -384,36 +404,51 @@ function Shell() {
 
       <div id="main">
         <header className="topbar">
-          <button className="btn-icon" id="btn-mobile-menu" aria-label="Open menu"
-            onClick={() => setMobileOpen(true)}>
-            <Icon name="menu" />
-          </button>
-          {collapsed && (
-            <button className="btn-icon" title="Open sidebar" aria-label="Open sidebar"
-              onClick={() => setCollapsed(false)}>
-              <Icon name="panel" className="icon-sm" />
+          {privateActive ? (
+            /* Nothing but what the mode is, and the way out. */
+            <>
+              <span className="private-bar-label">
+                <Icon name="ghost" className="icon-sm" /> Private chat
+              </span>
+              <button className="private-bar-x" title="Leave private chat"
+                aria-label="Leave private chat" onClick={() => chat.togglePrivate()}>
+                <Icon name="x" className="icon-sm" />
+              </button>
+            </>
+          ) : (
+            <>
+            <button className="btn-icon" id="btn-mobile-menu" aria-label="Open menu"
+              onClick={() => setMobileOpen(true)}>
+              <Icon name="menu" />
             </button>
+            {collapsed && (
+              <button className="btn-icon" title="Open sidebar" aria-label="Open sidebar"
+                onClick={() => setCollapsed(false)}>
+                <Icon name="panel" className="icon-sm" />
+              </button>
+            )}
+            <h1>{title}</h1>
+            <div className="grow" />
+            <span className="provider-pill" title="Active LLM provider">
+              <span className="dot" />
+              <span>{provider} · {model}</span>
+            </span>
+            <button className="btn-icon" title="Toggle theme" aria-label="Toggle theme"
+              onClick={toggleThemeBtn}>
+              <Icon name={isDark ? "sun" : "moon"} className="icon-sm" />
+            </button>
+            {/* Last, so it sits in the same corner the cross occupies in
+                private mode: one place to switch the mode either way. */}
+            <Tooltip label="Private chat" keys="Ctrl+Shift+P">
+              <button
+                className={`private-toggle ${chat.privateMode ? "on" : ""}`}
+                aria-label="Toggle private chat" aria-pressed={chat.privateMode}
+                onClick={() => { if (!onChat) navigate("/"); chat.togglePrivate(); }}>
+                <Icon name="ghost" className="ghost-icon" />
+              </button>
+            </Tooltip>
+            </>
           )}
-          <h1>{title}</h1>
-          {privateActive && (
-            <span className="private-badge"><Icon name="ghost" className="icon-sm" /> Private</span>
-          )}
-          <div className="grow" />
-          <button
-            className={`btn-icon private-toggle ${chat.privateMode ? "on" : ""}`}
-            title="Start a private chat that is never saved"
-            aria-label="Toggle private chat" aria-pressed={chat.privateMode}
-            onClick={() => { if (!onChat) navigate("/"); chat.togglePrivate(); }}>
-            <Icon name="ghost" className="icon-sm" />
-          </button>
-          <span className="provider-pill" title="Active LLM provider">
-            <span className="dot" />
-            <span>{provider} · {model}</span>
-          </span>
-          <button className="btn-icon" title="Toggle theme" aria-label="Toggle theme"
-            onClick={toggleThemeBtn}>
-            <Icon name={isDark ? "sun" : "moon"} className="icon-sm" />
-          </button>
         </header>
 
         <Outlet />

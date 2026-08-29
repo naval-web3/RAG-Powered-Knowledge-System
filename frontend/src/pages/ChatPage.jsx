@@ -20,13 +20,28 @@ export default function ChatPage() {
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const [sourceModal, setSourceModal] = useState(null);
+  /* The word belongs to the silent wait only; once text is arriving the mark
+     carries the state on its own. */
+  const streaming = chat.messages.some((m) => m.streaming);
+
+  // A different mark behaviour each time private mode is entered.
+  /* The mark is also the way out. No spin first: anything between the click
+     and the mode closing just reads as delay. */
+  const leavePrivate = () => chat.togglePrivate();
 
   const empty = chat.messages.length === 0 && !chat.sending;
   const totalChunks = chat.docs.reduce((n, d) => n + (d.chunk_count || 0), 0);
 
+  /* Follow the thread only when it gains a message. Streaming appends text to
+     one that is already there, and scrolling on every token would pull the page
+     out from under whoever is still reading the top of the answer. */
+  const msgCount = useRef(0);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat.messages, chat.sending]);
+    if (chat.messages.length !== msgCount.current) {
+      msgCount.current = chat.messages.length;
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chat.messages]);
 
   function onAttach(e) {
     const f = e.target.files?.[0];
@@ -35,20 +50,34 @@ export default function ChatPage() {
   }
 
   return (
-    <section className="page" id="page-chat" style={{ display: "flex", flexDirection: "column" }}>
+    <section
+      className={chat.privateMode && empty ? "page is-private-empty" : "page"}
+      id="page-chat"
+      style={{ display: "flex", flexDirection: "column" }}
+    >
       <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={onAttach} />
 
       <div className="chat-scroll" ref={scrollRef}>
         <div className="chat-col">
           {empty ? (
             <div className="chat-empty">
-              <div className="spark"><Icon name={chat.privateMode ? "ghost" : "spark"} /></div>
-              <h2>{chat.privateMode ? "Private chat" : greetingFor(user?.username)}</h2>
-              <p>
-                {chat.privateMode
-                  ? "This conversation won't be saved to your history."
-                  : "Answers come from the documents you've uploaded, with the source shown underneath."}
-              </p>
+              {chat.privateMode ? (
+                <button
+                  type="button"
+                  className="private-mark"
+                  onClick={leavePrivate}
+                  title="Leave private chat"
+                  aria-label="Leave private chat"
+                >
+                  <img src="/thinking/endmark.png" alt="" width="56" height="56" />
+                </button>
+              ) : (
+                <div className="spark"><Icon name="spark" /></div>
+              )}
+              <h2>{chat.privateMode ? "You're private" : greetingFor(user?.username)}</h2>
+              {!chat.privateMode && (
+                <p>Answers come from the documents you&apos;ve uploaded, with the source shown underneath.</p>
+              )}
               <div className="kb-stats">
                 {chat.docCount} document{chat.docCount === 1 ? "" : "s"} · {totalChunks} chunks indexed
                 {chat.scopeDoc && <> · scoped to “{chat.scopeDoc.title}”</>}
@@ -63,14 +92,22 @@ export default function ChatPage() {
             </div>
           ) : (
             <div id="chat-thread">
-              {chat.messages.map((m) =>
-                m.role === "user" ? (
-                  <UserMessage key={m.message_id} message={m} />
-                ) : (
-                  <AiMessage key={m.message_id} message={m} onOpenSource={setSourceModal} />
-                )
-              )}
-              {chat.sending && <Thinking />}
+              {chat.messages.map((m, i) => {
+                if (m.role === "user") return <UserMessage key={m.message_id} message={m} />;
+                const last = i === chat.messages.length - 1;
+                /* Breathing while this reply is still arriving; still under the
+                   newest answer once everything has settled. */
+                const mark = m.streaming ? "busy" : last && !chat.sending ? "idle" : null;
+                return (
+                  <AiMessage
+                    key={m.message_id}
+                    message={m}
+                    onOpenSource={setSourceModal}
+                    mark={mark}
+                  />
+                );
+              })}
+              {chat.sending && !streaming && <Thinking />}
               <div ref={bottomRef} />
             </div>
           )}
@@ -181,21 +218,56 @@ function UserMessage({ message }) {
   );
 }
 
+/* Plain words for what the app is actually doing while it works. */
+const THINKING_WORDS = [
+  "Thinking", "Reading", "Retrieving", "Searching", "Considering",
+  "Cross-referencing", "Gathering", "Weighing", "Consulting", "Sifting",
+  "Tracing", "Piecing it together",
+];
+
+const pick = (list, avoid) => {
+  const pool = list.length > 1 ? list.filter((x) => x !== avoid) : list;
+  return pool[Math.floor(Math.random() * pool.length)];
+};
+
 function Thinking() {
+  const [word, setWord] = useState(() => pick(THINKING_WORDS));
+
+  useEffect(() => {
+    // One word per 3.5s, and the shine takes one pass across it in that time.
+    const id = setInterval(() => setWord((prev) => pick(THINKING_WORDS, prev)), 3500);
+    return () => clearInterval(id);
+  }, []);
+
   return (
-    <div className="msg msg-ai">
-      <div className="ai-avatar"><Icon name="spark" /></div>
-      <div className="body">
-        <div className="ai-meta"><span className="who">Retrieva</span></div>
-        <div className="ai-content">
-          <span className="cursor-blink" />
-        </div>
-      </div>
+    <div className="msg thinking-row" aria-live="polite">
+      <img className="thinking-mark" src="/thinking/breathe.webp" alt="" width="26" height="26" />
+      {/* keyed so the fade replays on every word change */}
+      <span key={word} className="thinking-word">{word}</span>
     </div>
   );
 }
 
-function AiMessage({ message, onOpenSource }) {
+/* Chase runs while the reply arrives; when it lands the mark settles into the
+   logo's inner motif, in the accent, with no squircle plate behind it. Breathe
+   belongs to the silent wait above, before any text exists. */
+const MARK_PX = 40;
+
+
+
+function AnswerMark({ busy }) {
+  return (
+    <img
+      className={busy ? "answer-mark" : "answer-mark is-done"}
+      src={busy ? "/thinking/chase-50.webp" : "/thinking/endmark.png"}
+      alt=""
+      width={MARK_PX}
+      height={MARK_PX}
+    />
+  );
+}
+
+function AiMessage({ message, onOpenSource, mark }) {
   const { toast } = useToast();
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [vote, setVote] = useState(null);
@@ -211,23 +283,30 @@ function AiMessage({ message, onOpenSource }) {
 
   return (
     <div className="msg msg-ai">
-      <div className="ai-avatar"><Icon name="spark" /></div>
       <div className="body">
-        <div className="ai-meta">
-          <span className="who">Retrieva</span>
-          {meta?.model && <span className="model-tag">{meta.provider} · {meta.model}</span>}
-        </div>
+        {message.thoughtMs != null && (
+          <div className="thought-label">
+            Thought for {Math.max(1, Math.round(message.thoughtMs / 1000))}s
+          </div>
+        )}
         <div className="ai-content">
-          <MarkdownLite text={message.content} />
+          <MarkdownLite text={message.content} fadeTail={message.streaming ? 28 : 0} />
         </div>
+        {message.stopped && <div className="stopped-note">Stopped</div>}
+
+        {/* Renders on any answer carrying metadata, not just cited ones -- it is
+            now the only place the model is named. */}
+        {(sources.length > 0 || meta?.model) && (
+          <div className="retrieval-line">
+            {meta?.model && <span>{meta.provider} · <b>{meta.model}</b></span>}
+            {meta?.chunks != null && <span>⌁ retrieved <b>{meta.chunks}</b> chunk{meta.chunks === 1 ? "" : "s"}</span>}
+            {meta?.top_score != null && <span>top match <b>{(meta.top_score * 100).toFixed(1)}%</b></span>}
+            {meta?.ms != null && <span><b>{(meta.ms / 1000).toFixed(1)}s</b></span>}
+          </div>
+        )}
 
         {sources.length > 0 && (
           <>
-            <div className="retrieval-line">
-              {meta?.chunks != null && <span>⌁ retrieved <b>{meta.chunks}</b> chunk{meta.chunks === 1 ? "" : "s"}</span>}
-              {meta?.top_score != null && <span>top match <b>{(meta.top_score * 100).toFixed(1)}%</b></span>}
-              {meta?.ms != null && <span><b>{(meta.ms / 1000).toFixed(1)}s</b></span>}
-            </div>
             <div className={`sources-wrap ${sourcesOpen ? "open" : ""}`}>
               <button className="sources-toggle" onClick={() => setSourcesOpen((o) => !o)}>
                 <Icon name="chev-r" className="icon-sm chev" />
@@ -253,7 +332,13 @@ function AiMessage({ message, onOpenSource }) {
           </>
         )}
 
-        {!message.error && (
+        {mark && (
+          <div className="answer-foot">
+            <AnswerMark busy={mark === "busy"} />
+          </div>
+        )}
+
+        {!message.error && !message.streaming && (
           <div className="msg-actions">
             <button className="btn-icon" title="Copy" onClick={copy}><Icon name="copy" className="icon-sm" /></button>
             <button className={`btn-icon ${vote === "up" ? "voted" : ""}`} title="Good answer"
@@ -405,15 +490,6 @@ function Composer({ fileRef }) {
       <div className="composer">
         {(chat.privateMode || chat.scopeDoc) && (
           <div className="mode-strip">
-            {chat.privateMode && (
-              <span className="mode-pill private">
-                <Icon name="ghost" className="icon-sm" />
-                <span><b>Private</b>, not saved</span>
-                <button className="pill-x" onClick={() => chat.togglePrivate()} aria-label="Exit private">
-                  <Icon name="x" className="icon-sm" />
-                </button>
-              </span>
-            )}
             {chat.scopeDoc && (
               <span className="mode-pill scope">
                 <Icon name="target" className="icon-sm" />
@@ -442,10 +518,17 @@ function Composer({ fileRef }) {
               aria-label="Dictate" onClick={toggleDictation}>
               <Icon name="mic" className="icon-sm" />
             </button>
-            <button className="send-btn" disabled={chat.sending || !text.trim()} aria-label="Send message"
-              onClick={submit}>
-              <Icon name="send" className="icon-sm" />
-            </button>
+            {chat.sending ? (
+              <button className="send-btn is-stop" aria-label="Stop generating" title="Stop"
+                onClick={chat.stop}>
+                <Icon name="stop" className="icon-sm" />
+              </button>
+            ) : (
+              <button className="send-btn" disabled={!text.trim()} aria-label="Send message"
+                onClick={submit}>
+                <Icon name="send" className="icon-sm" />
+              </button>
+            )}
           </div>
         </div>
         <div className="composer-hint">

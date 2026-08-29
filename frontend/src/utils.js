@@ -31,11 +31,19 @@ export function fmtDate(dateish) {
   });
 }
 
-/** Up to two uppercase initials from a name or email. */
+/**
+ * Up to two uppercase initials from a name or email: first letter of the first
+ * name plus first letter of the last, or the first two letters when there is
+ * only one name.
+ *
+ * camelCase counts as a word boundary, so "demoUser" reads as two names and
+ * gives DU rather than DE.
+ */
 export function initialsOf(name) {
   if (!name) return "?";
   const base = name.includes("@") ? name.split("@")[0] : name;
-  const parts = base.trim().split(/[\s._-]+/).filter(Boolean);
+  const spaced = base.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+  const parts = spaced.trim().split(/[\s._-]+/).filter(Boolean);
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();

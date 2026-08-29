@@ -8,16 +8,57 @@
  * underneath stay as dots. A flat list with no sub-points is left alone.
  */
 
-const BULLET = /^(\s*)[-*•]\s+(.*)$/;
+// CommonMark allows -, * and + as bullet markers; the model uses + for its
+// sub-items, and omitting it left those lines rendering as literal text.
+const BULLET = /^(\s*)[-*+•]\s+(.*)$/;
 const NUMBERED = /^(\s*)\d+[.)]\s+(.*)$/;
 
-function renderInline(text, keyPrefix) {
+// Faintest last: the newest characters are the least settled.
+const FADE = [0.85, 0.65, 0.45, 0.25];
+
+/** Split a trailing run into steps of rising transparency. */
+function fadeTail(text, budget, keyPrefix) {
+  const per = Math.ceil(budget / FADE.length);
+  const cut = Math.max(0, text.length - per * FADE.length);
+  const nodes = [];
+  if (cut > 0) nodes.push(<span key={`${keyPrefix}-h`}>{text.slice(0, cut)}</span>);
+  let at = cut;
+  FADE.forEach((o, k) => {
+    const piece = text.slice(at, at + per);
+    if (piece) nodes.push(<span key={`${keyPrefix}-f${k}`} style={{ opacity: o }}>{piece}</span>);
+    at += per;
+  });
+  return nodes;
+}
+
+/* Drop a bold or code marker the model has opened but not closed yet, so it
+   does not sit on screen as literal punctuation while its partner is still
+   on the way. */
+function dropDangling(s) {
+  let out = s;
+  const bold = out.match(/\*\*/g);
+  if (bold && bold.length % 2 === 1) {
+    const at = out.lastIndexOf("**");
+    out = out.slice(0, at) + out.slice(at + 2);
+  }
+  const ticks = out.match(/`/g);
+  if (ticks && ticks.length % 2 === 1) {
+    const at = out.lastIndexOf("`");
+    out = out.slice(0, at) + out.slice(at + 1);
+  }
+  return out;
+}
+
+function renderInline(text, keyPrefix, fade = 0) {
   // Split on **bold** and `code`, keeping the delimiters.
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
   return parts.map((p, i) => {
     const key = `${keyPrefix}-${i}`;
     if (p.startsWith("**") && p.endsWith("**")) return <strong key={key}>{p.slice(2, -2)}</strong>;
     if (p.startsWith("`") && p.endsWith("`")) return <code key={key}>{p.slice(1, -1)}</code>;
+    // Only the final plain run carries the fade; a trailing bold or code span
+    // is short-lived and left alone rather than split apart.
+    if (fade > 0 && i === parts.length - 1) return <span key={key}>{fadeTail(p, fade, key)}</span>;
     return <span key={key}>{p}</span>;
   });
 }
@@ -35,7 +76,7 @@ function buildTree(flat) {
   return root;
 }
 
-function renderList(nodes, keyPrefix, depth) {
+function renderList(nodes, keyPrefix, depth, fade = 0) {
   const anyOrdered = nodes.some((n) => n.ordered);
   // Top tier takes numbers when it has sub-points, so the levels are told
   // apart by marker and not only by indent. Deeper tiers keep dots unless the
@@ -45,18 +86,24 @@ function renderList(nodes, keyPrefix, depth) {
   const Tag = ordered ? "ol" : "ul";
   return (
     <Tag key={keyPrefix}>
-      {nodes.map((n, i) => (
-        <li key={i}>
-          {renderInline(n.text, `${keyPrefix}-${i}`)}
-          {n.children.length > 0 && renderList(n.children, `${keyPrefix}-${i}`, depth + 1)}
-        </li>
-      ))}
+      {nodes.map((n, i) => {
+        // The tail lives in the last item, and inside its deepest last child.
+        const tail = fade > 0 && i === nodes.length - 1 ? fade : 0;
+        return (
+          <li key={i}>
+            {renderInline(n.text, `${keyPrefix}-${i}`, n.children.length ? 0 : tail)}
+            {n.children.length > 0 &&
+              renderList(n.children, `${keyPrefix}-${i}`, depth + 1, tail)}
+          </li>
+        );
+      })}
     </Tag>
   );
 }
 
-export default function MarkdownLite({ text }) {
-  const lines = String(text || "").replace(/\r/g, "").split("\n");
+export default function MarkdownLite({ text, fadeTail: fadeBudget = 0 }) {
+  const source = String(text || "").replace(/\r/g, "");
+  const lines = (fadeBudget > 0 ? dropDangling(source) : source).split("\n");
   const blocks = [];
   let para = [];
   let list = null; // flat items, tagged with indent, assembled on flush
@@ -105,11 +152,16 @@ export default function MarkdownLite({ text }) {
   return (
     <>
       {blocks.map((b, i) => {
-        if (b.kind === "list") return renderList(b.nodes, String(i), 0);
+        const lastBlock = i === blocks.length - 1;
+        const tail = lastBlock ? fadeBudget : 0;
+        if (b.kind === "list") return renderList(b.nodes, String(i), 0, tail);
         return (
           <p key={i}>
             {b.lines.map((ln, j) => (
-              <span key={j}>{renderInline(ln, `${i}-${j}`)}{j < b.lines.length - 1 && <br />}</span>
+              <span key={j}>
+                {renderInline(ln, `${i}-${j}`, j === b.lines.length - 1 ? tail : 0)}
+                {j < b.lines.length - 1 && <br />}
+              </span>
             ))}
           </p>
         );

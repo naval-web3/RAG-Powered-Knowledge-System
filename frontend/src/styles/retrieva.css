@@ -585,15 +585,26 @@ body {
   transition: background .13s;
 }
 .user-chip:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+/* Soft initials disc. The reference pairs --accent-soft with --accent, but
+   that is 3.67:1 and these are small bold letters needing 4.5:1, so the text
+   drops to the deeper --accent-hover (4.73:1) -- near-identical to the eye.
+   Dark uses the darker soft tint so the lighter accent clears it too
+   (4.87:1); --accent-soft alone would only reach 4.21:1. */
 .avatar {
   width: 34px; height: 34px; border-radius: 50%; flex: none;
-  background: var(--accent); color: #FFF8F2;
+  background: var(--accent-soft); color: var(--accent-hover);
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 700; letter-spacing: .02em;
 }
-.user-chip .u-meta { flex: 1; min-width: 0; }
-.user-chip .u-name { font-size: 13.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-chip .u-role { font-size: 11.5px; color: var(--text-3); }
+[data-theme="dark"] .avatar { background: var(--accent-soft-2); color: var(--accent); }
+/* .u-meta blockifies as a flex item, but its children were inline spans, so
+   the name and the line under it ran together on one line and their ellipsis
+   rules did nothing. Stacking them is what puts the email on its own row. */
+.user-chip .u-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.user-chip .u-name,
+.user-chip .u-mail { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-chip .u-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.user-chip .u-mail { font-size: 11.5px; color: var(--text-3); }
 .pop-menu {
   position: absolute; bottom: calc(100% + 6px); left: 12px; right: 12px;
   background: var(--surface); border: 1px solid var(--border);
@@ -683,16 +694,7 @@ body {
 }
 .bubble-edit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .msg-ai { display: flex; gap: 14px; }
-.ai-avatar {
-  width: 30px; height: 30px; border-radius: 9px; flex: none; margin-top: 3px;
-  background: var(--accent); color: #FAF8F2;
-  display: flex; align-items: center; justify-content: center;
-}
-.ai-avatar svg { width: 16px; height: 16px; }
 .msg-ai .body { flex: 1; min-width: 0; }
-.ai-meta { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
-.ai-meta .who { font-size: 13px; font-weight: 700; }
-.ai-meta .model-tag { font-family: var(--mono); font-size: 10.5px; color: var(--text-3); }
 .ai-content { font-size: 16px; line-height: 1.75; color: var(--text); word-break: break-word; }
 .ai-content p { margin-bottom: 13px; }
 .ai-content p:last-child { margin-bottom: 0; }
@@ -708,6 +710,61 @@ body {
 .ai-content code { font-family: var(--mono); font-size: .82em; background: var(--surface-2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; }
 .cursor-blink { display: inline-block; width: 8px; height: 17px; background: var(--accent); border-radius: 2px; vertical-align: -2px; margin-left: 2px; animation: blink 1s steps(2) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
+
+/* Waiting state: one row, breathing mark then a word. No name, no avatar
+   plate -- the mark IS the identity while it works. Matching the reference,
+   only the mark moves; the word is plain and still. */
+.thinking-row { display: flex; align-items: center; gap: 10px; }
+/* Answers no longer carry an avatar, so the body owns the full width. */
+.msg-ai .body { flex: 1; min-width: 0; }
+/* The mark sits under the reply: breathing while it is still arriving, still
+   once it has finished. Only the newest answer keeps one. */
+.answer-foot { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.answer-mark { width: 40px; height: 40px; flex: none; }
+@media (prefers-reduced-motion: reduce) {
+  /* No looping file under reduce: show the settled mark from the start. */
+  .answer-mark { content: url("/thinking/endmark.png"); }
+}
+/* The artwork is ~78% of its frame, so the box must be ~26px for the mark
+   itself to clear the 16px floor the pack sets. Below that the star closes
+   up and the loop stops reading. */
+.thinking-mark { width: 26px; height: 26px; flex: none; }
+/* One shine per word: the band crosses once, then the word is swapped. The
+   3.5s cycle matches the rotation so a word never shines twice or not at all. */
+.thinking-word {
+  font-size: 15px;
+  background: linear-gradient(90deg, var(--text-2) 38%, var(--text) 50%, var(--text-2) 62%);
+  background-size: 260% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: think-in .34s var(--ease) both, think-shine 3.5s var(--ease) infinite;
+}
+@keyframes think-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+/* Rests at the far side for the back half of the cycle, so it reads as one
+   deliberate pass rather than a continuous scroll. */
+@keyframes think-shine {
+  0%   { background-position: 130% 0; }
+  55%  { background-position: -130% 0; }
+  100% { background-position: -130% 0; }
+}
+
+/* How long the silent part lasted, kept above the answer once it arrives. */
+.thought-label { font-size: 13px; color: var(--text-3); margin-bottom: 10px; }
+.stopped-note { font-size: 12.5px; color: var(--text-3); margin-top: 8px; font-style: italic; }
+/* Streamed text keeps its newlines; markdown takes over once it settles. */
+.stream-body { white-space: pre-wrap; }
+
+/* Send turns into stop while a reply is in flight. */
+.send-btn.is-stop { background: var(--text-2); color: var(--bg); }
+.send-btn.is-stop:hover { background: var(--text); }
+/* An animated WebP cannot stop itself the way the pack's SVGs do, so swap the
+   looping file for a still frame of the same mark. */
+@media (prefers-reduced-motion: reduce) {
+  .thinking-mark { content: url("/thinking/breathe-still.png"); }
+  /* The global reduce rule only shortens animations; an infinite one keeps
+     looping, so drop the shine and show the word plainly. */
+  .thinking-word { animation: none; background: none; color: var(--text-2); }
+}
 
 /* Signature: source seals + retrieval telemetry */
 sup.cite {
@@ -815,24 +872,129 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   color: var(--text-3); transition: background .13s, color .13s;
 }
 .mode-pill .pill-x:hover { background: var(--surface-2); color: var(--text); }
-.private-toggle { transition: background .15s, color .15s, box-shadow .15s; }
-.private-toggle.on {
-  color: var(--text); background: var(--surface);
-  box-shadow: inset 0 0 0 1.5px var(--ring-strong);
+/* No plate behind it: the ghost stands on its own, larger, and lifts when the
+   pointer arrives. */
+.private-toggle {
+  width: 34px; height: 34px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-2); transition: color .15s;
 }
-.private-toggle.on:hover { color: var(--text); background: var(--surface-2); }
+.private-toggle:hover { color: var(--text); background: none; }
+.private-toggle.on { color: var(--accent); }
+.ghost-icon { width: 21px; height: 21px; flex: none; }
+/* Rises and settles once per hover, rather than looping while the pointer
+   rests on it. */
+.private-toggle:hover .ghost-icon { animation: ghost-float .45s var(--ease); }
+@keyframes ghost-float {
+  0%   { transform: none; }
+  45%  { transform: translateY(-3px); }
+  100% { transform: none; }
+}
+
+/* Tooltip: a dark label under the control, after a short delay. */
+.tip-wrap { position: relative; display: inline-flex; }
+.tip {
+  position: absolute; top: calc(100% + 8px); left: 50%;
+  transform: translate(-50%, -3px);
+  display: flex; align-items: center; gap: 10px; white-space: nowrap;
+  padding: 6px 10px; border-radius: 8px;
+  background: var(--text); color: var(--bg);
+  font-size: 12.5px; font-weight: 500; line-height: 1;
+  box-shadow: var(--shadow-md);
+  opacity: 0; pointer-events: none; z-index: 60;
+  transition: opacity .14s var(--ease), transform .14s var(--ease);
+}
+.tip-keys { font-family: var(--mono); font-size: 11px; opacity: .6; }
+/* The delay is on the show only, so moving along a toolbar does not flash a
+   trail of labels; hiding is immediate. */
+.tip-wrap:hover .tip,
+.tip-wrap:focus-within .tip {
+  opacity: 1; transform: translate(-50%, 0);
+  transition-delay: .4s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .private-toggle:hover .ghost-icon { animation: none; }
+}
 
 /* Private mode takes over the whole shell, like a browser's incognito window:
    sidebar gone, content framed by an outlined rounded panel. --ring-strong is
    near-white in dark mode and dark ink in light mode, so the outline reads in both. */
-#app.private-chat { padding: 10px; background: var(--bg); }
+/* Only the frame inverts. #main keeps var(--bg), so the panel itself stays in
+   whichever theme is active and the surround is its opposite. */
+#app.private-chat { padding: 10px; background: #0B0B0B; }
+[data-theme="dark"] #app.private-chat { background: #F4F2ED; }
+
+/* Opening: the ground washes in while the panel lifts into place. Leaving
+   reverses both, a little quicker. */
+#app.private-chat { animation: priv-ground 180ms var(--ease) both; }
+@keyframes priv-ground { from { background-color: var(--bg); } }
+#app.private-chat > #main > .page { animation: priv-lift 280ms var(--ease) both; }
+#app.private-chat > #main > .topbar { animation: priv-fade 260ms var(--ease) both; }
+@keyframes priv-lift { from { transform: scale(.97); opacity: .4; } }
+@keyframes priv-fade { from { opacity: 0; } }
+
+/* Named separately rather than reversing the entry: re-declaring duration and
+   direction on an animation that has already finished does not replay it, so
+   the close showed nothing at all and then cut. */
+#app.private-chat.priv-leaving { animation: priv-ground-out 180ms var(--ease) both; }
+#app.private-chat.priv-leaving > #main > .page { animation: priv-lift-out 180ms var(--ease) both; }
+#app.private-chat.priv-leaving > #main > .topbar { animation: priv-fade-out 150ms var(--ease) both; }
+@keyframes priv-ground-out { to { background-color: var(--bg); } }
+@keyframes priv-lift-out { to { transform: scale(.985); opacity: 0; } }
+@keyframes priv-fade-out { to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  #app.private-chat,
+  #app.private-chat > #main > .page,
+  #app.private-chat > #main > .topbar { animation: none; }
+}
+
+/* Nothing on this screen is recorded, so the document count and the prompt
+   chips both go; heading, composer and note sit together in the middle. */
+#app.private-chat .sugg-grid,
+#app.private-chat .kb-stats { display: none; }
+#page-chat.is-private-empty { justify-content: center; }
+#page-chat.is-private-empty .chat-scroll { flex: 0 0 auto; overflow: visible; }
+#page-chat.is-private-empty .chat-empty { padding: 0 20px 22px; }
+#page-chat.is-private-empty .composer-zone { background: none; }
+
+/* The mark doubles as the way out, so it is a real button. */
+.private-mark {
+  display: inline-flex; padding: 6px; border-radius: 50%;
+  transition: transform .15s var(--ease), background .15s var(--ease);
+}
+.private-mark:hover { background: var(--surface-2); transform: translateY(-1px); }
+.private-mark:active { transform: translateY(0) scale(.96); }
+.private-mark img { width: 56px; height: 56px; }
 #app.private-chat #sidebar { display: none; }
 #app.private-chat #btn-mobile-menu,
 #app.private-chat #btn-sidebar-toggle { display: none !important; }
-#app.private-chat #main {
+/* The panel role moves down to the page, so the bar above it belongs to the
+   surround rather than being clipped inside the panel's top corners. */
+#app.private-chat #main { background: none; }
+#app.private-chat #main > .page {
   border-radius: 16px; overflow: hidden;
-  box-shadow: 0 0 0 1.5px var(--ring-strong), var(--shadow-lg);
+  background: var(--bg);
+  box-shadow: var(--shadow-lg);
 }
+/* The bar carries only the mode and the way out, on the inverted ground. */
+#app.private-chat .topbar {
+  background: none; border-bottom: none; backdrop-filter: none;
+  justify-content: center; position: relative; padding: 10px 18px 14px;
+  color: #F4F2ED;
+}
+[data-theme="dark"] #app.private-chat .topbar { color: #0B0B0B; }
+.private-bar-label {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 600; letter-spacing: -.01em;
+}
+.private-bar-x {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: inherit; opacity: .75; transition: opacity .15s, background .15s;
+}
+.private-bar-x:hover { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
 
 /* Voice dictation button (Web Speech API) */
 .mic-btn.rec { color: var(--red); background: var(--red-soft); animation: micPulse 1.5s ease-in-out infinite; }
