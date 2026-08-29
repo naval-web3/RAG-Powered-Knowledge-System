@@ -47,6 +47,12 @@ def on_startup() -> None:
     # Add the live-progress columns idempotently so existing installs pick them
     # up without a manual migration or a database wipe.
     with engine.begin() as conn:
+        conn.execute(
+            text("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS pinned BOOLEAN NOT NULL DEFAULT false")
+        )
+        conn.execute(
+            text("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS unread BOOLEAN NOT NULL DEFAULT false")
+        )
         conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS stage VARCHAR(20)"))
         conn.execute(
             text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS progress INTEGER NOT NULL DEFAULT 0")

@@ -49,16 +49,53 @@ export function initialsOf(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/**
+ * The first name, capitalised. camelCase counts as a word boundary for the
+ * same reason it does in initialsOf: "demoUser" is two names, so the greeting
+ * uses "Demo" rather than "DemoUser".
+ */
 export function firstName(name) {
   if (!name) return "there";
   const base = name.includes("@") ? name.split("@")[0] : name;
-  return base.trim().split(/[\s._-]+/)[0] || "there";
+  const spaced = base.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+  const first = spaced.trim().split(/[\s._-]+/)[0];
+  if (!first) return "there";
+  return first[0].toUpperCase() + first.slice(1);
 }
 
-export function greetingFor(name) {
+/* The session's opening screen is the only place a name is used -- being
+   greeted by name on arrival reads as recognition; repeating it on every new
+   chat would read as a tic. */
+const ARRIVAL = {
+  morning: "Good morning",
+  afternoon: "Good afternoon",
+  evening: "Good evening",
+};
+
+/* Every chat after the first opens with a prompt rather than a greeting. */
+const PROMPTS = [
+  "Where shall we start?",
+  "What's on your mind?",
+  "What are we looking for?",
+];
+
+let lastPrompt = null;
+
+function nextPrompt() {
+  // Never the same line twice running.
+  const pool = PROMPTS.filter((p) => p !== lastPrompt);
+  lastPrompt = pool[Math.floor(Math.random() * pool.length)];
+  return lastPrompt;
+}
+
+function bandNow() {
   const h = new Date().getHours();
-  const part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-  return `${part}, ${firstName(name)}`;
+  return h < 12 ? "morning" : h < 18 ? "afternoon" : "evening";
+}
+
+/** `arrival` is true for the screen a session opens on, false for later chats. */
+export function greetingFor(name, arrival = true) {
+  return arrival ? `${ARRIVAL[bandNow()]}, ${firstName(name)}` : nextPrompt();
 }
 
 /** Password strength → { level: 0-4, label }. */

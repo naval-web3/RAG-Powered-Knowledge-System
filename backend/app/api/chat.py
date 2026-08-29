@@ -7,6 +7,7 @@ from collections.abc import Iterator
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -18,7 +19,7 @@ from app.schemas import (
     ChatResponse,
     ConversationDetail,
     ConversationOut,
-    ConversationRename,
+    ConversationPatch,
     MessageOut,
 )
 from app.services.rag_engine import answer_query, answer_query_stream, generate_title
@@ -367,18 +368,38 @@ def get_conversation(
 
 
 @router.patch("/conversations/{conversation_id}", response_model=ConversationOut)
-def rename_conversation(
+def update_conversation(
     conversation_id: uuid.UUID,
-    payload: ConversationRename,
+    payload: ConversationPatch,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ConversationOut:
+    """Rename, pin or flag a conversation. Only the fields sent are touched."""
     conv = db.get(Conversation, conversation_id)
     if conv is None or conv.user_id != current_user.user_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found")
-    conv.title = payload.title.strip()[:255]
-    db.commit()
-    db.refresh(conv)
+
+    fields: dict[str, object] = {}
+    if payload.title is not None:
+        fields["title"] = payload.title.strip()[:255]
+    if payload.pinned is not None:
+        fields["pinned"] = payload.pinned
+    if payload.unread is not None:
+        fields["unread"] = payload.unread
+
+    if fields:
+        # Restating updated_at keeps the column's onupdate from firing: pinning,
+        # flagging or renaming is not activity inside the conversation, and
+        # bumping the timestamp would jump the row to the top of the list. A
+        # Core UPDATE, because the ORM drops a no-op assignment and lets the
+        # default through anyway.
+        db.execute(
+            update(Conversation)
+            .where(Conversation.conversation_id == conversation_id)
+            .values(updated_at=conv.updated_at, **fields)
+        )
+        db.commit()
+        db.refresh(conv)
     return ConversationOut.model_validate(conv)
 
 

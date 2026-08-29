@@ -18,6 +18,16 @@ export default function ChatPage() {
   const chat = useChat();
   const scrollRef = useRef(null);
   const bottomRef = useRef(null);
+  /* Held in state so it does not reshuffle on every render. The screen the
+     session opens on gets the fuller wording; every chat started afterwards
+     re-rolls from the lighter pool.
+     Keyed on the number of fresh starts rather than on a first-run flag:
+     StrictMode runs effects twice on mount, and a flag would flip on the first
+     pass and let the second overwrite the arrival greeting. */
+  const [greeting, setGreeting] = useState(() => greetingFor(user?.username, true));
+  useEffect(() => {
+    setGreeting(greetingFor(user?.username, chat.freshStarts === 0));
+  }, [chat.freshStarts, user?.username]);
   const fileRef = useRef(null);
   const [sourceModal, setSourceModal] = useState(null);
   /* The word belongs to the silent wait only; once text is arriving the mark
@@ -30,7 +40,6 @@ export default function ChatPage() {
   const leavePrivate = () => chat.togglePrivate();
 
   const empty = chat.messages.length === 0 && !chat.sending;
-  const totalChunks = chat.docs.reduce((n, d) => n + (d.chunk_count || 0), 0);
 
   /* Follow the thread only when it gains a message. Streaming appends text to
      one that is already there, and scrolling on every token would pull the page
@@ -72,16 +81,9 @@ export default function ChatPage() {
                   <img src="/thinking/endmark.png" alt="" width="56" height="56" />
                 </button>
               ) : (
-                <div className="spark"><Icon name="spark" /></div>
+                <img className="empty-mark" src="/thinking/endmark.png" alt="" width="56" height="56" />
               )}
-              <h2>{chat.privateMode ? "You're private" : greetingFor(user?.username)}</h2>
-              {!chat.privateMode && (
-                <p>Answers come from the documents you&apos;ve uploaded, with the source shown underneath.</p>
-              )}
-              <div className="kb-stats">
-                {chat.docCount} document{chat.docCount === 1 ? "" : "s"} · {totalChunks} chunks indexed
-                {chat.scopeDoc && <> · scoped to “{chat.scopeDoc.title}”</>}
-              </div>
+              <h2>{chat.privateMode ? "You're private" : greeting}</h2>
               <div className="sugg-grid">
                 {SUGGESTIONS.map((s) => (
                   <button key={s.q} className="sugg" onClick={() => chat.send(s.q)}>
@@ -140,8 +142,8 @@ function UserMessage({ message }) {
 
   function copy() {
     navigator.clipboard?.writeText(message.content).then(
-      () => toast("Prompt copied.", "ok"),
-      () => toast("Couldn't copy.", "err")
+      () => toast("Prompt copied", "ok"),
+      () => toast("Couldn't copy", "err")
     );
   }
 
@@ -276,8 +278,8 @@ function AiMessage({ message, onOpenSource, mark }) {
 
   function copy() {
     navigator.clipboard?.writeText(message.content).then(
-      () => toast("Answer copied.", "ok"),
-      () => toast("Couldn't copy.", "err")
+      () => toast("Answer copied", "ok"),
+      () => toast("Couldn't copy", "err")
     );
   }
 
@@ -342,11 +344,11 @@ function AiMessage({ message, onOpenSource, mark }) {
           <div className="msg-actions">
             <button className="btn-icon" title="Copy" onClick={copy}><Icon name="copy" className="icon-sm" /></button>
             <button className={`btn-icon ${vote === "up" ? "voted" : ""}`} title="Good answer"
-              onClick={() => { setVote("up"); toast("Marked as a good answer.", "ok"); }}>
+              onClick={() => { setVote("up"); toast("Marked as a good answer", "ok"); }}>
               <Icon name="thumb-up" className="icon-sm" />
             </button>
             <button className={`btn-icon ${vote === "down" ? "voted" : ""}`} title="Needs work"
-              onClick={() => { setVote("down"); toast("Marked as needing work.", "info"); }}>
+              onClick={() => { setVote("down"); toast("Marked as needing work", "info"); }}>
               <Icon name="thumb-down" className="icon-sm" />
             </button>
           </div>
@@ -410,7 +412,7 @@ function Composer({ fileRef }) {
   function startDictation() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      toast("Voice input isn't supported in this browser.", "warn");
+      toast("Voice input isn't supported in this browser", "warn");
       return;
     }
     const rec = new SR();
@@ -441,7 +443,7 @@ function Composer({ fileRef }) {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         shouldListenRef.current = false;
         setRecording(false);
-        toast("Microphone is blocked. Allow it in the browser to dictate.", "warn");
+        toast("Microphone is blocked. Allow it in the browser to dictate", "warn");
       }
       // Transient errors (e.g. "no-speech") are ignored; onend will restart.
     };

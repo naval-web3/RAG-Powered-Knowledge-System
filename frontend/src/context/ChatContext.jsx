@@ -18,6 +18,7 @@ export function ChatProvider({ children }) {
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const [privateLeaving, setPrivateLeaving] = useState(false);
+  const [freshStarts, setFreshStarts] = useState(0);
   const abortRef = useRef(null);
   const [loadingConv, setLoadingConv] = useState(false);
 
@@ -40,6 +41,9 @@ export function ChatProvider({ children }) {
   const loadConversations = useCallback(async () => {
     try {
       const { data } = await client.get("/api/conversations");
+      // Pinned chats rise to the top; the API already returns newest first, so
+      // a stable sort on the flag alone preserves that order within each group.
+      data.sort((a, b) => Number(b.pinned) - Number(a.pinned));
       setConversations(data);
     } catch {
       /* ignore */
@@ -149,12 +153,17 @@ export function ChatProvider({ children }) {
       setActiveProject(typeof projectId === "string" ? projectId : null);
       setActiveId(null);
       setMessages([]);
+      // Counts fresh starts. Zero means this is still the screen the session
+      // opened on, which is what decides how warmly it greets you.
+      setFreshStarts((n) => n + 1);
     },
     [setActiveProject]
   );
 
   const openConversation = useCallback(
     async (id) => {
+      // Opening it is what clears the marker; nothing sets it automatically.
+      client.patch(`/api/conversations/${id}`, { unread: false }).catch(() => {});
       if (privateMode) setPrivateMode(false);
       setLoadingConv(true);
       try {
@@ -163,7 +172,7 @@ export function ChatProvider({ children }) {
         setActiveProject(data.project_id || null);
         setMessages(data.messages || []);
       } catch {
-        toast("Couldn't open that conversation.", "err");
+        toast("Couldn't open that conversation", "err");
       } finally {
         setLoadingConv(false);
       }
@@ -179,7 +188,20 @@ export function ChatProvider({ children }) {
         await client.patch(`/api/conversations/${id}`, { title: clean });
         loadConversations();
       } catch {
-        toast("Rename failed.", "err");
+        toast("Rename failed", "err");
+      }
+    },
+    [loadConversations, toast]
+  );
+
+  /** Set pinned/unread on a conversation. Only the fields given are sent. */
+  const setConversationFlags = useCallback(
+    async (id, flags) => {
+      try {
+        await client.patch(`/api/conversations/${id}`, flags);
+        loadConversations();
+      } catch {
+        toast("Couldn't update that chat", "err");
       }
     },
     [loadConversations, toast]
@@ -191,9 +213,9 @@ export function ChatProvider({ children }) {
         await client.delete(`/api/conversations/${id}`);
         if (id === activeId) newChat();
         loadConversations();
-        toast("Conversation deleted.", "ok");
+        toast("Chat deleted", "ok");
       } catch {
-        toast("Delete failed.", "err");
+        toast("Delete failed", "err");
       }
     },
     [activeId, newChat, loadConversations, toast]
@@ -205,9 +227,9 @@ export function ChatProvider({ children }) {
       await Promise.all(data.map((c) => client.delete(`/api/conversations/${c.conversation_id}`)));
       newChat();
       loadConversations();
-      toast("All conversations cleared.", "ok");
+      toast("All conversations cleared", "ok");
     } catch {
-      toast("Couldn't clear conversations.", "err");
+      toast("Couldn't clear conversations", "err");
     }
   }, [newChat, loadConversations, toast]);
 
@@ -395,16 +417,16 @@ export function ChatProvider({ children }) {
           reason = d.error_message || "";
           if (status === "ocr" && !ocrNotified) {
             ocrNotified = true;
-            toast(`“${file.name}” looks scanned, so we're reading it with OCR.`, "info", "This can take a few minutes.");
+            toast(`“${file.name}” looks scanned, so we're reading it with OCR`, "info", "This can take a few minutes.");
           }
         }
         loadDocs();
         if (status === "done") {
-          toast(`“${file.name}” is ready.`, "ok", "Ask a question about it.");
+          toast(`“${file.name}” is ready`, "ok", "Ask a question about it.");
         } else if (status === "failed") {
-          toast(`“${file.name}” could not be processed.`, "err", reason);
+          toast(`“${file.name}” could not be processed`, "err", reason);
         } else {
-          toast(`“${file.name}” is still processing.`, "warn", "Check the Documents tab shortly.");
+          toast(`“${file.name}” is still processing`, "warn", "Check the Documents tab shortly.");
         }
         return status;
       } catch (err) {
@@ -454,8 +476,10 @@ export function ChatProvider({ children }) {
     loadDocs,
     loadModels,
     newChat,
+    freshStarts,
     openConversation,
     renameConversation,
+    setConversationFlags,
     deleteConversation,
     clearAllConversations,
     send,

@@ -47,9 +47,9 @@ export default function Settings() {
     try {
       const { data } = await client.patch("/api/auth/me", { username: name.trim() });
       updateUser({ username: data.username });
-      toast("Profile saved.", "ok");
+      toast("Profile saved", "ok");
     } catch (err) {
-      toast("Couldn't save profile.", "err", err?.response?.data?.detail);
+      toast("Couldn't save profile", "err", err?.response?.data?.detail);
     }
   }
 
@@ -70,20 +70,20 @@ export default function Settings() {
         CHUNK_OVERLAP: cfg.CHUNK_OVERLAP,
       });
       setCfg(data);
-      toast("Configuration saved.", "ok");
+      toast("Configuration saved", "ok");
     } catch (err) {
-      toast("Couldn't save configuration.", "err", err?.response?.data?.detail);
+      toast("Couldn't save configuration", "err", err?.response?.data?.detail);
     }
   }
 
   async function changePassword() {
-    if (newPass.length < 6) { toast("New password must be at least 6 characters.", "warn"); return; }
+    if (newPass.length < 6) { toast("New password must be at least 6 characters", "warn"); return; }
     try {
       await client.post("/api/auth/change-password", { current_password: oldPass, new_password: newPass });
       setOldPass(""); setNewPass("");
-      toast("Password updated.", "ok");
+      toast("Password updated", "ok");
     } catch (err) {
-      toast("Couldn't update password.", "err", err?.response?.data?.detail);
+      toast("Couldn't update password", "err", err?.response?.data?.detail);
     }
   }
 
@@ -94,7 +94,7 @@ export default function Settings() {
       logout();
       navigate("/welcome");
     } catch (err) {
-      toast("Couldn't delete account.", "err", err?.response?.data?.detail);
+      toast("Couldn't delete account", "err", err?.response?.data?.detail);
     }
   }
 

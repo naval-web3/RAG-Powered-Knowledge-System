@@ -145,7 +145,7 @@ export default function DocumentsPage() {
 
   function chatWithDoc(d) {
     chat.setScopeDocId(d.document_id);
-    toast(`Chat scoped to “${d.title}”.`, "info");
+    toast(`Chat scoped to “${d.title}”`, "info");
     navigate("/");
   }
 
@@ -156,9 +156,9 @@ export default function DocumentsPage() {
       await client.delete(`/api/documents/${d.document_id}`);
       if (chat.scopeDocId === d.document_id) chat.setScopeDocId(null);
       chat.loadDocs();
-      toast("Document deleted.", "ok");
+      toast("Document deleted", "ok");
     } catch (err) {
-      toast("Delete failed.", "err", err?.response?.data?.detail);
+      toast("Delete failed", "err", err?.response?.data?.detail);
     }
   }
 

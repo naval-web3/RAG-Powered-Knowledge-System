@@ -54,7 +54,7 @@ export default function ProjectPage() {
     try {
       await chat.updateProject(projectId, { name: clean });
     } catch {
-      toast("Couldn't rename the project.", "err");
+      toast("Couldn't rename the project", "err");
       setName(project.name);
     }
   }
@@ -63,9 +63,9 @@ export default function ProjectPage() {
     try {
       await chat.updateProject(projectId, { instructions });
       setEditingInstr(false);
-      toast("Instructions saved.", "ok");
+      toast("Instructions saved", "ok");
     } catch {
-      toast("Couldn't save the instructions.", "err");
+      toast("Couldn't save the instructions", "err");
     }
   }
 
@@ -74,7 +74,7 @@ export default function ProjectPage() {
     try {
       await chat.setProjectDocuments(projectId, "selected", next);
     } catch {
-      toast("Couldn't remove that document.", "err");
+      toast("Couldn't remove that document", "err");
     }
   }
 
@@ -97,10 +97,10 @@ export default function ProjectPage() {
     setConfirmDelete(false);
     try {
       await chat.deleteProject(projectId);
-      toast("Project deleted.", "ok", "Its chats and documents are still here.");
+      toast("Project deleted", "ok", "Its chats and documents are still here.");
       navigate("/");
     } catch {
-      toast("Couldn't delete the project.", "err");
+      toast("Couldn't delete the project", "err");
     }
   }
 
@@ -304,7 +304,7 @@ export default function ProjectPage() {
               await chat.setProjectDocuments(projectId, scope, ids);
               setPicking(false);
             } catch {
-              toast("Couldn't update the document selection.", "err");
+              toast("Couldn't update the document selection", "err");
             }
           }}
         />

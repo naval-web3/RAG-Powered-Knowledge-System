@@ -100,6 +100,10 @@ class Conversation(Base):
         nullable=True, index=True,
     )
     title: Mapped[str] = mapped_column(String(255), default="New Chat")
+    # Pinned chats sort above the rest. Unread is set by hand from the chat's
+    # menu and cleared when the chat is opened; nothing marks it automatically.
+    pinned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    unread: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), index=True

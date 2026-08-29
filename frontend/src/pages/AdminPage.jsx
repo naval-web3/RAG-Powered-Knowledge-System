@@ -151,7 +151,7 @@ export default function AdminPage() {
                     <td>
                       <label className="switch">
                         <input type="checkbox" checked={u.is_active} readOnly
-                          onClick={(e) => { e.preventDefault(); toast("User activation is view-only in this build.", "info"); }} />
+                          onClick={(e) => { e.preventDefault(); toast("User activation is view-only in this build", "info"); }} />
                         <span className="track" />
                       </label>
                     </td>

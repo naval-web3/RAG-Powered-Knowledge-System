@@ -106,12 +106,17 @@ class ConversationOut(BaseModel):
     conversation_id: uuid.UUID
     project_id: uuid.UUID | None = None
     title: str
+    pinned: bool = False
+    unread: bool = False
     created_at: datetime
     updated_at: datetime
 
 
-class ConversationRename(BaseModel):
-    title: str = Field(min_length=1, max_length=255)
+class ConversationPatch(BaseModel):
+    """Any subset of the editable fields; omitted ones are left alone."""
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    pinned: bool | None = None
+    unread: bool | None = None
 
 
 class ConversationDetail(ConversationOut):

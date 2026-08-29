@@ -22,6 +22,9 @@ ul, ol { list-style: none; }
   --surface:       #FFFFFF;   /* paper      */
   --surface-2:     #F3F0E7;   /* linen tint */
   --sidebar:       #F1EEE4;   /* linen      */
+  --row-hover:     #EBE7DA;
+  --row-active:    #E3DECD;
+  --popover:       #FCFAF4;
   --border:        #E7E2D4;
   --border-strong: #D5CFBD;
   --text:          #211E18;   /* ink        */
@@ -37,6 +40,7 @@ ul, ol { list-style: none; }
   --amber-soft:    #F6ECD6;
   --red:           #B03A2E;
   --red-soft:      #F8E3DF;
+  --red-fill:      #C0392B;
   --blue:          #4C6E91;
   --blue-soft:     #E3EBF3;
   --ring-strong:   rgba(28, 25, 18, .5);
@@ -44,6 +48,7 @@ ul, ol { list-style: none; }
   --shadow-sm: 0 1px 2px rgba(33,30,24,.06), 0 1px 4px rgba(33,30,24,.05);
   --shadow-md: 0 4px 12px rgba(33,30,24,.08), 0 2px 4px rgba(33,30,24,.05);
   --shadow-lg: 0 16px 40px rgba(33,30,24,.16), 0 4px 12px rgba(33,30,24,.08);
+  --shadow-panel: 4px 0 12px rgba(33,30,24,.10);
   --sans:  'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono:  'JetBrains Mono', 'SF Mono', Consolas, monospace;
   --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 22px;
@@ -60,6 +65,9 @@ ul, ol { list-style: none; }
   --surface:       #26231D;
   --surface-2:     #2E2A23;
   --sidebar:       #211F19;
+  --row-hover:     #282520;
+  --row-active:    #2F2B22;
+  --popover:       #2B2821;
   --border:        #37332A;
   --border-strong: #4A4437;
   --text:          #EDE9DE;
@@ -75,6 +83,7 @@ ul, ol { list-style: none; }
   --amber-soft:    #3A3019;
   --red:           #E08578;
   --red-soft:      #402420;
+  --red-fill:      #C0483A;
   --blue:          #8FAECB;
   --blue-soft:     #232F3B;
   --ring-strong:   rgba(255, 255, 255, .72);
@@ -82,6 +91,7 @@ ul, ol { list-style: none; }
   --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
   --shadow-md: 0 4px 12px rgba(0,0,0,.35);
   --shadow-lg: 0 16px 40px rgba(0,0,0,.5);
+  --shadow-panel: 4px 0 12px rgba(0,0,0,.38);
 }
 
 /* ---------- Base ---------- */
@@ -509,41 +519,137 @@ body {
 /* ============================================================
    APP SHELL
    ============================================================ */
-#app { display: flex; height: 100vh; overflow: hidden; }
+/* Positioned so the peeking sidebar anchors to the shell rather than falling
+   back to the viewport. */
+#app { display: flex; height: 100vh; overflow: hidden; position: relative; }
 
 /* ---------- Sidebar ---------- */
 #sidebar {
   width: 282px; flex: none; display: flex; flex-direction: column;
   background: var(--sidebar); border-right: 1px solid var(--border);
-  transition: margin-left .28s var(--ease);
+  transition: margin-left .28s var(--ease), transform .28s var(--ease);
   z-index: 60;
 }
-#app.sb-collapsed #sidebar { margin-left: -282px; }
+/* Collapsed takes the sidebar out of the flow and parks it off-screen. Staying
+   out of the flow for the whole collapsed state is what lets the peek slide in
+   and out without the content moving: only the transform changes between the
+   two, and transforms do not affect layout. */
+#app.sb-collapsed #sidebar {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  margin-left: 0;
+  transform: translateX(-100%);
+  /* Below the nav bar: the panel slides out from under it, so the bar keeps its
+     own toggle and title and nothing about it changes on hover. */
+  z-index: 60;
+}
+#app.sb-peek #sidebar {
+  transform: none; box-shadow: var(--shadow-panel);
+  /* Its head would be behind the bar, so the content is pushed clear instead. */
+  padding-top: var(--topbar-h, 58px);
+}
+/* The strip of bar above the panel. It is an element that slides in on the same
+   curve as the panel rather than a background that switches, so the column
+   arrives from the left in one piece instead of the bar's tint snapping on.
+   Negative z-index inside the bar's own stacking context paints it over the
+   bar's background but under its toggle and title. */
+#app.sb-collapsed .topbar::before {
+  content: "";
+  position: absolute; left: 0; top: 0; bottom: 0; width: 282px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  transform: translateX(-100%);
+  transition: transform .28s var(--ease);
+  z-index: -1;
+}
+/* Peeking, the strip comes forward and covers whatever the panel's width
+   crosses -- the conversation title included, clipped at 282px so a longer one
+   keeps the part that reaches past the panel. The bar's own controls are lifted
+   over it below, since they have to stay reachable while the panel is out. */
+#app.sb-peek .topbar::before {
+  transform: none; z-index: 1;
+  box-shadow: var(--shadow-panel); clip-path: inset(0 -24px 0 0);
+}
+#app.sb-peek .topbar > .sb-reopen,
+#app.sb-peek .topbar > #btn-mobile-menu { position: relative; z-index: 2; }
+/* A peek is a glance, not the sidebar proper: the brand belongs to the pinned
+   state. The head itself stays, because the panel now covers the nav bar's
+   toggle and this is the only control left to pin with -- and since the two are
+   never visible at once, there is no duplicate icon. */
+/* The head sits behind the bar during a peek, so it goes entirely: the bar's
+   own toggle is the single control, and a hidden copy underneath would only be
+   something to trip over later. */
+#app.sb-peek .sb-head { display: none; }
+
+/* Marks the collapsed state, on the control that undoes it. */
+.sb-reopen { position: relative; }
+/* Stays lit through a peek. Hiding it there was strictly more truthful -- the
+   panel is open, so "closed" is wrong -- but blinking off and on as the pointer
+   arrives and leaves made the icon look like it was moving. A steady icon with
+   only the panel sliding reads better than a dot that is right at every instant. */
+.sb-dot {
+  position: absolute; top: 5px; right: 5px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+}
 .sb-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 14px 10px 16px; }
+.sb-head-actions { display: flex; align-items: center; gap: 2px; }
+
+/* Search dialog: a field with the results beneath it, in the middle of the
+   screen rather than tucked into the panel. */
+/* Anchored near the top rather than centred. Centred, a shrinking list pulls
+   the top edge down as well, so the whole dialog drifts while you type; pinned,
+   only the bottom edge moves. */
+.modal-overlay.search-overlay { align-items: flex-start; padding-top: 12vh; }
+
+/* Wider than tall, so the list reads as a panel rather than a column.
+   Qualified with .modal because the generic .modal rule is declared later in
+   this file; at equal specificity that one would win and pin it back to 480. */
+.modal.search-modal { max-width: 660px; padding: 0; overflow: hidden; }
+.search-field {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 12px 14px 16px; border-bottom: 1px solid var(--border);
+}
+.search-field .icon-sm { color: var(--text-3); flex: none; }
+.search-field input {
+  flex: 1; min-width: 0; border: 0; background: none;
+  font-size: 15px; outline: none;
+}
+/* The height is a whole number of rows plus the padding, so the list ends on a
+   full row instead of slicing one in half at rest. That only holds because the
+   row height is pinned below rather than left to the font metrics -- 460px was
+   an arbitrary figure that happened to land mid-row. */
+.search-results {
+  --row-h: 40px;
+  max-height: min(60vh, calc(var(--row-h) * 11 + 16px));
+  overflow-y: auto;
+  /* Padding lives on the inner wrapper: the outer box's height is written by
+     the component, so it must measure only the rows. */
+  /* The height itself is written by the component; this is what makes the
+     change glide rather than jump as results are filtered out. */
+  transition: height .22s var(--ease);
+}
+.search-results-inner { padding: 8px; }
+.search-hit {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  min-height: var(--row-h); padding: 9px 10px; border-radius: var(--r-sm);
+  font-size: 14px; color: var(--text-2); text-align: left;
+  transition: background .12s, color .12s;
+}
+.search-hit:hover { background: var(--surface-2); color: var(--text); }
+.search-hit .icon-sm { color: var(--text-3); flex: none; }
+.search-hit-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Sits at the end of the row, quiet enough that the titles still lead. */
+.search-hit-when { flex: none; font-size: 12.5px; color: var(--text-3); }
+.search-empty { padding: 22px 12px; text-align: center; color: var(--text-3); font-size: 14px; }
 .sb-section { padding: 0 12px; }
+/* No outline: it is the first thing in the panel and does not need a box to
+   be found. A tint on hover is enough to show it is live. */
 .sb-new {
   width: 100%; justify-content: flex-start; gap: 10px; margin: 6px 0 12px;
-  background: var(--surface); border: 1px solid var(--border-strong);
-  color: var(--text); font-weight: 600; box-shadow: var(--shadow-sm);
+  background: none; border: 0; box-shadow: none;
+  color: var(--text); font-weight: 600;
 }
-.sb-new:hover { border-color: var(--accent); color: var(--accent); background: var(--surface); }
-.sb-search { position: relative; margin-bottom: 14px; }
-.sb-search .icon-sm { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-3); }
-.sb-search input {
-  width: 100%; padding: 9px 12px 9px 34px; font-size: 13.5px;
-  background: color-mix(in srgb, var(--surface) 60%, transparent);
-  border: 1px solid var(--border); border-radius: var(--r-md);
-}
-.sb-search input { padding-right: 32px; }
-.sb-search-clear {
-  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-  display: flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; border: 0; border-radius: 50%;
-  background: none; color: var(--text-3); cursor: pointer;
-}
-.sb-search-clear:hover { background: var(--surface-2); color: var(--text-1); }
-.sb-search-clear .icon-sm { position: static; transform: none; }
-.sb-search input:focus { outline: none; border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-soft); }
+.sb-new:hover { background: var(--surface); color: var(--accent); }
 .sb-nav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
 .sb-item {
   display: flex; align-items: center; gap: 11px; width: 100%;
@@ -551,31 +657,63 @@ body {
   font-size: 13.5px; font-weight: 500; color: var(--text-2);
   transition: background .13s, color .13s; text-align: left;
 }
-.sb-item:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--text); }
+.sb-item:hover { background: var(--row-hover); color: var(--text); }
 .sb-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .sb-item .count { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--text-3); }
 .sb-item.active .count { color: var(--accent); }
-.sb-scroll { flex: 1; overflow-y: auto; padding: 4px 12px 12px; }
+/* Only 3px on the right: the rows run up to the scrollbar so their highlight
+   does not leave a channel of dead space beside it. The left keeps its 12px
+   so rows stay aligned with the sections above. */
+/* Rows dissolve into the panel at whichever edge still has list behind it.
+   The two stops stay at 0 until there is something hidden, so a list that fits
+   is not dimmed at its ends for nothing. */
+.sb-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 2px 3px 12px 12px;
+  --fade-t: 0px; --fade-b: 0px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0,
+    #000 var(--fade-t), #000 calc(100% - var(--fade-b)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0,
+    #000 var(--fade-t), #000 calc(100% - var(--fade-b)), transparent 100%);
+}
+.sb-scroll.fade-top { --fade-t: 22px; }
+.sb-scroll.fade-bot { --fade-b: 22px; }
+/* Projects scroll on their own so a long list cannot push the chats out. It
+   shrinks to its content first and only starts scrolling past the cap. */
+.sb-projects { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 4px 3px 0 12px; }
+/* Fixed between the two scrollers: no negative margins, because it is a direct
+   child of the sidebar and has no scroller padding to bleed into. */
+/* Qualified with .sb-group-row: that rule is declared further down the file and
+   would otherwise win the tie and re-apply sticky and its negative margins. */
+.sb-group-row.sb-chats-head {
+  flex: none; position: static; margin: 10px 0 0; padding: 2px 7px 4px 12px;
+}
 .sb-group-label {
   font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
   color: var(--text-3); padding: 14px 11px 6px;
 }
 .conv-item {
   position: relative; display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer;
+  /* Asymmetric on purpose: the menu button needs to sit near the right edge,
+     while the left keeps the 10px that aligns titles with the rows above. */
+  padding: 8px 4px 8px 10px; border-radius: var(--r-sm); cursor: pointer;
   font-size: 13.5px; color: var(--text-2); transition: background .13s, color .13s;
 }
-.conv-item:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--text); }
-.conv-item.active { background: var(--user-bubble); color: var(--text); font-weight: 500; }
+.conv-item:hover { background: var(--row-hover); color: var(--text); }
+.conv-item.active { background: var(--row-active); color: var(--text); font-weight: 500; }
 .conv-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .conv-actions { display: none; gap: 2px; }
 .conv-item:hover .conv-actions, .conv-item.active .conv-actions { display: flex; }
-.conv-actions .btn-icon { width: 24px; height: 24px; border-radius: 6px; color: var(--text-3); }
+.conv-actions .btn-icon { width: 26px; height: 26px; border-radius: 8px; color: var(--text-3); }
 .conv-actions .btn-icon:hover { color: var(--text); background: var(--border); }
 .conv-item input.rename {
   flex: 1; font-size: 13px; padding: 3px 7px; border-radius: 6px;
   border: 1px solid var(--accent); background: var(--surface);
 }
+/* These fields carry an accent border of their own, so the global
+   :focus-visible ring would draw a second one around it. The border is the
+   focus indicator here. */
+.conv-item input.rename:focus-visible,
+.conv-title-edit:focus-visible { outline: none; }
 .sb-empty { padding: 20px 12px; font-size: 13px; color: var(--text-3); text-align: center; }
 
 .sb-foot { border-top: 1px solid var(--border); padding: 10px 12px; position: relative; }
@@ -584,7 +722,7 @@ body {
   padding: 8px 10px; border-radius: var(--r-md); text-align: left;
   transition: background .13s;
 }
-.user-chip:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.user-chip:hover { background: var(--row-hover); }
 /* Soft initials disc. The reference pairs --accent-soft with --accent, but
    that is 3.67:1 and these are small bold letters needing 4.5:1, so the text
    drops to the deeper --accent-hover (4.73:1) -- near-identical to the eye.
@@ -607,7 +745,7 @@ body {
 .user-chip .u-mail { font-size: 11.5px; color: var(--text-3); }
 .pop-menu {
   position: absolute; bottom: calc(100% + 6px); left: 12px; right: 12px;
-  background: var(--surface); border: 1px solid var(--border);
+  background: var(--popover); border: 1px solid var(--border);
   border-radius: var(--r-md); box-shadow: var(--shadow-lg);
   padding: 6px; z-index: 80; animation: popIn .16s var(--ease);
 }
@@ -619,18 +757,72 @@ body {
 }
 .pop-menu .pm-item:hover { background: var(--surface-2); color: var(--text); }
 .pop-menu .pm-item.danger { color: var(--red); }
-.pop-menu .pm-item.danger:hover { background: var(--red-soft); }
+.pop-menu .pm-item.danger:hover { background: var(--red-fill); color: #FFF; }
 .pop-menu .pm-sep { height: 1px; background: var(--border); margin: 5px 4px; }
 
 /* ---------- Main column & topbar ---------- */
 #main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+/* Above the peeking sidebar, so hovering changes nothing here and the toggle
+   stays visible and clickable throughout. */
 .topbar {
+  position: relative; z-index: 70;
   display: flex; align-items: center; gap: 12px;
-  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  padding: 12px 18px;
   background: color-mix(in srgb, var(--bg) 86%, transparent);
   backdrop-filter: blur(10px); flex: none;
 }
 .topbar h1 { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+/* The open conversation's name. An I-beam rather than a pointer, because the
+   click edits the text rather than performing an action. */
+/* The row's controls: one button, only while the pointer is on the row. The
+   selected row shows its highlight and nothing else. */
+.conv-actions { position: relative; }
+/* .pop-menu pins both left and right (it was written for the full-width user
+   menu), so those have to be released or the menu anchors at left:12px and runs
+   178px to the right -- straight out of the sidebar, where .sb-scroll clips it
+   and leaves only the icon column visible. Same for its bottom. */
+.conv-menu {
+  position: absolute;
+  left: auto; right: 0;
+  top: calc(100% + 4px); bottom: auto;
+  min-width: 178px;
+}
+.conv-pin { color: var(--accent); flex: none; }
+/* Unread is a marker, so it also carries weight on the title itself. */
+.conv-item.is-unread .conv-title { font-weight: 600; color: var(--text); }
+/* The marker rides the chat icon, badge-style. It is positioned clear of the
+   icon's own strokes so it needs no ring to separate it -- which matters,
+   because the row's background changes on hover and when selected. */
+.conv-mark { position: relative; display: inline-flex; flex: none; }
+.conv-unread {
+  position: absolute; top: -2px; right: -3px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Anchors the bar's menu, and keeps the caret against the title however long
+   the name is. */
+.conv-title-wrap { position: relative; display: flex; align-items: center; gap: 1px; min-width: 0; }
+.conv-title-caret { width: 22px; height: 22px; border-radius: 6px; color: var(--text-3); flex: none; }
+/* Hangs from the left under the title, where .conv-menu hangs from the right. */
+.pop-menu.title-menu { left: 0; right: auto; top: calc(100% + 6px); min-width: 200px; }
+.conv-title-btn {
+  font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--text);
+  cursor: text; padding: 4px 8px; margin-left: -8px; border-radius: var(--r-sm);
+  max-width: 42ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: background .12s;
+}
+.conv-title-btn:hover { background: var(--surface-2); }
+.conv-title-edit {
+  font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--text);
+  /* Grows with what is typed rather than sitting at a fixed width. The size
+     attribute in the markup does the same job where field-sizing is not
+     supported, so the box is never wildly wrong. */
+  field-sizing: content;
+  min-width: 8ch; max-width: 50vw; padding: 4px 8px; margin-left: -8px;
+  border: 1px solid var(--accent); border-radius: var(--r-sm);
+  background: var(--surface); outline: none;
+}
 .topbar .grow { flex: 1; }
 .provider-pill {
   display: inline-flex; align-items: center; gap: 8px;
@@ -653,14 +845,11 @@ body {
 
 /* Empty state */
 .chat-empty { text-align: center; padding: clamp(30px, 9vh, 90px) 20px 30px; animation: rise .5s var(--ease) both; }
-.chat-empty .spark {
-  width: 52px; height: 52px; margin: 0 auto 22px; border-radius: 16px;
-  background: var(--accent); color: #FAF8F2; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent);
-}
-.chat-empty h2 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 600; letter-spacing: -.02em; margin-bottom: 10px; }
+/* Same mark as private mode and the end of an answer: the motif on its own,
+   no plate behind it. */
+.empty-mark { width: 56px; height: 56px; margin: 0 auto 22px; display: block; }
+.chat-empty h2 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 600; letter-spacing: -.02em; margin-bottom: 30px; }
 .chat-empty p { color: var(--text-2); font-size: 15px; margin-bottom: 8px; }
-.kb-stats { font-family: var(--mono); font-size: 12px; color: var(--text-3); margin-bottom: 34px; }
 .sugg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 640px; margin: 0 auto; text-align: left; }
 .sugg {
   display: flex; align-items: center; gap: 12px;
@@ -952,7 +1141,6 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 /* Nothing on this screen is recorded, so the document count and the prompt
    chips both go; heading, composer and note sit together in the middle. */
 #app.private-chat .sugg-grid,
-#app.private-chat .kb-stats { display: none; }
 #page-chat.is-private-empty { justify-content: center; }
 #page-chat.is-private-empty .chat-scroll { flex: 0 0 auto; overflow: visible; }
 #page-chat.is-private-empty .chat-empty { padding: 0 20px 22px; }
@@ -980,7 +1168,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 /* The bar carries only the mode and the way out, on the inverted ground. */
 #app.private-chat .topbar {
   background: none; border-bottom: none; backdrop-filter: none;
-  justify-content: center; position: relative; padding: 10px 18px 14px;
+  justify-content: flex-start; position: relative; padding: 10px 18px 14px;
   color: #F4F2ED;
 }
 [data-theme="dark"] #app.private-chat .topbar { color: #0B0B0B; }
@@ -1005,7 +1193,6 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 
 #app.private-chat .composer-box { border-style: dashed; border-color: var(--blue); }
 #app.private-chat .composer-box:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft), var(--shadow-md); }
-#app.private-chat .chat-empty .spark { background: var(--blue); box-shadow: 0 8px 24px color-mix(in srgb, var(--blue) 35%, transparent); }
 .scope-btn #scope-btn-label { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scope-btn.scoped { border-color: var(--accent); background: var(--accent-soft-2); color: var(--accent); }
 .scope-btn.scoped:hover { border-color: var(--accent); background: var(--accent-soft); }
@@ -1199,10 +1386,13 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .modal {
   width: 100%; max-width: 480px; background: var(--surface);
   border: 1px solid var(--border); border-radius: var(--r-xl);
-  box-shadow: var(--shadow-lg); animation: modalIn .22s var(--ease);
+  box-shadow: var(--shadow-lg); animation: modalIn .2s cubic-bezier(.34, 1.35, .5, 1);
   max-height: 88vh; display: flex; flex-direction: column;
 }
-@keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+/* Grows from the centre rather than sliding up from below: the overlay already
+   centres it, so scale alone reads as the dialog arriving in place. A little
+   overshoot in the curve gives it the pop. */
+@keyframes modalIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
 .modal-lg { max-width: 620px; }
 .modal-head { display: flex; align-items: center; gap: 12px; padding: 20px 22px 0; }
 .modal-head h3 { font-size: 19px; font-weight: 600; flex: 1; }
@@ -1242,7 +1432,15 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .pipe-body .pt { font-size: 13.5px; font-weight: 600; }
 .pipe-body .ps { font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-top: 2px; }
 /* Projects */
-.sb-group-row { display: flex; align-items: center; justify-content: space-between; padding-right: 4px; }
+/* The heading holds its place while its rows scroll under it. The negative
+   margins let the background bleed into .sb-scroll's own padding, so nothing
+   shows through the gutters on either side as rows pass beneath. */
+.sb-group-row {
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 2; background: var(--sidebar);
+  margin-left: -12px; margin-right: -3px;
+  padding: 2px 7px 2px 12px;
+}
 .sb-group-toggle {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px;
   background: none; border: 0; cursor: pointer; text-align: left;
@@ -1335,11 +1533,15 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .meta-grid .mg span { font-family: var(--mono); font-size: 12.5px; }
 
 /* Toasts */
-#toasts { position: fixed; top: 72px; right: 22px; z-index: 200; display: flex; flex-direction: column-reverse; gap: 10px; }
+/* Bottom right, clear of the composer's own bottom padding. column-reverse
+   keeps the newest toast nearest the corner. */
+#toasts { position: fixed; bottom: 22px; right: 22px; z-index: 200; display: flex; flex-direction: column-reverse; gap: 10px; }
 .toast {
-  display: flex; align-items: flex-start; gap: 11px; min-width: 280px; max-width: min(440px, calc(100vw - 44px));
+  /* Sized to its text. The old 280px floor left a confirmation as short as
+     "Chat deleted." padded out with empty space before the close button. */
+  display: flex; align-items: center; gap: 9px; max-width: min(420px, calc(100vw - 44px));
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--r-md); box-shadow: var(--shadow-lg); padding: 12px 14px;
+  border-radius: var(--r-md); box-shadow: var(--shadow-lg); padding: 9px 12px;
   animation: toastIn .28s var(--ease);
   /* Tinted backgrounds below are genuinely translucent, so blur what shows
      through to keep the text readable over whatever the toast covers. */
@@ -1347,28 +1549,32 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   -webkit-backdrop-filter: blur(12px) saturate(1.5);
 }
 .toast.leaving { animation: toastOut .25s var(--ease) forwards; }
-@keyframes toastIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
-@keyframes toastOut { to { opacity: 0; transform: translateX(24px); } }
-/* Translucent tint per outcome. Success is green with a tick; failures stay
-   red and warnings amber, so the colour never contradicts the message. */
-.toast.ok   { background: color-mix(in srgb, var(--green) 15%, transparent); border-color: color-mix(in srgb, var(--green) 45%, transparent); }
+/* Rises from the corner it now lives in, instead of sliding in from the right. */
+@keyframes toastIn { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(8px); } }
+/* Only trouble is tinted. A confirmation looks like the rest of the UI, so
+   colour appearing at all means something needs attention. */
 .toast.err  { background: color-mix(in srgb, var(--red) 15%, transparent);   border-color: color-mix(in srgb, var(--red) 45%, transparent); }
 .toast.warn { background: color-mix(in srgb, var(--amber) 15%, transparent); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
-.toast.info { background: color-mix(in srgb, var(--blue) 15%, transparent);  border-color: color-mix(in srgb, var(--blue) 45%, transparent); }
 
-/* The icon sits in a filled round chip so the tick reads as a status badge. */
+/* An outline that takes the text colour: on a plain panel a filled chip was
+   the loudest thing in the toast. Errors and warnings still tint it. */
 .toast .t-ic {
-  flex: none; width: 21px; height: 21px; border-radius: 50%; margin-top: 1px;
-  display: flex; align-items: center; justify-content: center; color: #FFF8F2;
+  flex: none; width: 18px; height: 18px; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center; color: var(--text-3);
 }
-.toast .t-ic svg { width: 12px; height: 12px; }
-.toast.ok .t-ic { background: var(--green); } .toast.err .t-ic { background: var(--red); }
-.toast.warn .t-ic { background: var(--amber); } .toast.info .t-ic { background: var(--blue); }
+.toast .t-ic svg { width: 16px; height: 16px; }
+.toast.err .t-ic { color: var(--red); }
+.toast.warn .t-ic { color: var(--amber); }
 
 /* The headline keeps to a single line and ellipsises rather than wrapping, so
    a long filename cannot break it mid-sentence. The detail below it is free to
    wrap onto as many lines as it needs. */
-.toast .t-msg { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 500; }
+.toast .t-msg { min-width: 0; font-size: 13.5px; font-weight: 500; }
+/* The dismiss is a full-size .btn-icon, whose 34px was setting the height of
+   a one-line toast. Shrink it here so the row is as tall as its text. */
+.toast .btn-icon { width: 24px; height: 24px; flex: none; color: var(--text-3); }
+.toast .btn-icon:hover { color: var(--text); background: none; }
 .toast .t-text {
   display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -1401,7 +1607,9 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   .settings-nav { display: none; }
   #sidebar { position: fixed; inset: 0 auto 0 0; margin-left: -282px; box-shadow: var(--shadow-lg); }
   #app.sb-open #sidebar { margin-left: 0; }
-  #app.sb-collapsed #sidebar { margin-left: -282px; }
+  /* The narrow-screen drawer moves by margin, so the desktop transform must
+     not stack on top of it. */
+  #app.sb-collapsed #sidebar { margin-left: -282px; transform: none; position: fixed; top: 0; }
   #btn-mobile-menu { display: inline-flex; }
   .land-nav .nav-links { display: none; }
 }
