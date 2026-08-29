@@ -214,6 +214,42 @@ function Shell() {
     return () => ro.disconnect();
   });
 
+  function menuAction(conv, key) {
+    if (!conv) return;
+    if (key === "p") chat.setConversationFlags(conv.conversation_id, { pinned: !conv.pinned });
+    else if (key === "u") chat.setConversationFlags(conv.conversation_id, { unread: !conv.unread });
+    else if (key === "r") {
+      if (menuId === TOPBAR_MENU) { setTitleDraft(conv.title); setTitleEditing(true); }
+      else { setEditingId(conv.conversation_id); setEditTitle(conv.title); }
+    } else if (key === "d") setPendingDelete(conv);
+    else return;
+    setMenuId(null);
+  }
+
+  /* The letters are live only while a menu is open, and never while something
+     is being typed into. Modifier combos stay with the browser, so Ctrl+P is
+     still print. No dependency array: the handler reads state that changes on
+     nearly every render, and a stale closure would act on the wrong chat. */
+  useEffect(() => {
+    if (menuId === null) return undefined;
+    const onKey = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      const key = e.key.toLowerCase();
+      if (key === "escape") { setMenuId(null); return; }
+      if (key.length !== 1 || !"purd".includes(key)) return;
+      const conv = menuId === TOPBAR_MENU
+        ? activeConversation
+        : chat.conversations.find((c) => c.conversation_id === menuId);
+      if (!conv) return;
+      e.preventDefault();
+      menuAction(conv, key);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   function updateConvFade() {
     const el = convScrollRef.current;
     if (!el) return;
@@ -543,22 +579,20 @@ function Shell() {
                       </button>
                       {menuId === c.conversation_id && (
                         <div className="pop-menu conv-menu">
-                          <button className="pm-item"
-                            onClick={() => { chat.setConversationFlags(c.conversation_id, { pinned: !c.pinned }); setMenuId(null); }}>
-                            <Icon name={c.pinned ? "pin-off" : "pin"} className="icon-sm" /> {c.pinned ? "Unpin" : "Pin"}
+                          <button className="pm-item" onClick={() => menuAction(c, "p")}>
+                            <Icon name={c.pinned ? "pin-off" : "pin"} className="icon-sm" />
+                            {c.pinned ? "Unpin" : "Pin"}<kbd className="pm-key">P</kbd>
                           </button>
-                          <button className="pm-item"
-                            onClick={() => { chat.setConversationFlags(c.conversation_id, { unread: !c.unread }); setMenuId(null); }}>
-                            <Icon name={c.unread ? "eye" : "eye-off"} className="icon-sm" /> {c.unread ? "Mark as read" : "Mark as unread"}
+                          <button className="pm-item" onClick={() => menuAction(c, "u")}>
+                            <Icon name={c.unread ? "eye" : "eye-off"} className="icon-sm" />
+                            {c.unread ? "Mark as read" : "Mark as unread"}<kbd className="pm-key">U</kbd>
                           </button>
-                          <button className="pm-item"
-                            onClick={() => { setEditingId(c.conversation_id); setEditTitle(c.title); setMenuId(null); }}>
-                            <Icon name="pencil" className="icon-sm" /> Rename
+                          <button className="pm-item" onClick={() => menuAction(c, "r")}>
+                            <Icon name="pencil" className="icon-sm" /> Rename<kbd className="pm-key">R</kbd>
                           </button>
                           <div className="pm-sep" />
-                          <button className="pm-item danger"
-                            onClick={() => { setPendingDelete(c); setMenuId(null); }}>
-                            <Icon name="trash" className="icon-sm" /> Delete
+                          <button className="pm-item danger" onClick={() => menuAction(c, "d")}>
+                            <Icon name="trash" className="icon-sm" /> Delete<kbd className="pm-key">D</kbd>
                           </button>
                         </div>
                       )}
@@ -670,24 +704,20 @@ function Shell() {
                   </button>
                   {menuId === TOPBAR_MENU && (
                     <div className="pop-menu conv-menu title-menu">
-                      <button className="pm-item"
-                        onClick={() => { chat.setConversationFlags(activeConversation.conversation_id, { pinned: !activeConversation.pinned }); setMenuId(null); }}>
+                      <button className="pm-item" onClick={() => menuAction(activeConversation, "p")}>
                         <Icon name={activeConversation.pinned ? "pin-off" : "pin"} className="icon-sm" />
-                        {activeConversation.pinned ? "Unpin" : "Pin"}
+                        {activeConversation.pinned ? "Unpin" : "Pin"}<kbd className="pm-key">P</kbd>
                       </button>
-                      <button className="pm-item"
-                        onClick={() => { chat.setConversationFlags(activeConversation.conversation_id, { unread: !activeConversation.unread }); setMenuId(null); }}>
+                      <button className="pm-item" onClick={() => menuAction(activeConversation, "u")}>
                         <Icon name={activeConversation.unread ? "eye" : "eye-off"} className="icon-sm" />
-                        {activeConversation.unread ? "Mark as read" : "Mark as unread"}
+                        {activeConversation.unread ? "Mark as read" : "Mark as unread"}<kbd className="pm-key">U</kbd>
                       </button>
-                      <button className="pm-item"
-                        onClick={() => { setTitleDraft(activeConversation.title); setTitleEditing(true); setMenuId(null); }}>
-                        <Icon name="pencil" className="icon-sm" /> Rename
+                      <button className="pm-item" onClick={() => menuAction(activeConversation, "r")}>
+                        <Icon name="pencil" className="icon-sm" /> Rename<kbd className="pm-key">R</kbd>
                       </button>
                       <div className="pm-sep" />
-                      <button className="pm-item danger"
-                        onClick={() => { setPendingDelete(activeConversation); setMenuId(null); }}>
-                        <Icon name="trash" className="icon-sm" /> Delete
+                      <button className="pm-item danger" onClick={() => menuAction(activeConversation, "d")}>
+                        <Icon name="trash" className="icon-sm" /> Delete<kbd className="pm-key">D</kbd>
                       </button>
                     </div>
                   )}

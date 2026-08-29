@@ -511,7 +511,7 @@ function Composer({ fileRef }) {
           <div className="composer-row">
             <button className="btn-icon" title="Upload documents" disabled={chat.uploading}
               onClick={() => fileRef.current?.click()}>
-              <Icon name={chat.uploading ? "refresh" : "clip"} className="icon-sm" />
+              <Icon name={chat.uploading ? "refresh" : "plus"} className="icon-sm" />
             </button>
             <ModelMenu />
             <ScopeMenu />

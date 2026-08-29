@@ -753,11 +753,19 @@ body {
 .pop-menu .pm-item {
   display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 9px 10px; border-radius: var(--r-sm); font-size: 13.5px; color: var(--text-2);
-  text-align: left; transition: background .12s, color .12s;
+  text-align: left; white-space: nowrap; transition: background .12s, color .12s;
 }
 .pop-menu .pm-item:hover { background: var(--surface-2); color: var(--text); }
 .pop-menu .pm-item.danger { color: var(--red); }
 .pop-menu .pm-item.danger:hover { background: var(--red-fill); color: #FFF; }
+/* Pushed to the far right by the auto margin, so labels of any length keep
+   their letters in one column. */
+.pop-menu .pm-key {
+  margin-left: auto; padding-left: 14px; font-family: var(--mono); font-size: 11px;
+  color: var(--text-3); line-height: 1;
+}
+.pop-menu .pm-item:hover .pm-key { color: var(--text-2); }
+.pop-menu .pm-item.danger:hover .pm-key { color: rgba(255, 255, 255, .72); }
 .pop-menu .pm-sep { height: 1px; background: var(--border); margin: 5px 4px; }
 
 /* ---------- Main column & topbar ---------- */
@@ -785,7 +793,7 @@ body {
   position: absolute;
   left: auto; right: 0;
   top: calc(100% + 4px); bottom: auto;
-  min-width: 178px;
+  width: max-content; min-width: 178px; max-width: 250px;
 }
 .conv-pin { color: var(--accent); flex: none; }
 /* Unread is a marker, so it also carries weight on the title itself. */
@@ -805,7 +813,10 @@ body {
 .conv-title-wrap { position: relative; display: flex; align-items: center; gap: 1px; min-width: 0; }
 .conv-title-caret { width: 22px; height: 22px; border-radius: 6px; color: var(--text-3); flex: none; }
 /* Hangs from the left under the title, where .conv-menu hangs from the right. */
-.pop-menu.title-menu { left: 0; right: auto; top: calc(100% + 6px); min-width: 200px; }
+.pop-menu.title-menu {
+  left: 0; right: auto; top: calc(100% + 6px);
+  width: max-content; min-width: 200px; max-width: 280px;
+}
 .conv-title-btn {
   font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--text);
   cursor: text; padding: 4px 8px; margin-left: -8px; border-radius: var(--r-sm);
