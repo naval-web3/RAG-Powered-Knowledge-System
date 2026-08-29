@@ -8,6 +8,7 @@ return the answer together with source citations.
 
 import re
 import time
+from collections.abc import Iterator
 
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -21,9 +22,11 @@ SYSTEM_PROMPT = (
     "excerpts provided below, which come from the user's documents. Give a "
     "complete answer that covers all relevant details found in the excerpts — "
     "do not omit information the user asked for. Format for readability using "
-    "Markdown: use short paragraphs, and when the answer has multiple items, "
-    "steps, or points, present them as a bullet list (each line starting with "
-    "'- ') or a numbered list. Use **bold** for key terms. Do NOT mention the "
+    "Markdown: use short paragraphs. When the answer is a sequence of steps or "
+    "a procedure - how to do something, or things that happen in a set order - "
+    "number them ('1.', '2.', ...). When it is simply several items or points "
+    "with no order between them, use a bullet list (each line starting with "
+    "'- '). Use **bold** for key terms. Do NOT mention the "
     "source, document name, or page number in your answer - the source is shown "
     "separately to the user. If the answer is not in the excerpts, say you don't "
     "have enough information in the provided documents."
@@ -273,7 +276,7 @@ def generate_title(query: str, provider: str | None = None, model: str | None = 
         return query[:60]
 
 
-def answer_query(
+def _run(
     query: str,
     user_id: str,
     provider: str | None = None,
@@ -282,7 +285,8 @@ def answer_query(
     scope_document_id: str | None = None,
     document_ids: list[str] | None = None,
     instructions: str | None = None,
-) -> dict:
+    stream: bool = False,
+) -> Iterator[tuple[str, object]]:
     """Execute one turn: greeting/small-talk -> friendly reply; otherwise a
     grounded RAG answer with cited sources (or a friendly not-found).
 
@@ -298,19 +302,22 @@ def answer_query(
     #    / bad key), say so directly instead of masking it as "nothing found".
     unavailable = _provider_unavailable_message(llm)
     if unavailable is not None:
-        return _result(unavailable, [], llm, 0, start)
+        yield ("done", _result(unavailable, [], llm, 0, start))
+        return
 
     # 1) Greetings / small talk -> conversational reply, skip retrieval.
     #    (Only when not scoped to a document: a scoped chat is always about docs.)
     if not scope_document_id:
         chit = _smalltalk_reply(query)
         if chit is not None:
-            return _result(chit, [], llm, 0, start)
+            yield ("done", _result(chit, [], llm, 0, start))
+            return
 
     # 2) No documents uploaded at all -> tell the user to upload first.
     if not has_documents:
         msg = "No documents uploaded yet. Please upload a relevant document to get started."
-        return _result(msg, [], llm, 0, start)
+        yield ("done", _result(msg, [], llm, 0, start))
+        return
 
     # 2b) A project scoped to its own documents, with none attached yet. Never
     #     fall back to the wider library here: the whole point of a project is
@@ -320,7 +327,8 @@ def answer_query(
             "This project has no documents attached yet. Add one from the "
             "Context panel and ask again."
         )
-        return _result(msg, [], llm, 0, start)
+        yield ("done", _result(msg, [], llm, 0, start))
+        return
 
     # 3) Retrieve, narrowing by project scope and then by any single-document
     #    scope the user picked inside that project.
@@ -328,7 +336,8 @@ def answer_query(
     if scope_document_id:
         if ids is not None and scope_document_id not in ids:
             msg = "That document is not part of this project."
-            return _result(msg, [], llm, 0, start)
+            yield ("done", _result(msg, [], llm, 0, start))
+            return
         ids = [scope_document_id]
     results = vector_store.similarity_search(query, user_id=user_id, document_ids=ids)
     top_score = results[0][1] if results else 0.0
@@ -339,15 +348,31 @@ def answer_query(
             "I couldn't find anything about that in your documents. Try wording it "
             "differently, or upload a document that covers it."
         )
-        return _result(msg, [], llm, len(results), start, top_score)
+        yield ("done", _result(msg, [], llm, len(results), start, top_score))
+        return
 
     # 5) Grounded answer from the retrieved context.
     context, sources = _format_context(results)
     try:
         chain = _build_prompt(llm, instructions) | llm.chat_model()
-        answer = _clean_answer(chain.invoke({"context": context, "question": query}).content)
+        payload = {"context": context, "question": query}
+        if stream:
+            # Tokens go out as the model writes them, but the caller still
+            # replaces the streamed text with the answer on the final "done"
+            # event: _clean_answer works on the complete reply (it strips
+            # qwen3's <think> block, among others) and cannot run mid-stream.
+            parts: list[str] = []
+            for chunk in chain.stream(payload):
+                piece = getattr(chunk, "content", "") or ""
+                if piece:
+                    parts.append(piece)
+                    yield ("token", piece)
+            answer = _clean_answer("".join(parts))
+        else:
+            answer = _clean_answer(chain.invoke(payload).content)
     except Exception as exc:  # noqa: BLE001 - surface a friendly message instead of a 500
-        return _result(_llm_error_message(llm, exc), [], llm, len(results), start, top_score)
+        yield ("done", _result(_llm_error_message(llm, exc), [], llm, len(results), start, top_score))
+        return
 
     # The question is on-topic (relevant chunks were found), so show the cited
     # sources. But if the answer says the specific fact isn't actually present,
@@ -355,4 +380,59 @@ def answer_query(
     if any(h in answer.lower() for h in _NOT_PRESENT_HINTS):
         sources = [s.model_copy(update={"page_number": None}) for s in sources]
 
-    return _result(answer, sources, llm, len(results), start, top_score)
+    yield ("done", _result(answer, sources, llm, len(results), start, top_score))
+
+    return
+
+
+def answer_query(
+    query: str,
+    user_id: str,
+    provider: str | None = None,
+    model: str | None = None,
+    has_documents: bool = True,
+    scope_document_id: str | None = None,
+    document_ids: list[str] | None = None,
+    instructions: str | None = None,
+) -> dict:
+    """Run one turn and return the finished result."""
+    for kind, payload in _run(
+        query=query,
+        user_id=user_id,
+        provider=provider,
+        model=model,
+        has_documents=has_documents,
+        scope_document_id=scope_document_id,
+        document_ids=document_ids,
+        instructions=instructions,
+        stream=False,
+    ):
+        if kind == "done":
+            return payload  # type: ignore[return-value]
+    raise RuntimeError("the RAG engine produced no result")
+
+
+def answer_query_stream(
+    query: str,
+    user_id: str,
+    provider: str | None = None,
+    model: str | None = None,
+    has_documents: bool = True,
+    scope_document_id: str | None = None,
+    document_ids: list[str] | None = None,
+    instructions: str | None = None,
+) -> Iterator[tuple[str, object]]:
+    """Run one turn, yielding ("token", text) as the model writes and finally
+    ("done", result). Every early exit yields only the "done" event, so a
+    greeting or a not-found reply still arrives in one piece."""
+    return _run(
+        query=query,
+        user_id=user_id,
+        provider=provider,
+        model=model,
+        has_documents=has_documents,
+        scope_document_id=scope_document_id,
+        document_ids=document_ids,
+        instructions=instructions,
+        stream=True,
+    )

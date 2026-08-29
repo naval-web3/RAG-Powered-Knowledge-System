@@ -1,13 +1,16 @@
 """Chat / RAG query + conversation management routes (Modules 4 & 5)."""
 
+import json
 import uuid
+from collections.abc import Iterator
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.database import get_db
+from app.database import SessionLocal, get_db
 from app.deps import get_current_user
 from app.models import Conversation, Document, Message, Project, QueryLog, User
 from app.schemas import (
@@ -18,7 +21,7 @@ from app.schemas import (
     ConversationRename,
     MessageOut,
 )
-from app.services.rag_engine import answer_query, generate_title
+from app.services.rag_engine import answer_query, answer_query_stream, generate_title
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -32,6 +35,151 @@ def _project_document_ids(project: Project) -> list[str] | None:
     if project.doc_scope == "all":
         return None
     return [str(link.document_id) for link in project.links]
+
+
+def _sse(event: str, data: dict) -> str:
+    return "event: %s\ndata: %s\n\n" % (event, json.dumps(data, default=str))
+
+
+@router.post("/chat/stream")
+def chat_stream(
+    payload: ChatRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """The same turn as /chat, delivered as server-sent events.
+
+    Emits `token` events as the model writes, then one `done` event carrying the
+    cleaned answer, sources and telemetry. Clients should replace the text they
+    accumulated with the answer from `done`: the streamed tokens are raw, and
+    the cleaning step only runs once the reply is complete.
+    """
+    if payload.provider and payload.provider.lower() not in ("ollama", "openai"):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"Unknown provider '{payload.provider}'. Use 'ollama' or 'openai'."
+        )
+
+    has_documents = (
+        db.query(Document.document_id).filter(Document.user_id == current_user.user_id).first() is not None
+    )
+
+    scope_id: str | None = None
+    if payload.scope_document_id:
+        doc = db.get(Document, payload.scope_document_id)
+        if doc is None or doc.user_id != current_user.user_id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Scoped document not found")
+        scope_id = str(payload.scope_document_id)
+
+    project: Project | None = None
+    project_id = payload.project_id
+    if payload.conversation_id:
+        existing = db.get(Conversation, payload.conversation_id)
+        if existing is not None and existing.user_id == current_user.user_id:
+            project_id = existing.project_id
+    if project_id:
+        project = db.get(Project, project_id)
+        if project is None or project.user_id != current_user.user_id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    doc_ids = _project_document_ids(project) if project else None
+    instructions = project.instructions if project else None
+
+    # Resolve the conversation and store the user message up front, while the
+    # request-scoped session is still open.
+    conv_id: uuid.UUID | None = None
+    if not payload.incognito:
+        if payload.conversation_id:
+            conv = db.get(Conversation, payload.conversation_id)
+            if conv is None or conv.user_id != current_user.user_id:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found")
+        else:
+            conv = Conversation(
+                user_id=current_user.user_id,
+                project_id=project.project_id if project else None,
+                title=generate_title(payload.query, payload.provider, payload.model),
+            )
+            db.add(conv)
+            db.commit()
+            db.refresh(conv)
+        db.add(Message(conversation_id=conv.conversation_id, role="user", content=payload.query))
+        db.commit()
+        conv_id = conv.conversation_id
+
+    # Plain values only from here: the ORM objects above belong to a session
+    # that will be closed before the generator runs.
+    user_id = str(current_user.user_id)
+    user_pk = current_user.user_id
+    query_text = payload.query
+    incognito = payload.incognito
+
+    def events() -> Iterator[str]:
+        result: dict | None = None
+        for kind, item in answer_query_stream(
+            query=query_text,
+            user_id=user_id,
+            provider=payload.provider,
+            model=payload.model,
+            has_documents=has_documents,
+            scope_document_id=scope_id,
+            document_ids=doc_ids,
+            instructions=instructions,
+        ):
+            if kind == "token":
+                yield _sse("token", {"t": item})
+            else:
+                result = item  # type: ignore[assignment]
+
+        if result is None:  # pragma: no cover - _run always ends with "done"
+            yield _sse("error", {"message": "The model returned nothing."})
+            return
+
+        sources_payload = [s.model_dump() for s in result["sources"]]
+
+        if not incognito and conv_id is not None:
+            own = SessionLocal()
+            try:
+                own.add(
+                    Message(
+                        conversation_id=conv_id,
+                        role="assistant",
+                        content=result["answer"],
+                        source_documents={"sources": sources_payload},
+                    )
+                )
+                own.add(
+                    QueryLog(
+                        user_id=user_pk,
+                        conversation_id=conv_id,
+                        query_text=query_text,
+                        response_time_ms=result["response_time_ms"],
+                        chunks_retrieved=result["chunks_retrieved"],
+                        llm_provider=result["provider"],
+                        model_name=result["model"],
+                        status="success",
+                    )
+                )
+                own.commit()
+            finally:
+                own.close()
+
+        yield _sse(
+            "done",
+            {
+                "conversation_id": conv_id,
+                "answer": result["answer"],
+                "sources": sources_payload,
+                "provider": result["provider"],
+                "model": result["model"],
+                "response_time_ms": result["response_time_ms"],
+                "chunks_retrieved": result["chunks_retrieved"],
+                "top_score": result["top_score"],
+            },
+        )
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.post("/chat", response_model=ChatResponse)
