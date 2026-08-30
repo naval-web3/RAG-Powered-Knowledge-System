@@ -6,6 +6,7 @@ import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
 import ConfirmModal from "./ConfirmModal";
 import Icon from "./Icon";
+import Tooltip from "./Tooltip";
 
 /**
  * One document, two ways.
@@ -112,40 +113,52 @@ export default function DocumentDialog({ doc, onClose }) {
 
         <div className="doc-head">
           <h3 title={doc.title}>{doc.title}</h3>
-          <button className="btn-icon" aria-label={t("common.close")} onClick={onClose}>
-            <Icon name="x" className="icon-sm" />
-          </button>
+          <Tooltip label={t("common.close")} placement="left">
+            <button className="btn-icon" aria-label={t("common.close")} onClick={onClose}>
+              <Icon name="x" className="icon-sm" />
+            </button>
+          </Tooltip>
         </div>
 
         <div className="doc-bar">
           <div className="set-seg doc-seg">
-            <button className={view === "reading" ? "active" : ""}
-              title={t("docs.readingView")} aria-label={t("docs.readingView")}
-              onClick={() => setView("reading")}>
-              <Icon name="eye" className="icon-sm" />
-            </button>
-            <button className={view === "chunks" ? "active" : ""}
-              title={t("docs.chunksView")} aria-label={t("docs.chunksView")}
-              onClick={() => setView("chunks")}>
-              <Icon name="db" className="icon-sm" />
-            </button>
+            <Tooltip label={t("docs.readingView")}>
+              <button className={view === "reading" ? "active" : ""}
+                aria-label={t("docs.readingView")}
+                onClick={() => setView("reading")}>
+                <Icon name="eye" className="icon-sm" />
+              </button>
+            </Tooltip>
+            <Tooltip label={t("docs.chunksView")}>
+              <button className={view === "chunks" ? "active" : ""}
+                aria-label={t("docs.chunksView")}
+                onClick={() => setView("chunks")}>
+                <Icon name="db" className="icon-sm" />
+              </button>
+            </Tooltip>
           </div>
           <div className="grow" />
           <button className="btn doc-act" onClick={scopeToDoc}>
             <Icon name="target" className="icon-sm" /> {t("docs.scopeChat")}
           </button>
-          <button className="btn-icon" title={t("docs.copyText")} aria-label={t("docs.copyText")}
-            disabled={!fullText} onClick={copyText}>
-            <Icon name="copy" className="icon-sm" />
-          </button>
-          <button className="btn-icon" title={t("docs.download")} aria-label={t("docs.download")}
-            onClick={download}>
-            <Icon name="upload" className="icon-sm doc-dl" />
-          </button>
-          <button className="btn-icon doc-del" title={t("common.delete")} aria-label={t("common.delete")}
-            onClick={() => setConfirmDelete(true)}>
-            <Icon name="trash" className="icon-sm" />
-          </button>
+          <Tooltip label={t("docs.copyText")}>
+            <button className="btn-icon" aria-label={t("docs.copyText")}
+              disabled={!fullText} onClick={copyText}>
+              <Icon name="copy" className="icon-sm" />
+            </button>
+          </Tooltip>
+          <Tooltip label={t("docs.download")}>
+            <button className="btn-icon" aria-label={t("docs.download")} onClick={download}>
+              <Icon name="upload" className="icon-sm doc-dl" />
+            </button>
+          </Tooltip>
+          {/* Last in the toolbar, against the dialog's right edge. */}
+          <Tooltip label={t("common.delete")} placement="left">
+            <button className="btn-icon doc-del" aria-label={t("common.delete")}
+              onClick={() => setConfirmDelete(true)}>
+              <Icon name="trash" className="icon-sm" />
+            </button>
+          </Tooltip>
         </div>
 
         <div className="doc-body">

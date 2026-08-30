@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
+import Tooltip from "../components/Tooltip";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { fmtBytes, timeAgo } from "../utils";
@@ -130,12 +131,18 @@ export default function ProjectPage() {
             <h2 className="page-title" onDoubleClick={() => setEditingName(true)}>{project.name}</h2>
           )}
           <div className="proj-title-actions">
-            <button className="btn-icon" title="Rename project" onClick={() => setEditingName(true)}>
-              <Icon name="pencil" className="icon-sm" />
-            </button>
-            <button className="btn-icon" title="Delete project" onClick={() => setConfirmDelete(true)}>
-              <Icon name="trash" className="icon-sm" />
-            </button>
+            <Tooltip label="Rename project">
+              <button className="btn-icon" aria-label="Rename project"
+                onClick={() => setEditingName(true)}>
+                <Icon name="pencil" className="icon-sm" />
+              </button>
+            </Tooltip>
+            <Tooltip label="Delete project" placement="left">
+              <button className="btn-icon" aria-label="Delete project"
+                onClick={() => setConfirmDelete(true)}>
+                <Icon name="trash" className="icon-sm" />
+              </button>
+            </Tooltip>
           </div>
         </div>
         <p className="page-sub">
@@ -197,9 +204,12 @@ export default function ProjectPage() {
               <div className="panel-head">
                 <h3>Instructions</h3>
                 {!editingInstr && (
-                  <button className="btn-icon" title="Edit instructions" onClick={() => setEditingInstr(true)}>
-                    <Icon name="pencil" className="icon-sm" />
-                  </button>
+                  <Tooltip label="Edit instructions" placement="left">
+                    <button className="btn-icon" aria-label="Edit instructions"
+                      onClick={() => setEditingInstr(true)}>
+                      <Icon name="pencil" className="icon-sm" />
+                    </button>
+                  </Tooltip>
                 )}
               </div>
               <div className="panel-body">
@@ -233,9 +243,12 @@ export default function ProjectPage() {
             <div className="panel">
               <div className="panel-head">
                 <h3>Context</h3>
-                <button className="btn-icon" title="Choose documents" onClick={() => setPicking(true)}>
-                  <Icon name="plus" className="icon-sm" />
-                </button>
+                <Tooltip label="Choose documents" placement="left">
+                  <button className="btn-icon" aria-label="Choose documents"
+                    onClick={() => setPicking(true)}>
+                    <Icon name="plus" className="icon-sm" />
+                  </button>
+                </Tooltip>
               </div>
               <div className="panel-body">
                 {usingAll ? (
@@ -259,9 +272,12 @@ export default function ProjectPage() {
                             : ` · ${d.processing_status}`}
                         </div>
                       </div>
-                      <button className="btn-icon" title="Remove from project" onClick={() => detach(d.document_id)}>
-                        <Icon name="x" className="icon-sm" />
-                      </button>
+                      <Tooltip label="Remove from project" placement="left">
+                        <button className="btn-icon" aria-label="Remove from project"
+                          onClick={() => detach(d.document_id)}>
+                          <Icon name="x" className="icon-sm" />
+                        </button>
+                      </Tooltip>
                     </div>
                   ))
                 )}

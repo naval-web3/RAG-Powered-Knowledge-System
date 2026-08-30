@@ -1121,9 +1121,8 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 /* Tooltip: a dark label under the control, after a short delay. */
 .tip-wrap { position: relative; display: inline-flex; }
 .tip {
-  position: absolute; top: calc(100% + 8px); left: 50%;
-  transform: translate(-50%, -3px);
-  display: flex; align-items: center; gap: 10px; white-space: nowrap;
+  position: absolute; white-space: nowrap;
+  display: flex; align-items: center; gap: 10px;
   padding: 6px 10px; border-radius: 8px;
   background: var(--text); color: var(--bg);
   font-size: 12.5px; font-weight: 500; line-height: 1;
@@ -1135,10 +1134,21 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 /* The delay is on the show only, so moving along a toolbar does not flash a
    trail of labels; hiding is immediate. */
 .tip-wrap:hover .tip,
-.tip-wrap:focus-within .tip {
-  opacity: 1; transform: translate(-50%, 0);
-  transition-delay: .4s;
-}
+.tip-wrap:focus-within .tip { opacity: 1; transition-delay: .4s; }
+
+/* Four placements, picked at the call site. Each drifts 3px out of its own
+   edge and settles, so the label arrives from the side it belongs to. The
+   resting transform is repeated per placement because it also carries the
+   centring translate, which differs by axis. */
+.tip-bottom .tip { top: calc(100% + 8px); left: 50%; transform: translate(-50%, -3px); }
+.tip-top .tip { bottom: calc(100% + 8px); left: 50%; transform: translate(-50%, 3px); }
+.tip-left .tip { right: calc(100% + 8px); top: 50%; transform: translate(3px, -50%); }
+.tip-right .tip { left: calc(100% + 8px); top: 50%; transform: translate(-3px, -50%); }
+
+.tip-bottom:hover .tip, .tip-bottom:focus-within .tip,
+.tip-top:hover .tip, .tip-top:focus-within .tip { transform: translate(-50%, 0); }
+.tip-left:hover .tip, .tip-left:focus-within .tip,
+.tip-right:hover .tip, .tip-right:focus-within .tip { transform: translate(0, -50%); }
 @media (prefers-reduced-motion: reduce) {
   .private-toggle:hover .ghost-icon { animation: none; }
 }

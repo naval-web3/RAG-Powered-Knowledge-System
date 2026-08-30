@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
+import Tooltip from "../components/Tooltip";
 import MarkdownLite from "../components/MarkdownLite";
 import { useAuth } from "../context/AuthContext";
 import { useChat } from "../context/ChatContext";
@@ -75,15 +76,16 @@ export default function ChatPage() {
           {empty ? (
             <div className="chat-empty">
               {chat.privateMode ? (
-                <button
-                  type="button"
-                  className="private-mark"
-                  onClick={leavePrivate}
-                  title={t("topbar.leavePrivate")}
-                  aria-label={t("topbar.leavePrivate")}
-                >
-                  <img src="/thinking/endmark.png" alt="" width="56" height="56" />
-                </button>
+                <Tooltip label={t("topbar.leavePrivate")}>
+                  <button
+                    type="button"
+                    className="private-mark"
+                    onClick={leavePrivate}
+                    aria-label={t("topbar.leavePrivate")}
+                  >
+                    <img src="/thinking/endmark.png" alt="" width="56" height="56" />
+                  </button>
+                </Tooltip>
               ) : (
                 <img className="empty-mark" src="/thinking/endmark.png" alt="" width="56" height="56" />
               )}
@@ -206,12 +208,16 @@ function UserMessage({ message }) {
       <div className="user-col">
         <div className="bubble">{message.content}</div>
         <div className="msg-actions user-actions">
-          <button className="btn-icon" title={t("chat.copy")} onClick={copy}>
-            <Icon name="copy" className="icon-sm" />
-          </button>
-          <button className="btn-icon" title={t("chat.editResend")} onClick={startEdit}>
-            <Icon name="pencil" className="icon-sm" />
-          </button>
+          <Tooltip label={t("chat.copy")}>
+            <button className="btn-icon" aria-label={t("chat.copy")} onClick={copy}>
+              <Icon name="copy" className="icon-sm" />
+            </button>
+          </Tooltip>
+          <Tooltip label={t("chat.editResend")}>
+            <button className="btn-icon" aria-label={t("chat.editResend")} onClick={startEdit}>
+              <Icon name="pencil" className="icon-sm" />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>
@@ -311,17 +317,25 @@ function AiMessage({ message, mark }) {
 
         {!message.error && !message.streaming && (
           <div className="msg-actions">
-            <button className="btn-icon" title={copied ? t("chat.copied") : t("chat.copy")} onClick={copy}>
-              <Icon name={copied ? "check" : "copy"} className="icon-sm" />
-            </button>
-            <button className={`btn-icon ${vote === "up" ? "voted" : ""}`} title={t("chat.goodAnswer")}
-              onClick={() => { setVote("up"); toast(t("chat.markedGood"), "ok"); }}>
-              <Icon name={vote === "up" ? "thumb-up-fill" : "thumb-up"} className="icon-sm" />
-            </button>
-            <button className={`btn-icon ${vote === "down" ? "voted" : ""}`} title={t("chat.needsWork")}
-              onClick={() => { setVote("down"); toast(t("chat.markedNeedsWork"), "info"); }}>
-              <Icon name={vote === "down" ? "thumb-down-fill" : "thumb-down"} className="icon-sm" />
-            </button>
+            <Tooltip label={copied ? t("chat.copied") : t("chat.copy")}>
+              <button className="btn-icon" aria-label={t("chat.copy")} onClick={copy}>
+                <Icon name={copied ? "check" : "copy"} className="icon-sm" />
+              </button>
+            </Tooltip>
+            <Tooltip label={t("chat.goodAnswer")}>
+              <button className={`btn-icon ${vote === "up" ? "voted" : ""}`}
+                aria-label={t("chat.goodAnswer")}
+                onClick={() => { setVote("up"); toast(t("chat.markedGood"), "ok"); }}>
+                <Icon name={vote === "up" ? "thumb-up-fill" : "thumb-up"} className="icon-sm" />
+              </button>
+            </Tooltip>
+            <Tooltip label={t("chat.needsWork")}>
+              <button className={`btn-icon ${vote === "down" ? "voted" : ""}`}
+                aria-label={t("chat.needsWork")}
+                onClick={() => { setVote("down"); toast(t("chat.markedNeedsWork"), "info"); }}>
+                <Icon name={vote === "down" ? "thumb-down-fill" : "thumb-down"} className="icon-sm" />
+              </button>
+            </Tooltip>
           </div>
         )}
       </div>
@@ -485,20 +499,26 @@ function Composer({ fileRef }) {
             <ModelMenu />
             <ScopeMenu />
             <div className="grow" style={{ flex: 1 }} />
-            <button className={`btn-icon mic-btn ${recording ? "rec" : ""}`} title={t("chat.dictate")}
-              aria-label={t("chat.dictateAria")} onClick={toggleDictation}>
-              <Icon name="mic" className="icon-sm" />
-            </button>
+            <Tooltip label={t("chat.dictate")} placement="top">
+              <button className={`btn-icon mic-btn ${recording ? "rec" : ""}`}
+                aria-label={t("chat.dictateAria")} onClick={toggleDictation}>
+                <Icon name="mic" className="icon-sm" />
+              </button>
+            </Tooltip>
             {chat.sending ? (
-              <button className="send-btn is-stop" aria-label={t("chat.stopGenerating")} title={t("chat.stop")}
-                onClick={chat.stop}>
-                <Icon name="stop" className="icon-sm" />
-              </button>
+              <Tooltip label={t("chat.stop")} placement="top">
+                <button className="send-btn is-stop" aria-label={t("chat.stopGenerating")}
+                  onClick={chat.stop}>
+                  <Icon name="stop" className="icon-sm" />
+                </button>
+              </Tooltip>
             ) : (
-              <button className="send-btn" disabled={!text.trim()} aria-label={t("chat.send")}
-                onClick={submit}>
-                <Icon name="send" className="icon-sm" />
-              </button>
+              <Tooltip label={t("chat.send")} placement="top">
+                <button className="send-btn" disabled={!text.trim()} aria-label={t("chat.send")}
+                  onClick={submit}>
+                  <Icon name="send" className="icon-sm" />
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -540,12 +560,13 @@ function AddMenu({ onUpload }) {
 
   return (
     <div className="menu-anchor" ref={ref}>
-      <button className="btn-icon" aria-haspopup="true" aria-expanded={open}
-        title={chat.uploading ? t("chat.uploading") : t("chat.add")} aria-label={t("chat.add")}
-        disabled={chat.uploading}
-        onClick={() => setOpen((o) => !o)}>
-        <Icon name={chat.uploading ? "refresh" : "plus"} className="icon-sm" />
-      </button>
+      <Tooltip label={chat.uploading ? t("chat.uploading") : t("chat.add")} placement="top">
+        <button className="btn-icon" aria-haspopup="true" aria-expanded={open}
+          aria-label={t("chat.add")} disabled={chat.uploading}
+          onClick={() => setOpen((o) => !o)}>
+          <Icon name={chat.uploading ? "refresh" : "plus"} className="icon-sm" />
+        </button>
+      </Tooltip>
       {open && (
         <div className="drop-menu add-menu">
           <button className="drop-item"
@@ -650,7 +671,7 @@ function ScopeMenu() {
   return (
     <div className="menu-anchor" ref={ref}>
       <button className={`model-btn scope-btn ${chat.scopeDoc ? "scoped" : ""}`} aria-haspopup="true"
-        title={t("chat.retrievalScope")} onClick={() => setOpen((o) => !o)}>
+        onClick={() => setOpen((o) => !o)}>
         <Icon name="target" className="icon-sm" />
         <span id="scope-btn-label">{label}</span>
         <Icon name="chev-d" className="icon-sm" />

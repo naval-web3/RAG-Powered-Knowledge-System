@@ -669,25 +669,29 @@ function Shell() {
           {/* Peeking, this pins the sidebar open; pinned, it collapses it. The
               topbar's reopen button sits underneath the peek and cannot be
               clicked, so this is the only control that can pin. */}
-          <button className="btn-icon sb-search-btn" title={t("sidebar.searchChats")}
-            aria-label={t("sidebar.searchChats")}
-            onClick={() => { setConvSearch(""); setSearchOpen(true); }}>
-            <Icon name="search" className="icon-sm" />
-          </button>
-          <button
-            className="btn-icon"
-            title={collapsed ? t("sidebar.keepOpen") : t("sidebar.collapse")}
-            aria-label={collapsed ? t("sidebar.keepOpen") : t("sidebar.collapse")}
-            onClick={() => {
-              if (collapsed) {
-                setPeeking(false);
-                setCollapsed(false);
-              } else {
-                setCollapsed(true);
-              }
-            }}>
-            <Icon name="panel" className="icon-sm" />
-          </button>
+          <Tooltip label={t("sidebar.searchChats")}>
+            <button className="btn-icon sb-search-btn" aria-label={t("sidebar.searchChats")}
+              onClick={() => { setConvSearch(""); setSearchOpen(true); }}>
+              <Icon name="search" className="icon-sm" />
+            </button>
+          </Tooltip>
+          {/* Against the panel's right edge, but the main column is beside it,
+              so there is room below. */}
+          <Tooltip label={collapsed ? t("sidebar.keepOpen") : t("sidebar.collapse")}>
+            <button
+              className="btn-icon"
+              aria-label={collapsed ? t("sidebar.keepOpen") : t("sidebar.collapse")}
+              onClick={() => {
+                if (collapsed) {
+                  setPeeking(false);
+                  setCollapsed(false);
+                } else {
+                  setCollapsed(true);
+                }
+              }}>
+              <Icon name="panel" className="icon-sm" />
+            </button>
+          </Tooltip>
           </div>
         </div>
 
@@ -724,14 +728,16 @@ function Shell() {
                 <span className="sb-group-count">{chat.docs.length}</span>
               )}
             </button>
-            <button className="btn-icon" title={t("docs.upload")} aria-label={t("docs.upload")}
-              disabled={chat.uploading}
-              onClick={() => {
-                setCollapsedGroups((p) => ({ ...p, docs: false }));
-                uploadRef.current?.click();
-              }}>
-              <Icon name={chat.uploading ? "refresh" : "plus"} className="icon-sm" />
-            </button>
+            <Tooltip label={t("docs.upload")}>
+              <button className="btn-icon" aria-label={t("docs.upload")}
+                disabled={chat.uploading}
+                onClick={() => {
+                  setCollapsedGroups((p) => ({ ...p, docs: false }));
+                  uploadRef.current?.click();
+                }}>
+                <Icon name={chat.uploading ? "refresh" : "plus"} className="icon-sm" />
+              </button>
+            </Tooltip>
           </div>
           {docsOpen && (
             <>
@@ -746,7 +752,9 @@ function Shell() {
                     <Icon name="file" className="icon-sm" />
                     <span className="conv-title">{d.title}</span>
                     {d.processing_status === "failed" && (
-                      <span className="doc-failed" title={t("docs.failed")} />
+                      <Tooltip label={t("docs.failed")}>
+                        <span className="doc-failed" />
+                      </Tooltip>
                     )}
                     {/* A bar only while there is something to watch: nearly every
                         document is finished, and a full bar on all of them would
@@ -771,15 +779,17 @@ function Shell() {
                 <span className="sb-group-count">{chat.projects.length}</span>
               )}
             </button>
-            <button className="btn-icon" title={t("sidebar.newProject")}
-              onClick={() => {
-                // Creating one while the section is shut would hide the input.
-                setCollapsedGroups((p) => ({ ...p, projects: false }));
-                setCreatingProject(true);
-                setProjName("");
-              }}>
-              <Icon name="plus" className="icon-sm" />
-            </button>
+            <Tooltip label={t("sidebar.newProject")}>
+              <button className="btn-icon" aria-label={t("sidebar.newProject")}
+                onClick={() => {
+                  // Creating one while the section is shut would hide the input.
+                  setCollapsedGroups((p) => ({ ...p, projects: false }));
+                  setCreatingProject(true);
+                  setProjName("");
+                }}>
+                <Icon name="plus" className="icon-sm" />
+              </button>
+            </Tooltip>
           </div>
           {projectsOpen && (
           <>
@@ -924,11 +934,13 @@ function Shell() {
                 <span className="pm-label">{t("common.appearance")}</span>
                 <div className="set-seg pm-seg">
                   {[["system", "monitor"], ["light", "sun"], ["dark", "moon"]].map(([val, ic]) => (
-                    <button key={val} className={themePref === val ? "active" : ""}
-                      title={t(`theme.${val}`)} aria-label={t(`theme.${val}`)}
-                      onClick={() => changeTheme(val)}>
-                      <Icon name={ic} className="icon-sm" />
-                    </button>
+                    <Tooltip key={val} label={t(`theme.${val}`)} placement="top">
+                      <button className={themePref === val ? "active" : ""}
+                        aria-label={t(`theme.${val}`)}
+                        onClick={() => changeTheme(val)}>
+                        <Icon name={ic} className="icon-sm" />
+                      </button>
+                    </Tooltip>
                   ))}
                 </div>
               </div>
@@ -968,24 +980,31 @@ function Shell() {
               <span className="private-bar-label">
                 <Icon name="ghost" className="icon-sm" /> {t("topbar.privateChat")}
               </span>
-              <button className="private-bar-x" title={t("topbar.leavePrivate")}
-                aria-label={t("topbar.leavePrivate")} onClick={() => chat.togglePrivate()}>
-                <Icon name="x" className="icon-sm" />
-              </button>
+              {/* Same corner as the toggle it replaces, so the same escape. */}
+              <Tooltip label={t("topbar.leavePrivate")} placement="left">
+                <button className="private-bar-x" aria-label={t("topbar.leavePrivate")}
+                  onClick={() => chat.togglePrivate()}>
+                  <Icon name="x" className="icon-sm" />
+                </button>
+              </Tooltip>
             </>
           ) : (
             <>
-            <button className="btn-icon" id="btn-mobile-menu" aria-label={t("sidebar.openMenu")}
-              onClick={() => setMobileOpen(true)}>
-              <Icon name="menu" />
-            </button>
-            {collapsed && (
-              <button ref={reopenRef} className="btn-icon sb-reopen" title={t("sidebar.openSidebar")}
-                aria-label={t("sidebar.openSidebar")}
-                onClick={() => { setPeeking(false); setCollapsed(false); }}>
-                <Icon name="panel" className="icon-sm" />
-                <span className="sb-dot" aria-hidden="true" />
+            <Tooltip label={t("sidebar.openMenu")}>
+              <button className="btn-icon" id="btn-mobile-menu" aria-label={t("sidebar.openMenu")}
+                onClick={() => setMobileOpen(true)}>
+                <Icon name="menu" />
               </button>
+            </Tooltip>
+            {collapsed && (
+              <Tooltip label={t("sidebar.openSidebar")}>
+                <button ref={reopenRef} className="btn-icon sb-reopen"
+                  aria-label={t("sidebar.openSidebar")}
+                  onClick={() => { setPeeking(false); setCollapsed(false); }}>
+                  <Icon name="panel" className="icon-sm" />
+                  <span className="sb-dot" aria-hidden="true" />
+                </button>
+              </Tooltip>
             )}
             {/* The chat page needs no label -- a conversation on screen says what
                 it is -- but a saved one shows its own name, editable in place. */}
@@ -1034,7 +1053,8 @@ function Shell() {
             {/* The only control left in the bar, and it sits in the same corner
                 the cross occupies in private mode: one place to switch the mode
                 either way. */}
-            <Tooltip label={t("topbar.privateChat")} keys={<Keys combo="ctrl+shift+p" />}>
+            <Tooltip label={t("topbar.privateChat")} keys={<Keys combo="ctrl+shift+p" />}
+              placement="left">
               <button
                 className={`private-toggle ${chat.privateMode ? "on" : ""}`}
                 aria-label={t("topbar.privateChat")} aria-pressed={chat.privateMode}
@@ -1063,10 +1083,12 @@ function Shell() {
                 onChange={(e) => setConvSearch(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Escape") setSearchOpen(false); }}
               />
-              <button className="btn-icon" aria-label={t("sidebar.closeSearch")}
-                onClick={() => setSearchOpen(false)}>
-                <Icon name="x" className="icon-sm" />
-              </button>
+              <Tooltip label={t("sidebar.closeSearch")} placement="left">
+                <button className="btn-icon" aria-label={t("sidebar.closeSearch")}
+                  onClick={() => setSearchOpen(false)}>
+                  <Icon name="x" className="icon-sm" />
+                </button>
+              </Tooltip>
             </div>
             <div className="search-results" ref={resultsRef}>
               <div className="search-results-inner" ref={resultsInnerRef}>

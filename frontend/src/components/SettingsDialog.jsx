@@ -10,6 +10,7 @@ import { getThemePref, setTheme } from "../theme";
 import { initialsOf } from "../utils";
 import ConfirmModal from "./ConfirmModal";
 import Icon from "./Icon";
+import Tooltip from "./Tooltip";
 
 /* One entry per panel. The label is nav.<id> and the search blob is
    nav.<id>Words, both translated: the rail's search should find a setting by
@@ -328,9 +329,11 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
         </nav>
 
         <div className="set-pane">
-          <button className="btn-icon set-close" aria-label={t("common.close")} onClick={onClose}>
-            <Icon name="x" className="icon-sm" />
-          </button>
+          <Tooltip label={t("common.close")} placement="left">
+            <button className="btn-icon set-close" aria-label={t("common.close")} onClick={onClose}>
+              <Icon name="x" className="icon-sm" />
+            </button>
+          </Tooltip>
           <div className="set-scroll" ref={paneRef}>
 
             {section === "general" && (
@@ -365,11 +368,13 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
                 <Row title={t("common.appearance")}>
                   <div className="set-seg">
                     {[["system", "monitor"], ["light", "sun"], ["dark", "moon"]].map(([val, ic]) => (
-                      <button key={val} className={theme === val ? "active" : ""}
-                        aria-label={t(`theme.${val}`)} title={t(`theme.${val}`)}
-                        onClick={() => { setThemeState(val); setTheme(val); }}>
-                        <Icon name={ic} className="icon-sm" />
-                      </button>
+                      <Tooltip key={val} label={t(`theme.${val}`)}>
+                        <button className={theme === val ? "active" : ""}
+                          aria-label={t(`theme.${val}`)}
+                          onClick={() => { setThemeState(val); setTheme(val); }}>
+                          <Icon name={ic} className="icon-sm" />
+                        </button>
+                      </Tooltip>
                     ))}
                   </div>
                 </Row>
@@ -400,10 +405,14 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
                   <div className="set-input-wrap">
                     <input className="set-input" type={showKey ? "text" : "password"} autoComplete="new-password"
                       value={newPass} onChange={(e) => setNewPass(e.target.value)} />
-                    <button className="btn-icon" aria-label={showKey ? t("settings.hide") : t("settings.show")}
-                      onClick={() => setShowKey((v) => !v)}>
-                      <Icon name={showKey ? "eye-off" : "eye"} className="icon-sm" />
-                    </button>
+                    <Tooltip label={showKey ? t("settings.hide") : t("settings.show")}
+                      placement="left">
+                      <button className="btn-icon"
+                        aria-label={showKey ? t("settings.hide") : t("settings.show")}
+                        onClick={() => setShowKey((v) => !v)}>
+                        <Icon name={showKey ? "eye-off" : "eye"} className="icon-sm" />
+                      </button>
+                    </Tooltip>
                   </div>
                 </Row>
                 <div className="set-actions">
@@ -493,9 +502,12 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
 
                     <div className="set-updated">
                       {t("settings.lastUpdated", { time: usageAt ? usageAt.toLocaleTimeString() : "—" })}
-                      <button className="btn-icon" aria-label={t("settings.refreshUsage")} onClick={loadUsage}>
-                        <Icon name="refresh" className="icon-sm" />
-                      </button>
+                      <Tooltip label={t("settings.refreshUsage")} placement="top">
+                        <button className="btn-icon" aria-label={t("settings.refreshUsage")}
+                          onClick={loadUsage}>
+                          <Icon name="refresh" className="icon-sm" />
+                        </button>
+                      </Tooltip>
                     </div>
                   </>
                 )}
