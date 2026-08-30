@@ -24,6 +24,7 @@ import ProjectPage from "../src/pages/ProjectPage";
 import Register from "../src/pages/Register";
 import DocumentDialog from "../src/components/DocumentDialog";
 import LanguageDialog from "../src/components/LanguageDialog";
+import MarkdownLite from "../src/components/MarkdownLite";
 import SettingsDialog, { SECTIONS } from "../src/components/SettingsDialog";
 import { LocaleProvider } from "../src/i18n";
 import { LANGUAGES } from "../src/i18n/languages";
@@ -160,6 +161,39 @@ for (const [name, at] of SHELL) {
 // Every locale must carry the same keys as English. A missing one falls back
 // to English at runtime, which reads as a half-translated screen rather than
 // an error, so nothing would otherwise catch it.
+// The renderer is shared with the chat, so a document feature added here can
+// quietly change how every answer is drawn. These are the shapes a real
+// document has and an answer rarely does.
+console.log("checking the markdown renderer:");
+{
+  const md = [
+    "# Plan", "### Subtitle", "", "---", "",
+    "reasoning for *why* it exists, with **three separate** tracks and snake_case_names.",
+    "", "| | |", "|---|---|", "| **Subject** | Faster 1600m |",
+    "", "| Week | Focus |", "|---|---|", "| 1 | Base |",
+    "", "Maths like 2*3*4 must not turn into italics.",
+  ].join("\n");
+  const h = renderToString(<MarkdownLite text={md} />);
+  const cases = [
+    ["headings", h.includes("<h2>") && h.includes("<h4>")],
+    ["horizontal rule", h.includes("<hr")],
+    ["italic", h.includes("<em>why</em>")],
+    ["bold", h.includes("<strong>three separate</strong>")],
+    ["two tables", (h.match(/<table>/g) || []).length === 2],
+    ["an empty header row is not drawn", h.includes("<table><tbody>")],
+    ["a real header row is", h.includes("<th><span>Week</span></th>")],
+    ["cells render markdown", h.includes("<td><strong>Subject</strong></td>")],
+    ["2*3*4 is not italic", h.includes("2*3*4")],
+    ["snake_case is not italic", h.includes("snake_case_names")],
+  ];
+  for (const [name, ok] of cases) {
+    check(name, () => {
+      if (!ok) throw new Error("no");
+      return "ok".repeat(12);
+    });
+  }
+}
+
 console.log("checking locale coverage:");
 {
   const base = Object.keys(STRINGS["en-US"]).sort();

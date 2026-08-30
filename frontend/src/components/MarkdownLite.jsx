@@ -11,6 +11,10 @@
 // CommonMark allows -, * and + as bullet markers; the model uses + for its
 // sub-items, and omitting it left those lines rendering as literal text.
 const HEADING = /^(#{1,6})\s+(.*)$/;
+const ROW = /^\s*\|(.*)\|\s*$/;
+// The line of dashes under a table's header, which is what tells a table from
+// a paragraph that happens to contain pipes.
+const DIVIDER = /^\s*\|[\s:|-]+\|\s*$/;
 const RULE = /^\s*([-*_])\1{2,}\s*$/;
 const BULLET = /^(\s*)[-*+•]\s+(.*)$/;
 const NUMBERED = /^(\s*)\d+[.)]\s+(.*)$/;
@@ -52,12 +56,22 @@ function dropDangling(s) {
 }
 
 function renderInline(text, keyPrefix, fade = 0) {
-  // Split on **bold** and `code`, keeping the delimiters.
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
+  /* Split on **bold**, *italic*, _italic_ and `code`, keeping the delimiters.
+     Bold has to come first in the alternation or ** would be eaten as two
+     empty italics. A single * inside a word (2*3) is left alone: the italic
+     arm requires a non-space next to each marker. */
+  const parts = text
+    .split(
+      /(\*\*[^*]+\*\*|(?<![\w*])\*[^\s*][^*]*\*(?![\w*])|(?<![\w_])_[^\s_][^_]*_(?![\w_])|`[^`]+`)/g
+    )
+    .filter(Boolean);
   return parts.map((p, i) => {
     const key = `${keyPrefix}-${i}`;
     if (p.startsWith("**") && p.endsWith("**")) return <strong key={key}>{p.slice(2, -2)}</strong>;
     if (p.startsWith("`") && p.endsWith("`")) return <code key={key}>{p.slice(1, -1)}</code>;
+    if ((p.startsWith("*") && p.endsWith("*")) || (p.startsWith("_") && p.endsWith("_"))) {
+      return <em key={key}>{p.slice(1, -1)}</em>;
+    }
     // Only the final plain run carries the fade; a trailing bold or code span
     // is short-lived and left alone rather than split apart.
     if (fade > 0 && i === parts.length - 1) return <span key={key}>{fadeTail(p, fade, key)}</span>;
@@ -123,8 +137,34 @@ export default function MarkdownLite({ text, fadeTail: fadeBudget = 0 }) {
     }
   };
 
-  for (const raw of lines) {
+  const cells = (row) =>
+    row
+      .replace(/^\s*\|/, "")
+      .replace(/\|\s*$/, "")
+      .split("|")
+      .map((c) => c.trim());
+
+  for (let li = 0; li < lines.length; li += 1) {
+    const raw = lines[li];
     const line = raw.trimEnd();
+
+    /* A table needs its divider to be a table at all, so both lines are looked
+       at together and the whole run is taken in one go. */
+    if (ROW.test(line) && li + 1 < lines.length && DIVIDER.test(lines[li + 1])) {
+      flushPara();
+      flushList();
+      const header = cells(line);
+      const rows = [];
+      li += 2;
+      while (li < lines.length && ROW.test(lines[li])) {
+        rows.push(cells(lines[li]));
+        li += 1;
+      }
+      li -= 1;
+      blocks.push({ kind: "table", header, rows });
+      continue;
+    }
+
     const heading = line.match(HEADING);
     if (heading) {
       flushPara();
@@ -171,6 +211,33 @@ export default function MarkdownLite({ text, fadeTail: fadeBudget = 0 }) {
         const tail = lastBlock ? fadeBudget : 0;
         if (b.kind === "list") return renderList(b.nodes, String(i), 0, tail);
         if (b.kind === "hr") return <hr key={i} />;
+        if (b.kind === "table") {
+          // A key/value table is written with an empty header row; printing it
+          // would put a band of nothing above the rows.
+          const titled = b.header.some((c) => c !== "");
+          return (
+            <table key={i}>
+              {titled && (
+                <thead>
+                  <tr>
+                    {b.header.map((c, j) => (
+                      <th key={j}>{renderInline(c, `${i}-h-${j}`)}</th>
+                    ))}
+                  </tr>
+                </thead>
+              )}
+              <tbody>
+                {b.rows.map((r, ri) => (
+                  <tr key={ri}>
+                    {r.map((c, ci) => (
+                      <td key={ci}>{renderInline(c, `${i}-${ri}-${ci}`)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        }
         if (b.kind === "h") {
           // Capped at h4: these are rendered inside a dialog, and an h1 sized
           // for a page would shout across it.

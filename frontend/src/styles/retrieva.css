@@ -1937,6 +1937,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    backgrounds out of four. */
 .conv-title,
 .search-hit-title,
+.doc-head h3,
 .user-chip .u-name,
 .user-chip .u-mail {
   /* min-width:0 so a long name shrinks rather than widening the row it sits in. */
@@ -1999,7 +2000,6 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 .doc-head h3 {
   flex: 1; min-width: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .doc-bar {
   display: flex; align-items: center; gap: 6px; flex: none;
