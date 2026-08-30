@@ -981,14 +981,14 @@ function Shell() {
             </>
           ) : (
             <>
-            <Tooltip label={t("sidebar.openMenu")}>
+            <Tooltip label={t("sidebar.openMenu")} className="only-narrow">
               <button className="btn-icon" id="btn-mobile-menu" aria-label={t("sidebar.openMenu")}
                 onClick={() => setMobileOpen(true)}>
                 <Icon name="menu" />
               </button>
             </Tooltip>
             {collapsed && (
-              <Tooltip label={t("sidebar.openSidebar")}>
+              <Tooltip label={t("sidebar.openSidebar")} className="reopen-wrap">
                 <button ref={reopenRef} className="btn-icon sb-reopen"
                   aria-label={t("sidebar.openSidebar")}
                   onClick={() => { setPeeking(false); setCollapsed(false); }}>

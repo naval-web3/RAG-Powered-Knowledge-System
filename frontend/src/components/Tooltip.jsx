@@ -20,7 +20,7 @@ import { createPortal } from "react-dom";
 const GAP = 8;   // between the control and its label
 const EDGE = 8;  // smallest gap left between the label and the window
 
-export default function Tooltip({ label, keys, placement = "bottom", children }) {
+export default function Tooltip({ label, keys, placement = "bottom", className = "", children }) {
   const anchorRef = useRef(null);
   const tipRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -78,7 +78,7 @@ export default function Tooltip({ label, keys, placement = "bottom", children })
     <>
       <span
         ref={anchorRef}
-        className="tip-wrap"
+        className={`tip-wrap ${className}`.trim()}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}

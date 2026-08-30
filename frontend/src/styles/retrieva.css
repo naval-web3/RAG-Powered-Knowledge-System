@@ -587,6 +587,11 @@ body {
    something to trip over later. */
 #app.sb-peek .sb-head { display: none; }
 
+/* Pulled left so its icon shares a column with the sidebar's. The bar's 18px
+   padding plus (34 - 15) / 2 inside a .btn-icon puts the glyph's centre at 35;
+   a New chat icon sits at 30.5 and a document row's at 29.5. Five back lands on
+   30, between the two. */
+.reopen-wrap { margin-left: -5px; }
 /* Marks the collapsed state, on the control that undoes it. */
 .sb-reopen { position: relative; }
 /* Stays lit through a peek. Hiding it there was strictly more truthful -- the
@@ -1220,7 +1225,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .private-mark:active { transform: translateY(0) scale(.96); }
 .private-mark img { width: 56px; height: 56px; }
 #app.private-chat #sidebar { display: none; }
-#app.private-chat #btn-mobile-menu,
+#app.private-chat .tip-wrap.only-narrow,
 #app.private-chat #btn-sidebar-toggle { display: none !important; }
 /* The panel role moves down to the page, so the bar above it belongs to the
    surround rather than being clipped inside the panel's top corners. */
@@ -1609,7 +1614,10 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 
 /* Mobile shell bits */
 #sb-backdrop { position: fixed; inset: 0; background: rgba(24,21,15,.4); z-index: 55; animation: fadeIn .2s; }
-#btn-mobile-menu { display: none; }
+/* The wrapper, not the button. Hiding only the button leaves its tooltip
+   wrapper in the bar as a zero-width flex item, and the bar's 12px gap is
+   still applied after it, which pushed everything to its right along. */
+.tip-wrap.only-narrow { display: none; }
 
 /* ============================================================
    RESPONSIVE
@@ -1634,7 +1642,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   /* The narrow-screen drawer moves by margin, so the desktop transform must
      not stack on top of it. */
   #app.sb-collapsed #sidebar { margin-left: -282px; transform: none; position: fixed; top: 0; }
-  #btn-mobile-menu { display: inline-flex; }
+  .tip-wrap.only-narrow { display: inline-flex; }
   .land-nav .nav-links { display: none; }
 }
 @media (max-width: 640px) {
