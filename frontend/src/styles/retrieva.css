@@ -569,8 +569,15 @@ body {
   transform: none; z-index: 1;
   box-shadow: var(--shadow-panel); clip-path: inset(0 -24px 0 0);
 }
-#app.sb-peek .topbar > .sb-reopen,
-#app.sb-peek .topbar > #btn-mobile-menu { position: relative; z-index: 2; }
+/* Descendant, not a child combinator. These two now sit inside a tooltip
+   wrapper, and while that wrapper was a direct child and the buttons were not,
+   this rule silently stopped matching: the strip above kept its z-index 1, the
+   buttons dropped back to auto, and the only control that reopens a collapsed
+   sidebar was painted over by the panel it opens. The wrapper is unpositioned,
+   so it makes no stacking context of its own and the lift still lands where it
+   is needed. */
+#app.sb-peek .topbar .sb-reopen,
+#app.sb-peek .topbar #btn-mobile-menu { position: relative; z-index: 2; }
 /* A peek is a glance, not the sidebar proper: the brand belongs to the pinned
    state. The head itself stays, because the panel now covers the nav bar's
    toggle and this is the only control left to pin with -- and since the two are
