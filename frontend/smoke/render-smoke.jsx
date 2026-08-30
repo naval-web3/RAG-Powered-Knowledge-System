@@ -17,11 +17,13 @@ import { AuthProvider } from "../src/context/AuthContext";
 import { ChatProvider } from "../src/context/ChatContext";
 import { ToastProvider } from "../src/context/ToastContext";
 import ChatPage from "../src/pages/ChatPage";
+import Features from "../src/pages/Features";
 import ForgotPassword from "../src/pages/ForgotPassword";
 import Landing from "../src/pages/Landing";
 import Login from "../src/pages/Login";
 import ProjectPage from "../src/pages/ProjectPage";
 import Register from "../src/pages/Register";
+import UnderTheHood from "../src/pages/UnderTheHood";
 import DocumentDialog from "../src/components/DocumentDialog";
 import LanguageDialog from "../src/components/LanguageDialog";
 import MarkdownLite from "../src/components/MarkdownLite";
@@ -56,6 +58,8 @@ const INSIDE_APP = [
 // Standalone pages: no chat context needed.
 const STANDALONE = [
   ["Landing", <Landing />],
+  ["Features", <Features />],
+  ["UnderTheHood", <UnderTheHood />],
   ["Login", <Login />],
   ["Register", <Register />],
   ["ForgotPassword", <ForgotPassword />],

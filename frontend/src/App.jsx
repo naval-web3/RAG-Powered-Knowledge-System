@@ -3,11 +3,13 @@ import Layout from "./components/Layout";
 import { useAuth } from "./context/AuthContext";
 import AdminPage from "./pages/AdminPage";
 import ChatPage from "./pages/ChatPage";
+import Features from "./pages/Features";
 import ForgotPassword from "./pages/ForgotPassword";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import ProjectPage from "./pages/ProjectPage";
 import Register from "./pages/Register";
+import UnderTheHood from "./pages/UnderTheHood";
 
 function Protected({ children, adminOnly = false }) {
   const { user } = useAuth();
@@ -27,6 +29,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/welcome" element={<PublicOnly><Landing /></PublicOnly>} />
+      <Route path="/features" element={<PublicOnly><Features /></PublicOnly>} />
+      <Route path="/under-the-hood" element={<PublicOnly><UnderTheHood /></PublicOnly>} />
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
       <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
       <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />

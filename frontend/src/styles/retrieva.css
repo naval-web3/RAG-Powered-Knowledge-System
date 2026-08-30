@@ -2168,3 +2168,130 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .sel-opt.active { background: var(--surface-2); color: var(--text); }
 .sel-opt.chosen { color: var(--text); font-weight: 600; }
 .sel-check { flex: none; color: var(--accent); }
+
+/* ============================================================
+   PUBLIC PAGES v1 — the landing split into Home / Features /
+   Under the hood. Everything below is new; nothing above moved.
+   ============================================================ */
+
+/* All three public pages share the shell, so the footer sits at the bottom
+   even when a page is shorter than the viewport. */
+.land-page { display: flex; flex-direction: column; position: relative; }
+
+/* ---------- Nav: real routes, with a hairline that follows the pointer ----
+   One 1px bar under the link row, moved with translateX/scaleX to whichever
+   link is hovered, and parked under the current page's link when the pointer
+   leaves. Scaling one bar keeps it a single element that slides, rather than
+   three borders that blink on and off. */
+.land-nav .nav-links { position: relative; }
+.land-nav .nav-links a[aria-current="page"] { color: var(--text); }
+.nav-ink {
+  position: absolute; left: 0; bottom: -5px; height: 1px; width: 1px;
+  background: var(--text); transform-origin: left; opacity: 0;
+  transition: transform .3s var(--ease), opacity .2s var(--ease);
+  pointer-events: none;
+}
+.nav-links.has-ink .nav-ink { opacity: 1; }
+
+/* ---------- FAQ (home) ----------
+   Label left, accordion right, on the hero's own proportions so the questions
+   line up under the demo card above them. */
+.faq {
+  display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(40px, 6vw, 96px);
+  align-items: start;
+}
+.faq-label h2 { font-size: clamp(26px, 3vw, 36px); font-weight: 600; letter-spacing: -.015em; margin-bottom: 12px; }
+.faq-label p { color: var(--text-2); font-size: 15.5px; max-width: 40ch; }
+.faq-label a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.faq-label a:hover { text-decoration: underline; }
+.faq-list { border-top: 1px solid var(--border); }
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-q {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 20px 0; text-align: left;
+  font-size: 16px; font-weight: 500; line-height: 1.4; color: var(--text);
+  transition: color .15s var(--ease);
+}
+.faq-q:hover { color: var(--accent); }
+.faq-q .icon { color: var(--text-3); transition: transform .3s var(--ease), color .15s var(--ease); }
+.faq-q[aria-expanded="true"] .icon { transform: rotate(45deg); color: var(--accent); }
+/* 0fr -> 1fr animates to the answer's own height without measuring it. */
+.faq-a { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s var(--ease); }
+.faq-a > div { overflow: hidden; }
+.faq-item.open .faq-a { grid-template-rows: 1fr; }
+.faq-a p { font-size: 14.5px; line-height: 1.65; color: var(--text-2); padding: 0 42px 22px 0; max-width: 60ch; }
+@media (max-width: 1080px) { .faq { grid-template-columns: 1fr; gap: 28px; } }
+
+/* ---------- Sub-page header ---------- */
+.page-head { padding: clamp(40px, 8vh, 96px) var(--gutter) clamp(24px, 4vh, 40px); width: 100%; }
+.page-head .eyebrow { margin-bottom: 22px; }
+.page-head h1 {
+  font-size: clamp(34px, 4.2vw, 54px); font-weight: 600; letter-spacing: -.02em; line-height: 1.1;
+  max-width: 26ch; margin-bottom: 18px;
+}
+.page-head .lede { font-size: 17px; color: var(--text-2); max-width: 56ch; }
+.page-head + .section { padding-top: 0; }
+.section-head.tight { margin-bottom: 28px; }
+
+/* ---------- Closing CTA band (sub-pages) ---------- */
+.cta-band {
+  margin: 0 var(--gutter) clamp(48px, 7vh, 88px);
+  padding: clamp(28px, 4.5vw, 52px);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-xl);
+  display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap;
+}
+.cta-band h2 { font-size: clamp(22px, 2.4vw, 30px); font-weight: 600; letter-spacing: -.015em; margin-bottom: 8px; }
+.cta-band p { color: var(--text-2); font-size: 15px; max-width: 46ch; }
+.cta-band .hero-cta { margin: 0; }
+
+/* ---------- SSO row (login / register) ----------
+   Disabled until there is an OAuth backend to point them at; the note under
+   the row says so, because .btn:disabled removes the pointer events a title
+   would need. */
+.sso-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sso-btn { padding: 11px 14px; }
+.sso-note { font-size: 12.5px; color: var(--text-3); margin-top: 8px; text-align: center; }
+@media (max-width: 640px) { .sso-row { grid-template-columns: 1fr; } }
+
+/* ---------- Features: the secondary list ---------- */
+.more-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 clamp(20px, 3vw, 40px); border-bottom: 1px solid var(--border); }
+.more-item { display: flex; gap: 12px; align-items: flex-start; padding: 18px 0; border-top: 1px solid var(--border); }
+.more-item .icon-sm { color: var(--accent); margin-top: 3px; }
+.more-item b { display: block; font-size: 14.5px; font-weight: 600; margin-bottom: 3px; }
+.more-item p { font-size: 13.5px; color: var(--text-2); }
+@media (max-width: 920px) { .more-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Under the hood: the request flow ----------
+   Four nodes across the top with arrows between them; the two stores hang
+   below the middle two, placed by class so the markup can stay in reading
+   order. */
+.arch {
+  display: grid;
+  grid-template-columns: 1fr 26px 1fr 26px 1fr 26px 1fr;
+  grid-template-rows: auto 30px auto;
+  align-items: center; gap: 0 10px;
+}
+.arch-node {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 18px; box-shadow: var(--shadow-sm); align-self: stretch;
+}
+.arch-node .kicker {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3);
+  display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+}
+.arch-node .kicker .icon-sm { color: var(--accent); }
+.arch-node h3 { font-size: 15.5px; font-weight: 600; margin-bottom: 4px; }
+.arch-node p { font-size: 13px; color: var(--text-2); }
+.arch-node.store { background: var(--surface-2); box-shadow: none; }
+.arch-arrow, .arch-down { color: var(--text-3); display: flex; justify-content: center; align-items: center; }
+.arch-down { grid-row: 2; }
+.arch-down svg { transform: rotate(90deg); }
+.arch-store { grid-row: 3; }
+.arch-down.pg, .arch-store.pg { grid-column: 3; }
+.arch-down.chroma, .arch-store.chroma { grid-column: 5; }
+@media (max-width: 920px) {
+  .arch { grid-template-columns: 1fr; grid-template-rows: none; gap: 0; }
+  .arch > * { grid-column: auto !important; grid-row: auto !important; }
+  .arch-arrow, .arch-down { padding: 6px 0; }
+  .arch-arrow svg { transform: rotate(90deg); }
+}

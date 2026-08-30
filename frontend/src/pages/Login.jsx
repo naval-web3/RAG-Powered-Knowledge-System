@@ -72,6 +72,21 @@ export default function Login() {
           <h1>Welcome back</h1>
           <p className="sub">Sign in to continue to your knowledge base.</p>
 
+          {/* OAuth is not wired up. The buttons are drawn because the page was
+              designed around them, and disabled because a sign-in button that
+              does nothing is worse than none. .btn:disabled kills pointer
+              events, so the note below carries the explanation, not a title. */}
+          <div className="sso-row">
+            <button type="button" className="btn btn-outline sso-btn" disabled>
+              <Icon name="google" className="icon-sm" /> Google
+            </button>
+            <button type="button" className="btn btn-outline sso-btn" disabled>
+              <Icon name="github" className="icon-sm" /> GitHub
+            </button>
+          </div>
+          <p className="sso-note">Social sign-in is coming soon. Use your email for now.</p>
+          <div className="auth-divider">or</div>
+
           {apiError && (
             <div className="badge badge-red" style={{ display: "flex", width: "100%", marginBottom: 18, padding: "10px 14px", borderRadius: 12 }}>
               <Icon name="alert" className="icon-sm" /> {apiError}
