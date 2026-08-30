@@ -33,6 +33,19 @@ const PLAIN = ["txt", "md", "docx"];
    Reading tab is there for anyone who wants the meaning instead. */
 const MD_LINE = /^(\s*)(#{1,6}\s|>\s?|[-*+]\s|\d+[.)]\s)/;
 
+/* The frame takes the page's proportions rather than the page taking the
+   frame's. Height leads, so pages of different shapes sit at a similar weight
+   on the card, and width is capped so a wide deck cannot push the dialog open.
+   Falls back to roughly A4 until the image has loaded. */
+const STACK_H = 210;
+const STACK_MAX_W = 244;
+
+function stackSize(ratio) {
+  if (!ratio) return { width: 150, height: STACK_H };
+  const width = Math.min(STACK_MAX_W, Math.round(STACK_H * ratio));
+  return { width, height: Math.round(width / ratio) };
+}
+
 function highlight(line) {
   if (!line) return "\u00a0";
   if (/^\s*([-*_])\1{2,}\s*$/.test(line)) {
@@ -67,6 +80,10 @@ export default function DocumentDialog({ doc, onClose }) {
   const isPlain = PLAIN.includes((doc.file_type || "").toLowerCase());
   const [view, setView] = useState("reading");
   const [pageCount, setPageCount] = useState(null);
+  const [thumb, setThumb] = useState(null);
+  // The page's own proportions. A deck is landscape and a report is portrait,
+  // and a fixed frame would crop one of them to fit the other.
+  const [ratio, setRatio] = useState(null);
   // Only a .md is worth colouring: the others are prose that happens to be
   // monospaced, and painting stray asterisks in a .txt would invent structure
   // the file does not have.
@@ -87,7 +104,22 @@ export default function DocumentDialog({ doc, onClose }) {
         .get(`/api/documents/${id}/pages`)
         .then(({ data }) => alive && setPageCount(data.page_count || null))
         .catch(() => {});
-      return () => { alive = false; };
+      /* Fetched rather than pointed at with a src: the endpoint wants the
+         bearer token, and an <img> cannot carry a header. The object URL is
+         released on the way out so the blob is not held for the session. */
+      let objectUrl = null;
+      client
+        .get(`/api/documents/${id}/thumbnail`, { responseType: "blob" })
+        .then((res) => {
+          if (!alive) return;
+          objectUrl = URL.createObjectURL(res.data);
+          setThumb(objectUrl);
+        })
+        .catch(() => {});
+      return () => {
+        alive = false;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
     }
     client
       .get(`/api/documents/${id}/content`)
@@ -228,8 +260,18 @@ export default function DocumentDialog({ doc, onClose }) {
             <div className="doc-file">
               {/* The sheets ARE the button: hovering them offers the file,
                   which is the only thing this card is for. */}
-              <button className="doc-stack" onClick={download} aria-label={t("docs.download")}>
-                <span className="doc-sheet" />
+              <button className="doc-stack" onClick={download} aria-label={t("docs.download")}
+                style={stackSize(ratio)}>
+                <span className="doc-sheet">
+                  {/* The page itself when it has rendered, an empty sheet until
+                      then and if it never does. */}
+                  {thumb && (
+                    <img src={thumb} alt=""
+                      onLoad={(e) =>
+                        setRatio(e.target.naturalWidth / (e.target.naturalHeight || 1))
+                      } />
+                  )}
+                </span>
                 <span className="doc-stack-dl">
                   <Icon name="upload" className="icon-sm doc-dl" /> {t("docs.download")}
                 </span>

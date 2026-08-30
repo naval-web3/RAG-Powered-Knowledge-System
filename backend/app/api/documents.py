@@ -15,6 +15,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi import Response
 from fastapi.responses import FileResponse
 from sqlalchemy import update
 from sqlalchemy.orm import Session
@@ -240,6 +241,54 @@ def document_chunks(
     """
     doc = _owned(db, document_id, current_user)
     return [DocumentChunk(**row) for row in vector_store.chunks_for_document(str(doc.document_id))]
+
+
+# Wide enough to stay sharp on a high-density screen at the size it is drawn,
+# and small enough that rendering it is not worth caching.
+THUMB_WIDTH = 420
+
+
+@router.get("/{document_id}/thumbnail")
+def document_thumbnail(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    """The first page of a PDF, as a PNG.
+
+    Rendered here rather than in the browser: PyMuPDF is already a dependency
+    for reading PDFs, and the alternative is shipping a PDF engine to the client
+    and downloading the whole file to draw one page of it.
+    """
+    doc = _owned(db, document_id, current_user)
+    if doc.file_type != "pdf":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not a PDF")
+    if not os.path.exists(doc.file_path):
+        raise HTTPException(status.HTTP_410_GONE, "The stored file is missing")
+
+    import fitz  # PyMuPDF, already used to read PDFs
+
+    try:
+        with fitz.open(doc.file_path) as pdf:
+            if pdf.page_count == 0:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "This PDF has no pages")
+            page = pdf.load_page(0)
+            zoom = THUMB_WIDTH / max(page.rect.width, 1)
+            png = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom)).tobytes("png")
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 - a card without a picture is fine
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, f"Could not render this PDF: {exc}"
+        ) from exc
+
+    # Private: it is one user's document, and it should not be held by a shared
+    # cache on the way. A day is plenty for a page that cannot change.
+    return Response(
+        content=png,
+        media_type="image/png",
+        headers={"Cache-Control": "private, max-age=86400"},
+    )
 
 
 @router.get("/{document_id}/pages")
