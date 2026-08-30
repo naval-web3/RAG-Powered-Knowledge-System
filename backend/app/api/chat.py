@@ -27,6 +27,36 @@ from app.services.rag_engine import answer_query, answer_query_stream, generate_
 router = APIRouter(prefix="/api", tags=["chat"])
 
 
+# How much of the conversation travels with the question. Four exchanges is
+# enough to answer "what did you just say" or to translate the last reply,
+# without spending a small model's whole context window on history.
+HISTORY_TURNS = 8
+HISTORY_CHARS = 1500
+
+
+def _recent_history(db: Session, conversation_id: uuid.UUID) -> list[tuple[str, str]]:
+    """The last few messages of a conversation, oldest first.
+
+    Read BEFORE the incoming question is stored, so the question does not arrive
+    twice. Long messages are trimmed from the front: the end of an answer is
+    what a follow-up usually refers to.
+    """
+    rows = (
+        db.query(Message)
+        .filter(Message.conversation_id == conversation_id)
+        .order_by(Message.created_at.desc())
+        .limit(HISTORY_TURNS)
+        .all()
+    )
+    out: list[tuple[str, str]] = []
+    for m in reversed(rows):
+        text = m.content or ""
+        if len(text) > HISTORY_CHARS:
+            text = "\u2026" + text[-HISTORY_CHARS:]
+        out.append((m.role, text))
+    return out
+
+
 def _project_document_ids(project: Project) -> list[str] | None:
     """Which documents a project may retrieve from.
 
@@ -87,11 +117,14 @@ def chat_stream(
     # Resolve the conversation and store the user message up front, while the
     # request-scoped session is still open.
     conv_id: uuid.UUID | None = None
+    # A private chat is not stored, so it has nothing to look back on.
+    history: list[tuple[str, str]] = []
     if not payload.incognito:
         if payload.conversation_id:
             conv = db.get(Conversation, payload.conversation_id)
             if conv is None or conv.user_id != current_user.user_id:
                 raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found")
+            history = _recent_history(db, conv.conversation_id)
         else:
             conv = Conversation(
                 user_id=current_user.user_id,
@@ -125,6 +158,7 @@ def chat_stream(
             instructions=instructions,
             user_instructions=current_user.custom_instructions,
             language=payload.language,
+            history=history,
         ):
             if kind == "token":
                 yield _sse("token", {"t": item})
@@ -250,10 +284,12 @@ def chat(
         )
 
     # Resolve or create the conversation.
+    history: list[tuple[str, str]] = []
     if payload.conversation_id:
         conv = db.get(Conversation, payload.conversation_id)
         if conv is None or conv.user_id != current_user.user_id:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found")
+        history = _recent_history(db, conv.conversation_id)
     else:
         conv = Conversation(
             user_id=current_user.user_id,
@@ -280,6 +316,7 @@ def chat(
         instructions=instructions,
         user_instructions=current_user.custom_instructions,
         language=payload.language,
+        history=history,
     )
 
     sources_payload = [s.model_dump() for s in result["sources"]]

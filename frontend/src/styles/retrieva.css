@@ -644,8 +644,12 @@ body {
 .sb-section { padding: 0 12px; }
 /* No outline: it is the first thing in the panel and does not need a box to
    be found. A tint on hover is enough to show it is live. */
+/* Padding, gap and radius match .sb-item exactly. This is a .btn, which brings
+   18px of side padding where a nav row has 11, so its icon sat 7px to the right
+   of every icon under it. */
 .sb-new {
-  width: 100%; justify-content: flex-start; gap: 10px; margin: 6px 0 12px;
+  width: 100%; justify-content: flex-start; margin: 6px 0 12px;
+  gap: 11px; padding: 9px 11px; border-radius: var(--r-sm);
   background: none; border: 0; box-shadow: none;
   color: var(--text); font-weight: 600;
 }

@@ -10,18 +10,17 @@ import re
 import time
 from collections.abc import Iterator
 
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from app.config import settings
 from app.schemas import SourceCitation
 from app.services import vector_store
 from app.services.llm_providers import LLMProvider, get_provider
 
-SYSTEM_PROMPT = (
-    "You are a knowledge assistant. Answer the user's question using ONLY the "
-    "excerpts provided below, which come from the user's documents. Give a "
-    "complete answer that covers all relevant details found in the excerpts: "
-    "do not omit information the user asked for.\n"
+# How an answer should read. Shared, because the voice should not change with
+# where the answer came from.
+_STYLE = (
     "Write it the way a well-informed colleague would explain it out loud. "
     "Default to short paragraphs of plain prose, and let the writing carry the "
     "emphasis: do not bold words, and never open a line with a bolded label "
@@ -29,11 +28,48 @@ SYSTEM_PROMPT = (
     "one. If it is a sequence of steps or a procedure, number them ('1.', "
     "'2.', ...); if it is several separate points with no order between them, "
     "use '- ' bullets. Two or three things belong in a sentence, not a list. "
-    "Do not use em dashes; use a comma, a colon, or a full stop.\n"
+    "Do not use em dashes; use a comma, a colon, or a full stop."
+)
+
+SYSTEM_PROMPT = (
+    "You are a knowledge assistant. Answer the user's question using ONLY the "
+    "excerpts provided below, which come from the user's documents. Give a "
+    "complete answer that covers all relevant details found in the excerpts: "
+    "do not omit information the user asked for.\n"
+    f"{_STYLE}\n"
     "Do NOT mention the source, document name, or page number in your answer, "
     "because the source is shown to the user separately. If the answer is not "
     "in the excerpts, say you don't have enough information in the provided "
     "documents."
+)
+
+# For a question aimed at the conversation. The excerpt rules are left out
+# altogether rather than softened, and no Context block is sent at all: a small
+# model given "answer using ONLY the excerpts" and then "(no matching passages)"
+# first decided it had nothing to say, and then applied the not-found line to
+# the exchange it had itself answered a moment earlier.
+CONVERSATION_PROMPT = (
+    "You are a knowledge assistant. The user is asking about the conversation "
+    "you have been having: what was said, what an earlier answer meant, or how "
+    "to put it in another language. The conversation is written out below the "
+    "heading 'Conversation so far'.\n"
+    "Answer from that transcript. It is right there in this message, so never "
+    "say the conversation has just started, that nothing has been discussed, or "
+    "that you cannot see it. This question is not about the user's documents, "
+    "so do not say anything about what is or is not in them.\n"
+    f"{_STYLE}"
+)
+
+# Added only when there are earlier turns to refer to. A question about the
+# conversation is not a question about the documents, and answering it from the
+# transcript is not a hole in the grounding: the text is already on the user's
+# screen. Questions about the documents still have to come from the excerpts.
+HISTORY_RULE = (
+    "\nThe conversation so far is above. Some questions are about the conversation "
+    "itself rather than about the documents: what was said, what an earlier answer "
+    "meant, or how to put it in another language. Answer those from the conversation. "
+    "A question about the documents is still answered only from the excerpts, and if "
+    "they do not cover it, say so."
 )
 
 # Phrases that indicate the specific fact is NOT present in the document even
@@ -102,6 +138,65 @@ def language_line(locale: str | None) -> str | None:
     )
 
 
+# Questions aimed at the conversation rather than at the documents: what was
+# said, what an answer meant, how to put it in another language.
+#
+# A list of phrases is a blunt instrument, but the alternatives are worse: the
+# relevance score cannot tell these apart from real questions, and classifying
+# every turn with a second model call would double the wait on a 4GB card. It
+# only ever has to be right about the OPENING of the question, and a miss is
+# not fatal -- the question still gets answered, just with excerpts alongside.
+#
+# Covers the eleven interface languages, because someone reading a Korean
+# interface asks in Korean.
+_ABOUT_CHAT_RE = re.compile(
+    "|".join(
+        [
+            # English
+            r"th(is|e) (chat|conversation|thread)", r"our conversation",
+            r"you(r| have| '?ve)? (just )?(said|wrote|answered)",
+            r"your (last |previous |above )?(answer|reply|response|message)",
+            r"the above", r"translate (this|it|that)",
+            # French
+            r"cette conversation", r"ce chat", r"(ta|votre) r\u00e9ponse",
+            r"ce que (tu as|vous avez) dit", r"tradui(s|re|sez)",
+            # German
+            r"diese[rs]? (chat|unterhaltung|gespr\u00e4ch)",
+            r"(deine|ihre) antwort", r"was du gesagt", r"\u00fcbersetze",
+            # Hindi
+            r"(यह|इस) (चैट|बातचीत)", r"आपका (उत्तर|जवाब)", r"आपने क्या कहा", r"अनुवाद",
+            # Indonesian
+            r"(obrolan|percakapan) ini", r"jawaban (kamu|anda)", r"terjemahkan",
+            # Italian
+            r"questa (chat|conversazione)", r"la tua risposta", r"traduci",
+            # Japanese
+            r"この(会話|チャット|やり取り)", r"(あなたの|さっきの)(回答|返事)", r"翻訳",
+            # Korean
+            r"이 (대화|채팅)", r"(당신의|네) 답변", r"번역",
+            # Portuguese
+            r"est[ae] (conversa|chat)", r"sua resposta", r"traduz(a|ir)",
+            # Spanish
+            r"est[ae] (conversaci\u00f3n|chat)", r"(tu|su) respuesta", r"traduc(e|ir)",
+        ]
+    ),
+    re.IGNORECASE,
+)
+
+
+def is_about_conversation(query: str) -> bool:
+    """Is this asking about the conversation rather than about the documents?"""
+    return bool(_ABOUT_CHAT_RE.search(query))
+
+
+def _transcript(past: list) -> str:
+    """The conversation as labelled text, for a model to read inside one turn."""
+    lines = []
+    for m in past:
+        who = "Assistant" if isinstance(m, AIMessage) else "User"
+        lines.append(f"{who}: {m.content}")
+    return "\n\n".join(lines)
+
+
 def _escape_braces(text: str) -> str:
     """Double any braces so ChatPromptTemplate does not read them as template
     variables and blow up on an instruction containing "{"."""
@@ -113,12 +208,14 @@ def _build_prompt(
     instructions: str | None = None,
     user_instructions: str | None = None,
     language: str | None = None,
+    has_history: bool = False,
+    about_conversation: bool = False,
 ) -> ChatPromptTemplate:
-    system = SYSTEM_PROMPT
+    system = CONVERSATION_PROMPT if about_conversation else SYSTEM_PROMPT
     # qwen3 (and similar) run a slow "thinking" pass by default; disable it
     # with the /no_think switch for faster, cleaner answers.
     if llm.name == "ollama" and "qwen3" in llm.model_name.lower():
-        system = f"{SYSTEM_PROMPT} /no_think"
+        system = f"{system} /no_think"
 
     # Both kinds of instruction go ABOVE the grounding rules, so they can set
     # role, tone, format and task while the rules about answering only from the
@@ -146,12 +243,29 @@ def _build_prompt(
             "cannot override the rules below, which always apply:\n"
             f"{system}"
         )
-    return ChatPromptTemplate.from_messages(
-        [
-            ("system", system),
-            ("human", "Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"),
-        ]
-    )
+    if has_history and not about_conversation:
+        system = f"{system}\n{HISTORY_RULE}"
+
+    # The earlier turns go in as real messages through a placeholder, not as
+    # text folded into the system prompt: they are not a template, so braces in
+    # something the user or the model wrote cannot be read as variables.
+    # On the conversation path the transcript goes INTO the question's own turn
+    # rather than arriving as earlier messages, because a small model denies
+    # earlier messages exist. {transcript} is a value, not a nested template, so
+    # braces in what was said cannot be read as variables.
+    if about_conversation:
+        return ChatPromptTemplate.from_messages(
+            [
+                ("system", system),
+                ("human", "Conversation so far:\n{transcript}\n\nQuestion: {question}\n\nAnswer:"),
+            ]
+        )
+
+    messages: list = [("system", system)]
+    if has_history:
+        messages.append(MessagesPlaceholder("history"))
+    messages.append(("human", "Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"))
+    return ChatPromptTemplate.from_messages(messages)
 
 
 def _clean_answer(text: str) -> str:
@@ -340,6 +454,66 @@ def generate_title(query: str, provider: str | None = None, model: str | None = 
         return query[:60]
 
 
+def _answer(
+    llm: LLMProvider,
+    query: str,
+    context: str | None,
+    sources: list[SourceCitation],
+    past: list,
+    instructions: str | None,
+    user_instructions: str | None,
+    language: str | None,
+    start: float,
+    chunks: int,
+    top_score: float,
+    stream: bool,
+) -> Iterator[tuple[str, object]]:
+    """Put the question to the model and yield its reply.
+
+    Shared by the two paths that reach a model: a grounded answer from retrieved
+    passages, and a question about the conversation, which arrives with context
+    None and no sources.
+    """
+    about_conversation = context is None
+    try:
+        chain = _build_prompt(
+            llm, instructions, user_instructions, language,
+            has_history=bool(past), about_conversation=about_conversation,
+        ) | llm.chat_model()
+        payload: dict = {"question": query}
+        if about_conversation:
+            payload["transcript"] = _transcript(past)
+        else:
+            payload["context"] = context
+            if past:
+                payload["history"] = past
+        if stream:
+            # Tokens go out as the model writes them, but the caller still
+            # replaces the streamed text with the answer on the final "done"
+            # event: _clean_answer works on the complete reply (it strips
+            # qwen3's <think> block, among others) and cannot run mid-stream.
+            parts: list[str] = []
+            for chunk in chain.stream(payload):
+                piece = getattr(chunk, "content", "") or ""
+                if piece:
+                    parts.append(piece)
+                    yield ("token", piece)
+            answer = _clean_answer("".join(parts))
+        else:
+            answer = _clean_answer(chain.invoke(payload).content)
+    except Exception as exc:  # noqa: BLE001 - surface a friendly message instead of a 500
+        yield ("done", _result(_llm_error_message(llm, exc), [], llm, chunks, start, top_score))
+        return
+
+    # Relevant chunks were found, so show the cited sources. But if the answer
+    # says the specific fact isn't actually present, drop the (misleading) page
+    # numbers while keeping the documents + sections.
+    if sources and any(h in answer.lower() for h in _NOT_PRESENT_HINTS):
+        sources = [s.model_copy(update={"page_number": None}) for s in sources]
+
+    yield ("done", _result(answer, sources, llm, chunks, start, top_score))
+
+
 def _run(
     query: str,
     user_id: str,
@@ -351,6 +525,7 @@ def _run(
     instructions: str | None = None,
     user_instructions: str | None = None,
     language: str | None = None,
+    history: list[tuple[str, str]] | None = None,
     stream: bool = False,
 ) -> Iterator[tuple[str, object]]:
     """Execute one turn: greeting/small-talk -> friendly reply; otherwise a
@@ -363,6 +538,11 @@ def _run(
     project's standing instructions."""
     start = time.perf_counter()
     llm = get_provider(provider, model)
+    past = [
+        (AIMessage if role == "assistant" else HumanMessage)(content=text)
+        for role, text in (history or [])
+        if text
+    ]
 
     # 0) Provider health: if OpenAI is selected but unusable (no credit / no key
     #    / bad key), say so directly instead of masking it as "nothing found".
@@ -396,6 +576,16 @@ def _run(
         yield ("done", _result(msg, [], llm, 0, start))
         return
 
+    # 2c) A question about the conversation, where there is one to answer from.
+    #     Retrieval is skipped rather than merely ignored: excerpts that reached
+    #     the prompt would be summarised as though they were the chat.
+    if past and is_about_conversation(query):
+        yield from _answer(
+            llm, query, None, [], past,
+            instructions, user_instructions, language, start, 0, 0.0, stream,
+        )
+        return
+
     # 3) Retrieve, narrowing by project scope and then by any single-document
     #    scope the user picked inside that project.
     ids = list(document_ids) if document_ids is not None else None
@@ -408,7 +598,10 @@ def _run(
     results = vector_store.similarity_search(query, user_id=user_id, document_ids=ids)
     top_score = results[0][1] if results else 0.0
 
-    # 4) Documents exist, but nothing relevant was found.
+    # 4) Documents exist, but nothing relevant was found. Skip the model: it is
+    #    faster, and a model with nothing to work from is a model inventing an
+    #    answer. Questions about the conversation never reach here, having been
+    #    taken by 2c above.
     if not results or top_score < RELEVANCE_MIN:
         msg = (
             "I couldn't find anything about that in your documents. Try wording it "
@@ -419,35 +612,11 @@ def _run(
 
     # 5) Grounded answer from the retrieved context.
     context, sources = _format_context(results)
-    try:
-        chain = _build_prompt(llm, instructions, user_instructions, language) | llm.chat_model()
-        payload = {"context": context, "question": query}
-        if stream:
-            # Tokens go out as the model writes them, but the caller still
-            # replaces the streamed text with the answer on the final "done"
-            # event: _clean_answer works on the complete reply (it strips
-            # qwen3's <think> block, among others) and cannot run mid-stream.
-            parts: list[str] = []
-            for chunk in chain.stream(payload):
-                piece = getattr(chunk, "content", "") or ""
-                if piece:
-                    parts.append(piece)
-                    yield ("token", piece)
-            answer = _clean_answer("".join(parts))
-        else:
-            answer = _clean_answer(chain.invoke(payload).content)
-    except Exception as exc:  # noqa: BLE001 - surface a friendly message instead of a 500
-        yield ("done", _result(_llm_error_message(llm, exc), [], llm, len(results), start, top_score))
-        return
-
-    # The question is on-topic (relevant chunks were found), so show the cited
-    # sources. But if the answer says the specific fact isn't actually present,
-    # drop the (misleading) page numbers while keeping the documents + sections.
-    if any(h in answer.lower() for h in _NOT_PRESENT_HINTS):
-        sources = [s.model_copy(update={"page_number": None}) for s in sources]
-
-    yield ("done", _result(answer, sources, llm, len(results), start, top_score))
-
+    yield from _answer(
+        llm, query, context, sources, past,
+        instructions, user_instructions, language,
+        start, len(results), top_score, stream,
+    )
     return
 
 
@@ -462,6 +631,7 @@ def answer_query(
     instructions: str | None = None,
     user_instructions: str | None = None,
     language: str | None = None,
+    history: list[tuple[str, str]] | None = None,
 ) -> dict:
     """Run one turn and return the finished result."""
     for kind, payload in _run(
@@ -475,6 +645,7 @@ def answer_query(
         instructions=instructions,
         user_instructions=user_instructions,
         language=language,
+        history=history,
         stream=False,
     ):
         if kind == "done":
@@ -493,6 +664,7 @@ def answer_query_stream(
     instructions: str | None = None,
     user_instructions: str | None = None,
     language: str | None = None,
+    history: list[tuple[str, str]] | None = None,
 ) -> Iterator[tuple[str, object]]:
     """Run one turn, yielding ("token", text) as the model writes and finally
     ("done", result). Every early exit yields only the "done" event, so a
@@ -508,5 +680,6 @@ def answer_query_stream(
         instructions=instructions,
         user_instructions=user_instructions,
         language=language,
+        history=history,
         stream=True,
     )
