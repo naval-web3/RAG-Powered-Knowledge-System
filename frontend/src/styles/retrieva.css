@@ -2037,6 +2037,12 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 /* A PDF is not shown, it is handed over: the card is the file, not a reading
    of it. Small enough that it does not pretend to be a viewer. */
 .modal.doc-modal.is-file { max-width: 380px; height: auto; }
+/* .doc-body is flex: 1, which is flex-basis: 0. In the text viewer that fills a
+   dialog of fixed height, which is what it is for. In this card the dialog is
+   height: auto, and a basis of zero in an auto-height column means the body has
+   no size to start from and collapses to a sliver, taking the page preview with
+   it. Here it is sized by what is in it. */
+.modal.doc-modal.is-file .doc-body { flex: 0 0 auto; overflow: visible; }
 .doc-file { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 0 4px; }
 /* Three sheets, drawn rather than fetched: a thumbnail would mean rendering a
    PDF page, which is the thing this view exists to avoid. The stack is also the
