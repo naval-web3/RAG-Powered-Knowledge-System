@@ -187,10 +187,19 @@ export function ChatProvider({ children }) {
     async (id, title) => {
       const clean = (title || "").trim();
       if (!clean) return;
+      /* Written into the list before the request goes out. The field closes on
+         this same tick, so anything that reads the title -- the row, and the
+         name in the top bar -- would otherwise paint the OLD one until the
+         round trip came back and replaced it. That gap is the flicker. */
+      setConversations((prev) =>
+        prev.map((c) => (c.conversation_id === id ? { ...c, title: clean } : c))
+      );
       try {
         await client.patch(`/api/conversations/${id}`, { title: clean });
         loadConversations();
       } catch {
+        // Put the real name back: the optimistic one was a guess that lost.
+        loadConversations();
         toast("Rename failed", "err");
       }
     },
