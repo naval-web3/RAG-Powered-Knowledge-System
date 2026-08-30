@@ -30,7 +30,6 @@ export default function ChatPage() {
     setGreeting(greetingFor(user?.username, chat.freshStarts === 0));
   }, [chat.freshStarts, user?.username]);
   const fileRef = useRef(null);
-  const [sourceModal, setSourceModal] = useState(null);
   /* The word belongs to the silent wait only; once text is arriving the mark
      carries the state on its own. */
   const streaming = chat.messages.some((m) => m.streaming);
@@ -102,12 +101,7 @@ export default function ChatPage() {
                    newest answer once everything has settled. */
                 const mark = m.streaming ? "busy" : last && !chat.sending ? "idle" : null;
                 return (
-                  <AiMessage
-                    key={m.message_id}
-                    message={m}
-                    onOpenSource={setSourceModal}
-                    mark={mark}
-                  />
+                  <AiMessage key={m.message_id} message={m} mark={mark} />
                 );
               })}
               {chat.sending && !streaming && <Thinking />}
@@ -118,8 +112,6 @@ export default function ChatPage() {
       </div>
 
       <Composer fileRef={fileRef} />
-
-      {sourceModal && <SourceModal source={sourceModal} onClose={() => setSourceModal(null)} />}
     </section>
   );
 }
@@ -270,12 +262,9 @@ function AnswerMark({ busy }) {
   );
 }
 
-function AiMessage({ message, onOpenSource, mark }) {
+function AiMessage({ message, mark }) {
   const { toast } = useToast();
-  const [sourcesOpen, setSourcesOpen] = useState(false);
   const [vote, setVote] = useState(null);
-  const sources = message.source_documents?.sources || [];
-  const meta = message.meta;
 
   function copy() {
     navigator.clipboard?.writeText(message.content).then(
@@ -296,44 +285,6 @@ function AiMessage({ message, onOpenSource, mark }) {
           <MarkdownLite text={message.content} fadeTail={message.streaming ? 28 : 0} />
         </div>
         {message.stopped && <div className="stopped-note">Stopped</div>}
-
-        {/* Renders on any answer carrying metadata, not just cited ones -- it is
-            now the only place the model is named. */}
-        {(sources.length > 0 || meta?.model) && (
-          <div className="retrieval-line">
-            {meta?.model && <span>{meta.provider} · <b>{meta.model}</b></span>}
-            {meta?.chunks != null && <span>⌁ retrieved <b>{meta.chunks}</b> chunk{meta.chunks === 1 ? "" : "s"}</span>}
-            {meta?.top_score != null && <span>top match <b>{(meta.top_score * 100).toFixed(1)}%</b></span>}
-            {meta?.ms != null && <span><b>{(meta.ms / 1000).toFixed(1)}s</b></span>}
-          </div>
-        )}
-
-        {sources.length > 0 && (
-          <>
-            <div className={`sources-wrap ${sourcesOpen ? "open" : ""}`}>
-              <button className="sources-toggle" onClick={() => setSourcesOpen((o) => !o)}>
-                <Icon name="chev-r" className="icon-sm chev" />
-                {sources.length} source{sources.length === 1 ? "" : "s"}
-              </button>
-              <div className="source-list">
-                {sources.map((s, i) => (
-                  <button key={i} className="source-card" onClick={() => onOpenSource(s)}>
-                    <span className="s-idx">{i + 1}</span>
-                    <span className="s-body">
-                      <span className="s-title">{s.title}</span>
-                      <span className="s-meta">
-                        {s.page_number != null && <>page {s.page_number} · </>}
-                        {s.section ? s.section : `chunk ${s.chunk_index ?? i}`}
-                        {s.score != null && <> · {(s.score * 100).toFixed(0)}%</>}
-                      </span>
-                      {s.snippet && <span className="s-snip">{s.snippet}</span>}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
 
         {mark && (
           <div className="answer-foot">
@@ -703,30 +654,6 @@ function ScopeMenu() {
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function SourceModal({ source, onClose }) {
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-lg" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{source.title}</h3>
-          <button className="btn-icon" aria-label="Close" onClick={onClose}><Icon name="x" className="icon-sm" /></button>
-        </div>
-        <div className="modal-body">
-          <div className="meta-grid">
-            {source.page_number != null && <div className="mg"><b>Page</b><span>{source.page_number}</span></div>}
-            {source.section && <div className="mg"><b>Section</b><span>{source.section}</span></div>}
-            {source.chunk_index != null && <div className="mg"><b>Chunk</b><span>#{source.chunk_index}</span></div>}
-            {source.score != null && <div className="mg"><b>Relevance</b><span>{(source.score * 100).toFixed(1)}%</span></div>}
-          </div>
-          <p style={{ fontFamily: "var(--sans)", fontSize: 15, lineHeight: 1.7, color: "var(--text)" }}>
-            {source.snippet || "This passage has no preview text."}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
