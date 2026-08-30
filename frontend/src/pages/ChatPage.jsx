@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import MarkdownLite from "../components/MarkdownLite";
 import { useAuth } from "../context/AuthContext";
@@ -509,10 +510,7 @@ function Composer({ fileRef }) {
             onChange={(e) => { setText(e.target.value); autoGrow(e.target); }}
             onKeyDown={onKeyDown} />
           <div className="composer-row">
-            <button className="btn-icon" title="Upload documents" disabled={chat.uploading}
-              onClick={() => fileRef.current?.click()}>
-              <Icon name={chat.uploading ? "refresh" : "plus"} className="icon-sm" />
-            </button>
+            <AddMenu onUpload={() => fileRef.current?.click()} />
             <ModelMenu />
             <ScopeMenu />
             <div className="grow" style={{ flex: 1 }} />
@@ -553,6 +551,55 @@ function modelHint(model) {
   return isSlowLocalModel(model)
     ? "More accurate · slower on your GPU"
     : "Faster · may make mistakes";
+}
+
+/* A plus reads as "add something", not as "open a file dialog", so it opens a
+   menu and the picker is one of the things on it. */
+function AddMenu({ onUpload }) {
+  const chat = useChat();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const ready = chat.docs.filter((d) => d.processing_status === "done").length;
+
+  return (
+    <div className="menu-anchor" ref={ref}>
+      <button className="btn-icon" aria-haspopup="true" aria-expanded={open}
+        title={chat.uploading ? "Uploading…" : "Add"} aria-label="Add"
+        disabled={chat.uploading}
+        onClick={() => setOpen((o) => !o)}>
+        <Icon name={chat.uploading ? "refresh" : "plus"} className="icon-sm" />
+      </button>
+      {open && (
+        <div className="drop-menu add-menu">
+          <button className="drop-item"
+            onClick={() => { setOpen(false); onUpload(); }}>
+            <span>
+              <span className="d-name">Upload a document</span>
+              <span className="d-sub">PDF, DOCX or TXT, indexed on arrival</span>
+            </span>
+          </button>
+          <button className="drop-item"
+            onClick={() => { setOpen(false); navigate("/documents"); }}>
+            <span>
+              <span className="d-name">Browse the library</span>
+              <span className="d-sub">
+                {ready === 1 ? "1 document indexed" : `${ready} documents indexed`}
+              </span>
+            </span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ModelMenu() {

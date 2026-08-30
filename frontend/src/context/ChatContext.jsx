@@ -207,6 +207,21 @@ export function ChatProvider({ children }) {
     [loadConversations, toast]
   );
 
+  /* Files a chat under a project, or takes it out of one when projectId is
+     null. The backend tells "sent as null" apart from "not sent", so null here
+     really does clear the field rather than being ignored. */
+  const moveConversation = useCallback(
+    async (id, projectId) => {
+      try {
+        await client.patch(`/api/conversations/${id}`, { project_id: projectId });
+        loadConversations();
+      } catch {
+        toast("Couldn't move that chat", "err");
+      }
+    },
+    [loadConversations, toast]
+  );
+
   const deleteConversation = useCallback(
     async (id) => {
       try {
@@ -480,6 +495,7 @@ export function ChatProvider({ children }) {
     openConversation,
     renameConversation,
     setConversationFlags,
+    moveConversation,
     deleteConversation,
     clearAllConversations,
     send,

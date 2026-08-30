@@ -113,10 +113,16 @@ class ConversationOut(BaseModel):
 
 
 class ConversationPatch(BaseModel):
-    """Any subset of the editable fields; omitted ones are left alone."""
+    """Any subset of the editable fields; omitted ones are left alone.
+
+    project_id is the one field whose None is meaningful -- it files the chat
+    back under no project -- so the route reads model_fields_set to tell "sent
+    as null" apart from "not sent at all".
+    """
     title: str | None = Field(default=None, min_length=1, max_length=255)
     pinned: bool | None = None
     unread: bool | None = None
+    project_id: uuid.UUID | None = None
 
 
 class ConversationDetail(ConversationOut):

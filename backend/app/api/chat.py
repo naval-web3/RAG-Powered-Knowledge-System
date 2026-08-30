@@ -374,7 +374,7 @@ def update_conversation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ConversationOut:
-    """Rename, pin or flag a conversation. Only the fields sent are touched."""
+    """Rename, pin, flag, or file a conversation. Only the fields sent are touched."""
     conv = db.get(Conversation, conversation_id)
     if conv is None or conv.user_id != current_user.user_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found")
@@ -386,6 +386,14 @@ def update_conversation(
         fields["pinned"] = payload.pinned
     if payload.unread is not None:
         fields["unread"] = payload.unread
+    # Sent-and-null means "take it out of its project", which is why this asks
+    # what was in the request body rather than testing the value for None.
+    if "project_id" in payload.model_fields_set:
+        if payload.project_id is not None:
+            project = db.get(Project, payload.project_id)
+            if project is None or project.user_id != current_user.user_id:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+        fields["project_id"] = payload.project_id
 
     if fields:
         # Restating updated_at keeps the column's onupdate from firing: pinning,

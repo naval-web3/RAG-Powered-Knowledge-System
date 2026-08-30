@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ChatProvider, useChat } from "../context/ChatContext";
@@ -49,6 +50,143 @@ function recencyLabel(dateish) {
   return "Older";
 }
 
+/**
+ * A popover rendered into <body> and positioned from its anchor's box.
+ *
+ * The row menu used to live inside .sb-scroll, which clips what overflows it
+ * and fades its own last 22px -- so a menu opened on one of the bottom rows
+ * came out cut in half and greyed. Out here nothing crops it, at the cost of
+ * having to place it by hand.
+ */
+function PortalMenu({ anchorRef, align = "right", className = "", children }) {
+  const boxRef = useRef(null);
+  const [pos, setPos] = useState(null);
+
+  /* No dependency array on purpose: children change identity on every render
+     of the owner, and the anchor moves whenever anything scrolls or resizes.
+     Re-measuring each time is cheap; what matters is that identical numbers
+     do not schedule another render, or this would never settle. */
+  useLayoutEffect(() => {
+    const place = () => {
+      const anchor = anchorRef.current;
+      const box = boxRef.current;
+      if (!anchor || !box) return;
+      const r = anchor.getBoundingClientRect();
+      const h = box.offsetHeight;
+      const below = window.innerHeight - r.bottom;
+      // Flip up only when there is genuinely more room up there, so a menu
+      // near the bottom does not jump above a button with space to spare.
+      const up = below < h + 12 && r.top > below;
+      const next = {
+        top: up ? Math.max(8, r.top - h - 4) : r.bottom + 4,
+        left: align === "left" ? Math.max(8, r.left) : null,
+        right: align === "left" ? null : Math.max(8, window.innerWidth - r.right),
+      };
+      setPos((prev) =>
+        prev && prev.top === next.top && prev.left === next.left && prev.right === next.right
+          ? prev
+          : next
+      );
+    };
+    place();
+    window.addEventListener("resize", place);
+    // Capture phase: a scroll inside the sidebar carries the anchor with it
+    // and never reaches window on its own.
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  });
+
+  return createPortal(
+    <div
+      ref={boxRef}
+      className={`pop-menu is-portal ${className}`}
+      style={{
+        top: pos ? pos.top : 0,
+        left: pos && pos.left != null ? pos.left : undefined,
+        right: pos && pos.right != null ? pos.right : undefined,
+        // Hidden for the first pass only: the height has to be measured before
+        // it can be decided whether the menu hangs down or up.
+        visibility: pos ? "visible" : "hidden",
+      }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
+/**
+ * What is inside a chat menu. One component for the row menu and the one under
+ * the conversation title, so their wording and their letters cannot drift.
+ *
+ * The project list replaces the menu's contents rather than flying out beside
+ * it: the menu is already placed by hand out in <body>, and a second popover
+ * hanging off this one would need its own edge handling for no real gain.
+ */
+function ChatMenuItems({ conv, projects, view, onView, onAction, onMove }) {
+  if (view === "project") {
+    return (
+      <>
+        <button className="pm-item pm-back" onClick={() => onView("main")}>
+          <Icon name="chev-r" className="icon-sm pm-back-chev" /> Back
+        </button>
+        <div className="pm-sep" />
+        {projects.length === 0 ? (
+          <p className="pm-empty">
+            No projects yet. Make one in the sidebar and it will show up here.
+          </p>
+        ) : (
+          projects.map((p) => (
+            <button key={p.project_id} className="pm-item"
+              onClick={() => onMove(conv, p.project_id)}>
+              <Icon name="book" className="icon-sm" />
+              <span className="pm-label">{p.name}</span>
+              {conv.project_id === p.project_id && (
+                <Icon name="check" className="icon-sm pm-check" />
+              )}
+            </button>
+          ))
+        )}
+        {conv.project_id && (
+          <>
+            <div className="pm-sep" />
+            <button className="pm-item" onClick={() => onMove(conv, null)}>
+              <Icon name="x" className="icon-sm" /> Remove from project
+            </button>
+          </>
+        )}
+      </>
+    );
+  }
+  return (
+    <>
+      <button className="pm-item" onClick={() => onAction(conv, "p")}>
+        <Icon name={conv.pinned ? "pin-off" : "pin"} className="icon-sm" />
+        {conv.pinned ? "Unpin" : "Pin"}<kbd className="pm-key">P</kbd>
+      </button>
+      <button className="pm-item" onClick={() => onAction(conv, "u")}>
+        <Icon name={conv.unread ? "eye" : "eye-off"} className="icon-sm" />
+        {conv.unread ? "Mark as read" : "Mark as unread"}<kbd className="pm-key">U</kbd>
+      </button>
+      <button className="pm-item" onClick={() => onAction(conv, "r")}>
+        <Icon name="pencil" className="icon-sm" /> Rename<kbd className="pm-key">R</kbd>
+      </button>
+      <button className="pm-item" onClick={() => onAction(conv, "a")}>
+        <Icon name="book" className="icon-sm" />
+        {conv.project_id ? "Move to project" : "Add to project"}
+        <kbd className="pm-key">A</kbd>
+      </button>
+      <div className="pm-sep" />
+      <button className="pm-item danger" onClick={() => onAction(conv, "d")}>
+        <Icon name="trash" className="icon-sm" /> Delete<kbd className="pm-key">D</kbd>
+      </button>
+    </>
+  );
+}
+
 export default function Layout() {
   return (
     <ToastProvider>
@@ -91,6 +229,11 @@ function Shell() {
   const resultsInnerRef = useRef(null);
   const convScrollRef = useRef(null);
   const [convFade, setConvFade] = useState({ top: false, bot: false });
+  const projScrollRef = useRef(null);
+  const [projFade, setProjFade] = useState({ top: false, bot: false });
+  // Only one menu is open at a time, so one anchor ref each is enough.
+  const rowMenuBtnRef = useRef(null);
+  const titleMenuBtnRef = useRef(null);
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
 
@@ -160,6 +303,8 @@ function Shell() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
   const [menuId, setMenuId] = useState(null);
+  // "main" or "project": which face of the open chat menu is showing.
+  const [menuView, setMenuView] = useState("main");
   // The bar's menu has no conversation id of its own to key on.
   const TOPBAR_MENU = "topbar";
   const [editingId, setEditingId] = useState(null);
@@ -197,25 +342,29 @@ function Shell() {
     ? chat.conversations.find((c) => c.conversation_id === chat.activeId)
     : null;
 
-  /* The list gains and loses its overflow as chats arrive, groups collapse or
-     the window resizes -- none of which fire a scroll event. */
-  useEffect(() => {
-    const el = convScrollRef.current;
+  /* Both lists gain and lose their overflow as chats arrive, groups collapse
+     or the window resizes -- none of which fire a scroll event. */
+  function watchFade(ref, setFade) {
+    const el = ref.current;
     if (!el) return undefined;
     const measure = () => {
       const top = el.scrollTop > 2;
       const bot = el.scrollTop + el.clientHeight < el.scrollHeight - 2;
-      setConvFade((p) => (p.top === top && p.bot === bot ? p : { top, bot }));
+      setFade((p) => (p.top === top && p.bot === bot ? p : { top, bot }));
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     if (el.firstElementChild) ro.observe(el.firstElementChild);
     return () => ro.disconnect();
-  });
+  }
+  useEffect(() => watchFade(convScrollRef, setConvFade));
+  useEffect(() => watchFade(projScrollRef, setProjFade));
 
   function menuAction(conv, key) {
     if (!conv) return;
+    // The only action that leaves the menu up: it has a second face to show.
+    if (key === "a") { setMenuView("project"); return; }
     if (key === "p") chat.setConversationFlags(conv.conversation_id, { pinned: !conv.pinned });
     else if (key === "u") chat.setConversationFlags(conv.conversation_id, { unread: !conv.unread });
     else if (key === "r") {
@@ -225,6 +374,16 @@ function Shell() {
     else return;
     setMenuId(null);
   }
+
+  function moveConv(conv, projectId) {
+    setMenuId(null);
+    chat.moveConversation(conv.conversation_id, projectId);
+  }
+
+  // A menu always opens on its first face, however it was last left.
+  useEffect(() => {
+    setMenuView("main");
+  }, [menuId]);
 
   /* The letters are live only while a menu is open, and never while something
      is being typed into. Modifier combos stay with the browser, so Ctrl+P is
@@ -237,8 +396,17 @@ function Shell() {
       const t = e.target;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       const key = e.key.toLowerCase();
-      if (key === "escape") { setMenuId(null); return; }
-      if (key.length !== 1 || !"purd".includes(key)) return;
+      // Escape backs out one step at a time rather than closing from inside
+      // the project list, which would lose the menu on a mis-key.
+      if (key === "escape") {
+        if (menuView === "project") setMenuView("main");
+        else setMenuId(null);
+        return;
+      }
+      // The project list has its own rows; the action letters would fire
+      // underneath it.
+      if (menuView === "project") return;
+      if (key.length !== 1 || !"purda".includes(key)) return;
       const conv = menuId === TOPBAR_MENU
         ? activeConversation
         : chat.conversations.find((c) => c.conversation_id === menuId);
@@ -250,12 +418,12 @@ function Shell() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  function updateConvFade() {
-    const el = convScrollRef.current;
+  function updateFade(ref, setFade) {
+    const el = ref.current;
     if (!el) return;
     const top = el.scrollTop > 2;
     const bot = el.scrollTop + el.clientHeight < el.scrollHeight - 2;
-    setConvFade((p) => (p.top === top && p.bot === bot ? p : { top, bot }));
+    setFade((p) => (p.top === top && p.bot === bot ? p : { top, bot }));
   }
 
   function commitTitle() {
@@ -267,6 +435,11 @@ function Shell() {
   useEffect(() => {
     const close = (e) => {
       if (footRef.current && !footRef.current.contains(e.target)) setUserMenu(false);
+      /* A chat menu now renders into <body>, so its clicks no longer pass
+         through the row's stopPropagation on their way here. Anything inside
+         an open menu is that menu's own business: its items close it
+         themselves, and "Add to project" deliberately does not. */
+      if (e.target instanceof Element && e.target.closest(".pop-menu")) return;
       setMenuId(null);
     };
     window.addEventListener("click", close);
@@ -454,7 +627,10 @@ function Shell() {
           </nav>
         </div>
 
-        <div className="sb-projects">
+        <div
+          className={`sb-projects ${projFade.top ? "fade-top" : ""} ${projFade.bot ? "fade-bot" : ""}`}
+          ref={projScrollRef}
+          onScroll={() => updateFade(projScrollRef, setProjFade)}>
           <div className="sb-group-row">
             <button className="sb-group-toggle" aria-expanded={!collapsedGroups.projects}
               onClick={() => toggleGroup("projects")}>
@@ -534,7 +710,8 @@ function Shell() {
 
         <div
           className={`sb-scroll ${convFade.top ? "fade-top" : ""} ${convFade.bot ? "fade-bot" : ""}`}
-          id="conv-list" ref={convScrollRef} onScroll={updateConvFade}>
+          id="conv-list" ref={convScrollRef}
+          onScroll={() => updateFade(convScrollRef, setConvFade)}>
           {chatsOpen && (
           <>
           {chat.conversations.length === 0 && (
@@ -560,9 +737,10 @@ function Shell() {
                     </div>
                   );
                 }
+                const open = menuId === c.conversation_id;
                 return (
                   <div key={c.conversation_id}
-                    className={`conv-item ${active ? "active" : ""} ${c.unread ? "is-unread" : ""}`}
+                    className={`conv-item ${active ? "active" : ""} ${c.unread ? "is-unread" : ""} ${open ? "menu-open" : ""}`}
                     onClick={() => openConv(c.conversation_id)}>
                     <span className="conv-mark">
                       {/* A pinned row swaps its icon rather than gaining a second
@@ -574,27 +752,16 @@ function Shell() {
                     <span className="conv-title">{c.title}</span>
                     <div className="conv-actions" onClick={(e) => e.stopPropagation()}>
                       <button className="btn-icon" aria-label="Chat options"
-                        onClick={() => setMenuId(menuId === c.conversation_id ? null : c.conversation_id)}>
+                        ref={open ? rowMenuBtnRef : null}
+                        aria-expanded={open}
+                        onClick={() => setMenuId(open ? null : c.conversation_id)}>
                         <Icon name="more-v" className="icon-sm" />
                       </button>
-                      {menuId === c.conversation_id && (
-                        <div className="pop-menu conv-menu">
-                          <button className="pm-item" onClick={() => menuAction(c, "p")}>
-                            <Icon name={c.pinned ? "pin-off" : "pin"} className="icon-sm" />
-                            {c.pinned ? "Unpin" : "Pin"}<kbd className="pm-key">P</kbd>
-                          </button>
-                          <button className="pm-item" onClick={() => menuAction(c, "u")}>
-                            <Icon name={c.unread ? "eye" : "eye-off"} className="icon-sm" />
-                            {c.unread ? "Mark as read" : "Mark as unread"}<kbd className="pm-key">U</kbd>
-                          </button>
-                          <button className="pm-item" onClick={() => menuAction(c, "r")}>
-                            <Icon name="pencil" className="icon-sm" /> Rename<kbd className="pm-key">R</kbd>
-                          </button>
-                          <div className="pm-sep" />
-                          <button className="pm-item danger" onClick={() => menuAction(c, "d")}>
-                            <Icon name="trash" className="icon-sm" /> Delete<kbd className="pm-key">D</kbd>
-                          </button>
-                        </div>
+                      {open && (
+                        <PortalMenu anchorRef={rowMenuBtnRef} align="right" className="conv-menu">
+                          <ChatMenuItems conv={c} projects={chat.projects} view={menuView}
+                            onView={setMenuView} onAction={menuAction} onMove={moveConv} />
+                        </PortalMenu>
                       )}
                     </div>
                   </div>
@@ -698,28 +865,16 @@ function Shell() {
                     {activeConversation.title}
                   </button>
                   <button className="btn-icon conv-title-caret" aria-label="Chat options"
+                    ref={titleMenuBtnRef}
                     aria-expanded={menuId === TOPBAR_MENU}
                     onClick={() => setMenuId(menuId === TOPBAR_MENU ? null : TOPBAR_MENU)}>
                     <Icon name="chev-d" className="icon-sm" />
                   </button>
                   {menuId === TOPBAR_MENU && (
-                    <div className="pop-menu conv-menu title-menu">
-                      <button className="pm-item" onClick={() => menuAction(activeConversation, "p")}>
-                        <Icon name={activeConversation.pinned ? "pin-off" : "pin"} className="icon-sm" />
-                        {activeConversation.pinned ? "Unpin" : "Pin"}<kbd className="pm-key">P</kbd>
-                      </button>
-                      <button className="pm-item" onClick={() => menuAction(activeConversation, "u")}>
-                        <Icon name={activeConversation.unread ? "eye" : "eye-off"} className="icon-sm" />
-                        {activeConversation.unread ? "Mark as read" : "Mark as unread"}<kbd className="pm-key">U</kbd>
-                      </button>
-                      <button className="pm-item" onClick={() => menuAction(activeConversation, "r")}>
-                        <Icon name="pencil" className="icon-sm" /> Rename<kbd className="pm-key">R</kbd>
-                      </button>
-                      <div className="pm-sep" />
-                      <button className="pm-item danger" onClick={() => menuAction(activeConversation, "d")}>
-                        <Icon name="trash" className="icon-sm" /> Delete<kbd className="pm-key">D</kbd>
-                      </button>
-                    </div>
+                    <PortalMenu anchorRef={titleMenuBtnRef} align="left" className="conv-menu title-menu">
+                      <ChatMenuItems conv={activeConversation} projects={chat.projects}
+                        view={menuView} onView={setMenuView} onAction={menuAction} onMove={moveConv} />
+                    </PortalMenu>
                   )}
                 </div>
               ))}
