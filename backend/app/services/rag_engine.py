@@ -66,6 +66,42 @@ _NOT_PRESENT_HINTS = (
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 
+# The languages the interface offers, mapped to what to call them in a prompt.
+# A locale that is not in here is ignored rather than passed through, which is
+# what keeps a client from writing its own instruction into the system message.
+LANGUAGE_NAMES = {
+    "en-US": "English",
+    "fr-FR": "French",
+    "de-DE": "German",
+    "hi-IN": "Hindi",
+    "id-ID": "Indonesian",
+    "it-IT": "Italian",
+    "ja-JP": "Japanese",
+    "ko-KR": "Korean",
+    "pt-BR": "Brazilian Portuguese",
+    "es-419": "Latin American Spanish",
+    "es-ES": "European Spanish",
+}
+# English is the prompt's own language, so asking for it adds nothing.
+_IMPLIED_LANGUAGE = "en-US"
+
+
+def language_line(locale: str | None) -> str | None:
+    """The sentence that asks for a reply in `locale`, or None to say nothing."""
+    if not locale or locale == _IMPLIED_LANGUAGE:
+        return None
+    name = LANGUAGE_NAMES.get(locale)
+    if not name:
+        return None
+    # "Unless the instructions above say otherwise" so an explicit standing
+    # instruction about language still wins over a menu setting.
+    return (
+        f"Unless the instructions above say otherwise, write your answer in {name}. "
+        "The excerpts may be in another language; translate what you need from them "
+        "rather than quoting them untranslated."
+    )
+
+
 def _escape_braces(text: str) -> str:
     """Double any braces so ChatPromptTemplate does not read them as template
     variables and blow up on an instruction containing "{"."""
@@ -76,6 +112,7 @@ def _build_prompt(
     llm: LLMProvider,
     instructions: str | None = None,
     user_instructions: str | None = None,
+    language: str | None = None,
 ) -> ChatPromptTemplate:
     system = SYSTEM_PROMPT
     # qwen3 (and similar) run a slow "thinking" pass by default; disable it
@@ -98,6 +135,10 @@ def _build_prompt(
             "The user has also set these standing instructions for every chat:\n"
             f"{_escape_braces(user_instructions)}"
         )
+    # Last in the preamble, so the instructions above it can overrule it.
+    lang = language_line(language)
+    if lang:
+        preamble.append(lang)
     if preamble:
         system = (
             "\n\n".join(preamble)
@@ -309,6 +350,7 @@ def _run(
     document_ids: list[str] | None = None,
     instructions: str | None = None,
     user_instructions: str | None = None,
+    language: str | None = None,
     stream: bool = False,
 ) -> Iterator[tuple[str, object]]:
     """Execute one turn: greeting/small-talk -> friendly reply; otherwise a
@@ -378,7 +420,7 @@ def _run(
     # 5) Grounded answer from the retrieved context.
     context, sources = _format_context(results)
     try:
-        chain = _build_prompt(llm, instructions, user_instructions) | llm.chat_model()
+        chain = _build_prompt(llm, instructions, user_instructions, language) | llm.chat_model()
         payload = {"context": context, "question": query}
         if stream:
             # Tokens go out as the model writes them, but the caller still
@@ -419,6 +461,7 @@ def answer_query(
     document_ids: list[str] | None = None,
     instructions: str | None = None,
     user_instructions: str | None = None,
+    language: str | None = None,
 ) -> dict:
     """Run one turn and return the finished result."""
     for kind, payload in _run(
@@ -431,6 +474,7 @@ def answer_query(
         document_ids=document_ids,
         instructions=instructions,
         user_instructions=user_instructions,
+        language=language,
         stream=False,
     ):
         if kind == "done":
@@ -448,6 +492,7 @@ def answer_query_stream(
     document_ids: list[str] | None = None,
     instructions: str | None = None,
     user_instructions: str | None = None,
+    language: str | None = None,
 ) -> Iterator[tuple[str, object]]:
     """Run one turn, yielding ("token", text) as the model writes and finally
     ("done", result). Every early exit yields only the "done" event, so a
@@ -462,5 +507,6 @@ def answer_query_stream(
         document_ids=document_ids,
         instructions=instructions,
         user_instructions=user_instructions,
+        language=language,
         stream=True,
     )

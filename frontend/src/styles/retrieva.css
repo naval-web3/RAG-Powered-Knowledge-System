@@ -1816,15 +1816,17 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    blind. Someone who has landed in a script they cannot read needs to see the
    whole list to find their way back. */
 .modal-overlay.lang-overlay { align-items: flex-start; padding-top: 10vh; }
-.modal.lang-modal { max-width: 900px; padding: 0; }
+/* Two columns rather than three: eleven entries across three columns made a
+   wide, shallow band that read as a strip rather than a dialog. */
+.modal.lang-modal { max-width: 620px; padding: 0; }
 .lang-head {
   display: flex; align-items: flex-start; gap: 12px;
   padding: 24px 26px 6px;
 }
 .lang-head h3 { flex: 1; font-size: 22px; font-weight: 700; letter-spacing: -.015em; }
 .lang-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
-  padding: 12px 18px 24px; overflow-y: auto;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;
+  padding: 12px 16px 22px; overflow-y: auto;
 }
 .lang-card {
   position: relative; display: block; text-align: left;
@@ -1841,9 +1843,6 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .lang-card.selected .lang-english { color: var(--accent); }
 .lang-check { position: absolute; top: 13px; right: 12px; color: var(--accent); }
 
-@media (max-width: 760px) {
-  .lang-grid { grid-template-columns: repeat(2, 1fr); }
-}
 @media (max-width: 520px) {
   .lang-grid { grid-template-columns: 1fr; }
 }

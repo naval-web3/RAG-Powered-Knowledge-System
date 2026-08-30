@@ -70,6 +70,10 @@ class ChatRequest(BaseModel):
     # Only used when starting a NEW conversation; an existing conversation
     # already knows which project it belongs to.
     project_id: uuid.UUID | None = None
+    # The reader's interface language, as a locale id. Sent as an id and not as
+    # a language name so the server can check it against a fixed list before it
+    # reaches a prompt: free text from a client has no business in there.
+    language: str | None = Field(default=None, max_length=16)
 
 
 class SourceCitation(BaseModel):

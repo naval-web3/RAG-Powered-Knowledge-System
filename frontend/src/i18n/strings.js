@@ -10,7 +10,11 @@
  *
  * Nothing the user or the model wrote belongs in here: conversation titles,
  * messages and document names stay in the language they were written in.
+ *
+ * Screens with a lot of copy keep their strings in a sibling file and are
+ * merged in at the bottom, so no one dictionary grows past reading length.
  */
+import CHAT from "./strings.chat";
 
 const en = {
   "common.settings": "Settings",
@@ -727,7 +731,7 @@ const esES = {
   "sidebar.startNewChat": "Empieza un chat nuevo.",
 };
 
-const STRINGS = {
+const SHELL = {
   "en-US": en,
   "fr-FR": fr,
   "de-DE": de,
@@ -740,5 +744,9 @@ const STRINGS = {
   "es-419": es419,
   "es-ES": esES,
 };
+
+const STRINGS = Object.fromEntries(
+  Object.entries(SHELL).map(([id_, dict]) => [id_, { ...dict, ...CHAT[id_] }])
+);
 
 export default STRINGS;

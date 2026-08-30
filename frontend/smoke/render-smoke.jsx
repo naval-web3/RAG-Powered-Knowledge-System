@@ -167,8 +167,12 @@ check("Layout shell in Hindi", () => {
         </LocaleProvider>
       </MemoryRouter>
     );
-    if (!html.includes(STRINGS["hi-IN"]["sidebar.newChat"])) {
-      throw new Error("the sidebar did not render in Hindi");
+    // One string from the shell and one from the chat page, so a screen that
+    // was never wired to the translator cannot hide behind one that was.
+    for (const key of ["sidebar.newChat", "chat.placeholder", "chat.suggest.subjects"]) {
+      if (!html.includes(STRINGS["hi-IN"][key])) {
+        throw new Error(`${key} did not render in Hindi`);
+      }
     }
     return html;
   } finally {

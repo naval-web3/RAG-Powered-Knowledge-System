@@ -1,11 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import client from "../api/client";
+import { useLocale } from "../i18n";
 import { useToast } from "./ToastContext";
 
 const ChatContext = createContext(null);
 
 export function ChatProvider({ children }) {
   const { toast } = useToast();
+  // Sent with every question so answers come back in the reader's language.
+  const { locale } = useLocale();
 
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -319,6 +322,7 @@ export function ChatProvider({ children }) {
             incognito: privateMode,
             scope_document_id: scopeDocId || null,
             project_id: activeProjectRef.current,
+            language: locale,
           }),
         });
         if (!res.ok || !res.body) {

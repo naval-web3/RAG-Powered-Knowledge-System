@@ -63,28 +63,12 @@ export function firstName(name) {
   return first[0].toUpperCase() + first.slice(1);
 }
 
-/* The session's opening screen is the only place a name is used -- being
-   greeted by name on arrival reads as recognition; repeating it on every new
-   chat would read as a tic. */
-const ARRIVAL = {
-  morning: "Good morning",
-  afternoon: "Good afternoon",
-  evening: "Good evening",
-};
-
-/* Every chat after the first opens with a prompt rather than a greeting. */
-const PROMPTS = [
-  "Where shall we start?",
-  "What's on your mind?",
-  "What are we looking for?",
-];
-
 let lastPrompt = null;
 
-function nextPrompt() {
+function nextPrompt(prompts) {
   // Never the same line twice running.
-  const pool = PROMPTS.filter((p) => p !== lastPrompt);
-  lastPrompt = pool[Math.floor(Math.random() * pool.length)];
+  const pool = prompts.filter((p) => p !== lastPrompt) ;
+  lastPrompt = pool[Math.floor(Math.random() * pool.length)] || prompts[0];
   return lastPrompt;
 }
 
@@ -93,9 +77,19 @@ function bandNow() {
   return h < 12 ? "morning" : h < 18 ? "afternoon" : "evening";
 }
 
-/** `arrival` is true for the screen a session opens on, false for later chats. */
-export function greetingFor(name, arrival = true) {
-  return arrival ? `${ARRIVAL[bandNow()]}, ${firstName(name)}` : nextPrompt();
+/**
+ * The line above the composer on an empty chat.
+ *
+ * The session's opening screen is the only place a name is used: being greeted
+ * by name on arrival reads as recognition, where repeating it on every new chat
+ * would read as a tic. Every chat after the first opens with a prompt instead.
+ *
+ * `t` is passed in rather than imported so this stays a plain function; the
+ * rotating prompts arrive as one "|"-joined string and are split here.
+ */
+export function greetingFor(t, name, arrival = true) {
+  if (arrival) return t(`chat.greeting.${bandNow()}`, { name: firstName(name) });
+  return nextPrompt(t("chat.prompts").split("|"));
 }
 
 /** Password strength → { level: 0-4, label }. */

@@ -1,20 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import MarkdownLite from "../components/MarkdownLite";
 import { useAuth } from "../context/AuthContext";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
+import { useT } from "../i18n";
 import { greetingFor } from "../utils";
 
+/* Icon plus a key: the card is read and asked in the same language, so what
+   you clicked is what appears in the transcript. */
 const SUGGESTIONS = [
-  { icon: "book", q: "Summarize what my documents say." },
-  { icon: "zap", q: "What subjects do my documents cover?" },
-  { icon: "file-text", q: "List the sections of my most recent upload." },
-  { icon: "info", q: "What's in this knowledge base?" },
+  { icon: "book", key: "chat.suggest.summarize" },
+  { icon: "zap", key: "chat.suggest.subjects" },
+  { icon: "file-text", key: "chat.suggest.sections" },
+  { icon: "info", key: "chat.suggest.whatsInside" },
 ];
 
 export default function ChatPage() {
+  const t = useT();
   const { user } = useAuth();
   const chat = useChat();
   const scrollRef = useRef(null);
@@ -25,9 +29,9 @@ export default function ChatPage() {
      Keyed on the number of fresh starts rather than on a first-run flag:
      StrictMode runs effects twice on mount, and a flag would flip on the first
      pass and let the second overwrite the arrival greeting. */
-  const [greeting, setGreeting] = useState(() => greetingFor(user?.username, true));
+  const [greeting, setGreeting] = useState(() => greetingFor(t, user?.username, true));
   useEffect(() => {
-    setGreeting(greetingFor(user?.username, chat.freshStarts === 0));
+    setGreeting(greetingFor(t, user?.username, chat.freshStarts === 0));
   }, [chat.freshStarts, user?.username]);
   const fileRef = useRef(null);
   /* The word belongs to the silent wait only; once text is arriving the mark
@@ -75,19 +79,19 @@ export default function ChatPage() {
                   type="button"
                   className="private-mark"
                   onClick={leavePrivate}
-                  title="Leave private chat"
-                  aria-label="Leave private chat"
+                  title={t("topbar.leavePrivate")}
+                  aria-label={t("topbar.leavePrivate")}
                 >
                   <img src="/thinking/endmark.png" alt="" width="56" height="56" />
                 </button>
               ) : (
                 <img className="empty-mark" src="/thinking/endmark.png" alt="" width="56" height="56" />
               )}
-              <h2>{chat.privateMode ? "You're private" : greeting}</h2>
+              <h2>{chat.privateMode ? t("chat.private") : greeting}</h2>
               <div className="sugg-grid">
                 {SUGGESTIONS.map((s) => (
-                  <button key={s.q} className="sugg" onClick={() => chat.send(s.q)}>
-                    <Icon name={s.icon} className="icon-sm" /> {s.q}
+                  <button key={s.key} className="sugg" onClick={() => chat.send(t(s.key))}>
+                    <Icon name={s.icon} className="icon-sm" /> {t(s.key)}
                   </button>
                 ))}
               </div>
@@ -117,6 +121,7 @@ export default function ChatPage() {
 }
 
 function UserMessage({ message }) {
+  const t = useT();
   const chat = useChat();
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
@@ -135,8 +140,8 @@ function UserMessage({ message }) {
 
   function copy() {
     navigator.clipboard?.writeText(message.content).then(
-      () => toast("Prompt copied", "ok"),
-      () => toast("Couldn't copy", "err")
+      () => toast(t("chat.promptCopied"), "ok"),
+      () => toast(t("chat.copyFailed"), "err")
     );
   }
 
@@ -201,10 +206,10 @@ function UserMessage({ message }) {
       <div className="user-col">
         <div className="bubble">{message.content}</div>
         <div className="msg-actions user-actions">
-          <button className="btn-icon" title="Copy" onClick={copy}>
+          <button className="btn-icon" title={t("chat.copy")} onClick={copy}>
             <Icon name="copy" className="icon-sm" />
           </button>
-          <button className="btn-icon" title="Edit & resend" onClick={startEdit}>
+          <button className="btn-icon" title={t("chat.editResend")} onClick={startEdit}>
             <Icon name="pencil" className="icon-sm" />
           </button>
         </div>
@@ -213,26 +218,26 @@ function UserMessage({ message }) {
   );
 }
 
-/* Plain words for what the app is actually doing while it works. */
-const THINKING_WORDS = [
-  "Thinking", "Reading", "Retrieving", "Searching", "Considering",
-  "Cross-referencing", "Gathering", "Weighing", "Consulting", "Sifting",
-  "Tracing", "Piecing it together",
-];
-
 const pick = (list, avoid) => {
   const pool = list.length > 1 ? list.filter((x) => x !== avoid) : list;
   return pool[Math.floor(Math.random() * pool.length)];
 };
 
 function Thinking() {
-  const [word, setWord] = useState(() => pick(THINKING_WORDS));
+  const t = useT();
+  /* Plain words for what the app is actually doing while it works, held as one
+     "|"-joined string so a translator sees the whole set at once. */
+  const words = useMemo(() => t("chat.thinkingWords").split("|"), [t]);
+  const [word, setWord] = useState(() => pick(words));
 
   useEffect(() => {
     // One word per 3.5s, and the shine takes one pass across it in that time.
-    const id = setInterval(() => setWord((prev) => pick(THINKING_WORDS, prev)), 3500);
+    const id = setInterval(() => setWord((prev) => pick(words, prev)), 3500);
     return () => clearInterval(id);
-  }, []);
+  }, [words]);
+
+  // A language switch mid-wait should not leave the previous language on screen.
+  useEffect(() => { setWord(pick(words)); }, [words]);
 
   return (
     <div className="msg thinking-row" aria-live="polite">
@@ -263,6 +268,7 @@ function AnswerMark({ busy }) {
 }
 
 function AiMessage({ message, mark }) {
+  const t = useT();
   const { toast } = useToast();
   const [vote, setVote] = useState(null);
   /* A copy says so on the button itself. A toast for it was a second thing to
@@ -280,7 +286,7 @@ function AiMessage({ message, mark }) {
         copiedTimer.current = setTimeout(() => setCopied(false), 1000);
       },
       // A failure still needs saying: nothing on the button would explain it.
-      () => toast("Couldn't copy", "err")
+      () => toast(t("chat.copyFailed"), "err")
     );
   }
 
@@ -289,13 +295,13 @@ function AiMessage({ message, mark }) {
       <div className="body">
         {message.thoughtMs != null && (
           <div className="thought-label">
-            Thought for {Math.max(1, Math.round(message.thoughtMs / 1000))}s
+            {t("chat.thoughtFor", { n: Math.max(1, Math.round(message.thoughtMs / 1000)) })}
           </div>
         )}
         <div className="ai-content">
           <MarkdownLite text={message.content} fadeTail={message.streaming ? 28 : 0} />
         </div>
-        {message.stopped && <div className="stopped-note">Stopped</div>}
+        {message.stopped && <div className="stopped-note">{t("chat.stopped")}</div>}
 
         {mark && (
           <div className="answer-foot">
@@ -305,15 +311,15 @@ function AiMessage({ message, mark }) {
 
         {!message.error && !message.streaming && (
           <div className="msg-actions">
-            <button className="btn-icon" title={copied ? "Copied" : "Copy"} onClick={copy}>
+            <button className="btn-icon" title={copied ? t("chat.copied") : t("chat.copy")} onClick={copy}>
               <Icon name={copied ? "check" : "copy"} className="icon-sm" />
             </button>
-            <button className={`btn-icon ${vote === "up" ? "voted" : ""}`} title="Good answer"
-              onClick={() => { setVote("up"); toast("Marked as a good answer", "ok"); }}>
+            <button className={`btn-icon ${vote === "up" ? "voted" : ""}`} title={t("chat.goodAnswer")}
+              onClick={() => { setVote("up"); toast(t("chat.markedGood"), "ok"); }}>
               <Icon name={vote === "up" ? "thumb-up-fill" : "thumb-up"} className="icon-sm" />
             </button>
-            <button className={`btn-icon ${vote === "down" ? "voted" : ""}`} title="Needs work"
-              onClick={() => { setVote("down"); toast("Marked as needing work", "info"); }}>
+            <button className={`btn-icon ${vote === "down" ? "voted" : ""}`} title={t("chat.needsWork")}
+              onClick={() => { setVote("down"); toast(t("chat.markedNeedsWork"), "info"); }}>
               <Icon name={vote === "down" ? "thumb-down-fill" : "thumb-down"} className="icon-sm" />
             </button>
           </div>
@@ -324,6 +330,7 @@ function AiMessage({ message, mark }) {
 }
 
 function Composer({ fileRef }) {
+  const t = useT();
   const chat = useChat();
   const { toast } = useToast();
   const [text, setText] = useState("");
@@ -377,7 +384,7 @@ function Composer({ fileRef }) {
   function startDictation() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      toast("Voice input isn't supported in this browser", "warn");
+      toast(t("chat.dictationUnsupported"), "warn");
       return;
     }
     const rec = new SR();
@@ -408,7 +415,7 @@ function Composer({ fileRef }) {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         shouldListenRef.current = false;
         setRecording(false);
-        toast("Microphone is blocked. Allow it in the browser to dictate", "warn");
+        toast(t("chat.micBlocked"), "warn");
       }
       // Transient errors (e.g. "no-speech") are ignored; onend will restart.
     };
@@ -460,8 +467,8 @@ function Composer({ fileRef }) {
             {chat.scopeDoc && (
               <span className="mode-pill scope">
                 <Icon name="target" className="icon-sm" />
-                <span>Scoped to <b>{chat.scopeDoc.title}</b></span>
-                <button className="pill-x" onClick={() => chat.setScopeDocId(null)} aria-label="Clear scope">
+                <span>{t("chat.scopedTo")} <b>{chat.scopeDoc.title}</b></span>
+                <button className="pill-x" onClick={() => chat.setScopeDocId(null)} aria-label={t("chat.clearScope")}>
                   <Icon name="x" className="icon-sm" />
                 </button>
               </span>
@@ -469,7 +476,7 @@ function Composer({ fileRef }) {
           </div>
         )}
         <div className="composer-box">
-          <textarea ref={taRef} rows={1} placeholder="Ask your knowledge base…" aria-label="Message"
+          <textarea ref={taRef} rows={1} placeholder={t("chat.placeholder")} aria-label={t("chat.messageAria")}
             value={text}
             onChange={(e) => { setText(e.target.value); autoGrow(e.target); }}
             onKeyDown={onKeyDown} />
@@ -478,26 +485,24 @@ function Composer({ fileRef }) {
             <ModelMenu />
             <ScopeMenu />
             <div className="grow" style={{ flex: 1 }} />
-            <button className={`btn-icon mic-btn ${recording ? "rec" : ""}`} title="Dictate with your voice"
-              aria-label="Dictate" onClick={toggleDictation}>
+            <button className={`btn-icon mic-btn ${recording ? "rec" : ""}`} title={t("chat.dictate")}
+              aria-label={t("chat.dictateAria")} onClick={toggleDictation}>
               <Icon name="mic" className="icon-sm" />
             </button>
             {chat.sending ? (
-              <button className="send-btn is-stop" aria-label="Stop generating" title="Stop"
+              <button className="send-btn is-stop" aria-label={t("chat.stopGenerating")} title={t("chat.stop")}
                 onClick={chat.stop}>
                 <Icon name="stop" className="icon-sm" />
               </button>
             ) : (
-              <button className="send-btn" disabled={!text.trim()} aria-label="Send message"
+              <button className="send-btn" disabled={!text.trim()} aria-label={t("chat.send")}
                 onClick={submit}>
                 <Icon name="send" className="icon-sm" />
               </button>
             )}
           </div>
         </div>
-        <div className="composer-hint">
-          Retrieva answers only from indexed documents. Verify critical facts against the cited source.
-        </div>
+        <div className="composer-hint">{t("chat.hint")}</div>
       </div>
     </div>
   );
@@ -511,15 +516,14 @@ function isSlowLocalModel(model) {
 }
 
 /** Short speed/accuracy hint shown under each local model. */
-function modelHint(model) {
-  return isSlowLocalModel(model)
-    ? "More accurate · slower on your GPU"
-    : "Faster · may make mistakes";
+function modelHint(t, model) {
+  return isSlowLocalModel(model) ? t("chat.modelSlow") : t("chat.modelFast");
 }
 
 /* A plus reads as "add something", not as "open a file dialog", so it opens a
    menu and the picker is one of the things on it. */
 function AddMenu({ onUpload }) {
+  const t = useT();
   const chat = useChat();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -537,7 +541,7 @@ function AddMenu({ onUpload }) {
   return (
     <div className="menu-anchor" ref={ref}>
       <button className="btn-icon" aria-haspopup="true" aria-expanded={open}
-        title={chat.uploading ? "Uploading…" : "Add"} aria-label="Add"
+        title={chat.uploading ? t("chat.uploading") : t("chat.add")} aria-label={t("chat.add")}
         disabled={chat.uploading}
         onClick={() => setOpen((o) => !o)}>
         <Icon name={chat.uploading ? "refresh" : "plus"} className="icon-sm" />
@@ -547,16 +551,16 @@ function AddMenu({ onUpload }) {
           <button className="drop-item"
             onClick={() => { setOpen(false); onUpload(); }}>
             <span>
-              <span className="d-name">Upload a document</span>
-              <span className="d-sub">PDF, DOCX or TXT, indexed on arrival</span>
+              <span className="d-name">{t("chat.uploadDoc")}</span>
+              <span className="d-sub">{t("chat.uploadDocSub")}</span>
             </span>
           </button>
           <button className="drop-item"
             onClick={() => { setOpen(false); navigate("/documents"); }}>
             <span>
-              <span className="d-name">Browse the library</span>
+              <span className="d-name">{t("chat.browseLibrary")}</span>
               <span className="d-sub">
-                {ready === 1 ? "1 document indexed" : `${ready} documents indexed`}
+                {ready === 1 ? t("chat.oneDocIndexed") : t("chat.docsIndexed", { n: ready })}
               </span>
             </span>
           </button>
@@ -567,6 +571,7 @@ function AddMenu({ onUpload }) {
 }
 
 function ModelMenu() {
+  const t = useT();
   const chat = useChat();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -589,7 +594,7 @@ function ModelMenu() {
     <button className={`drop-item ${value === chat.sel ? "selected" : ""}`}
       onClick={() => { chat.setSel(value); setOpen(false); }}>
       <span>
-        <span className="d-name">{name}{slow && <span className="badge badge-amber" style={{ marginLeft: 6 }}>slow</span>}</span>
+        <span className="d-name">{name}{slow && <span className="badge badge-amber" style={{ marginLeft: 6 }}>{t("chat.slow")}</span>}</span>
         <span className="d-sub">{sub}</span>
       </span>
       <Icon name="check" className="icon-sm check" />
@@ -605,17 +610,18 @@ function ModelMenu() {
         <div className="drop-menu">
           {chat.models.ollama.length > 0 && (
             <>
-              <div className="drop-label">Ollama · local</div>
+              <div className="drop-label">{t("chat.ollamaLocal")}</div>
               {chat.models.ollama.map((m) => (
-                <Item key={m} value={`ollama|${m}`} name={m} sub={modelHint(m)} slow={isSlowLocalModel(m)} />
+                <Item key={m} value={`ollama|${m}`} name={m} sub={modelHint(t, m)} slow={isSlowLocalModel(m)} />
               ))}
             </>
           )}
           {chat.models.openai.length > 0 && (
             <>
-              <div className="drop-label">OpenAI · cloud</div>
+              <div className="drop-label">{t("chat.openaiCloud")}</div>
               {chat.models.openai.map((m) => (
-                <Item key={m} value={`openai|${m}`} name={m} sub={chat.models.openai_enabled ? "cloud inference" : "add API key"} />
+                <Item key={m} value={`openai|${m}`} name={m}
+                  sub={chat.models.openai_enabled ? t("chat.cloudInference") : t("chat.addApiKey")} />
               ))}
             </>
           )}
@@ -626,6 +632,7 @@ function ModelMenu() {
 }
 
 function ScopeMenu() {
+  const t = useT();
   const chat = useChat();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -638,30 +645,30 @@ function ScopeMenu() {
     return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  const label = chat.scopeDoc ? chat.scopeDoc.title : "All documents";
+  const label = chat.scopeDoc ? chat.scopeDoc.title : t("chat.allDocuments");
 
   return (
     <div className="menu-anchor" ref={ref}>
       <button className={`model-btn scope-btn ${chat.scopeDoc ? "scoped" : ""}`} aria-haspopup="true"
-        title="Retrieval scope" onClick={() => setOpen((o) => !o)}>
+        title={t("chat.retrievalScope")} onClick={() => setOpen((o) => !o)}>
         <Icon name="target" className="icon-sm" />
         <span id="scope-btn-label">{label}</span>
         <Icon name="chev-d" className="icon-sm" />
       </button>
       {open && (
         <div className="drop-menu" id="scope-menu">
-          <div className="drop-label">Retrieval scope</div>
+          <div className="drop-label">{t("chat.retrievalScope")}</div>
           <button className={`drop-item ${!chat.scopeDoc ? "selected" : ""}`}
             onClick={() => { chat.setScopeDocId(null); setOpen(false); }}>
-            <span><span className="d-name">All documents</span><span className="d-sub">search the whole corpus</span></span>
+            <span><span className="d-name">{t("chat.allDocuments")}</span><span className="d-sub">{t("chat.wholeCorpus")}</span></span>
             <Icon name="check" className="icon-sm check" />
           </button>
-          {ready.length === 0 && <div className="scope-empty">No indexed documents to scope to yet.</div>}
+          {ready.length === 0 && <div className="scope-empty">{t("chat.noScopeDocs")}</div>}
           {ready.map((d) => (
             <button key={d.document_id} className={`drop-item ${chat.scopeDocId === d.document_id ? "selected" : ""}`}
               onClick={() => { chat.setScopeDocId(d.document_id); setOpen(false); }}>
               <span><span className="d-name d-name"><span style={{ display: "block", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</span></span>
-                <span className="d-sub">{d.chunk_count} chunks</span></span>
+                <span className="d-sub">{t("chat.chunks", { n: d.chunk_count })}</span></span>
               <Icon name="check" className="icon-sm check" />
             </button>
           ))}
