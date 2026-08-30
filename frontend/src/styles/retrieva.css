@@ -1225,6 +1225,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .private-mark:active { transform: translateY(0) scale(.96); }
 .private-mark img { width: 56px; height: 56px; }
 #app.private-chat #sidebar { display: none; }
+#app.private-chat #btn-mobile-menu,
 #app.private-chat .tip-wrap.only-narrow,
 #app.private-chat #btn-sidebar-toggle { display: none !important; }
 /* The panel role moves down to the page, so the bar above it belongs to the
@@ -1614,9 +1615,11 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 
 /* Mobile shell bits */
 #sb-backdrop { position: fixed; inset: 0; background: rgba(24,21,15,.4); z-index: 55; animation: fadeIn .2s; }
-/* The wrapper, not the button. Hiding only the button leaves its tooltip
-   wrapper in the bar as a zero-width flex item, and the bar's 12px gap is
-   still applied after it, which pushed everything to its right along. */
+/* The narrow-screen drawer toggle. BOTH the button and its tooltip wrapper are
+   hidden: the wrapper because a zero-width flex item still takes the bar's 12px
+   gap after it, and the button because a rule that only names the wrapper stops
+   hiding anything the moment the wrapper's class is not there. */
+#btn-mobile-menu,
 .tip-wrap.only-narrow { display: none; }
 
 /* ============================================================
@@ -1642,6 +1645,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   /* The narrow-screen drawer moves by margin, so the desktop transform must
      not stack on top of it. */
   #app.sb-collapsed #sidebar { margin-left: -282px; transform: none; position: fixed; top: 0; }
+  #btn-mobile-menu,
   .tip-wrap.only-narrow { display: inline-flex; }
   .land-nav .nav-links { display: none; }
 }
