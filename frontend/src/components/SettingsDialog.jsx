@@ -14,7 +14,7 @@ import Icon from "./Icon";
    setting can be found by what it does rather than by the heading it lives
    under -- "password" finds Account, "chunk" finds Model & retrieval. */
 export const SECTIONS = [
-  { id: "general", icon: "sliders", label: "General", words: "profile name email instructions appearance theme font dark light" },
+  { id: "general", icon: "settings", label: "General", words: "profile name email instructions appearance theme font dark light" },
   { id: "account", icon: "user", label: "Account", words: "password sign out log out delete account id role member since" },
   { id: "privacy", icon: "shield", label: "Privacy", words: "data memory export clear history local ollama openai" },
   { id: "usage", icon: "activity", label: "Usage", words: "queries limits session weekly storage latency models" },

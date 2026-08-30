@@ -604,7 +604,7 @@ function Shell() {
     { page: "/documents", icon: "file", label: "Documents", count: chat.docCount },
     ...(user?.role === "admin" ? [{ page: "/dashboard", icon: "grid", label: "Dashboard" }] : []),
     // Settings is a dialog, so this row has no route to match against.
-    { action: openSettings, icon: "sliders", label: "Settings" },
+    { action: openSettings, icon: "settings", label: "Settings" },
   ];
 
   const appClass = [
@@ -830,7 +830,7 @@ function Shell() {
                 <span>{isDark ? "Light mode" : "Dark mode"}</span>
               </button>
               <button className="pm-item" onClick={openSettings}>
-                <Icon name="sliders" className="icon-sm" /> Settings
+                <Icon name="settings" className="icon-sm" /> Settings
               </button>
               <div className="pm-sep" />
               <button className="pm-item danger" onClick={handleLogout}>
