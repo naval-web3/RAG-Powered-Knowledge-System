@@ -1076,7 +1076,7 @@ function Shell() {
               </Tooltip>
             </div>
             <div className={`search-results ${hitsFade}`}
-              ref={(el) => { resultsRef.current = el; hitsRef.current = el; }}>
+              ref={(el) => { resultsRef.current = el; hitsRef(el); }}>
               <div className="search-results-inner" ref={resultsInnerRef}>
                 {searchHits.length === 0 && (
                   <p className="search-empty">{t("sidebar.nothingMatches", { q: convSearch })}</p>

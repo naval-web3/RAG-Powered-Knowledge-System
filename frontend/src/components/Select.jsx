@@ -133,7 +133,7 @@ export default function Select({ value, options, onChange, ariaLabel, disabled =
       {open &&
         createPortal(
           <div
-            ref={(el) => { menuRef.current = el; fadeRef.current = el; }}
+            ref={(el) => { menuRef.current = el; fadeRef(el); }}
             className={`sel-menu ${fade}`}
             role="listbox"
             aria-label={ariaLabel}
