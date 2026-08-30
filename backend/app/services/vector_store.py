@@ -130,6 +130,24 @@ def chunks_for_document(document_id: str) -> list[dict]:
     return rows
 
 
+def page_count_for_document(document_id: str) -> int:
+    """How many pages a document turned out to have, from its chunks.
+
+    Every chunk carries the page it came from, so the highest one is the page
+    count. Only the metadata is fetched, not the text: this is for a label on a
+    card, and the passages themselves would be a hundred times the payload.
+    """
+    got = get_collection().get(
+        where={"document_id": str(document_id)},
+        include=["metadatas"],
+    )
+    pages = [
+        (m or {}).get("page_number") or 0
+        for m in (got.get("metadatas") or [])
+    ]
+    return max(pages) if pages else 0
+
+
 def delete_document(document_id: str) -> None:
     """Remove all chunks belonging to a document from the vector store."""
     get_collection().delete(where={"document_id": document_id})

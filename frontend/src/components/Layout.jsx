@@ -1116,7 +1116,7 @@ function Shell() {
       {openDoc && <DocumentDialog doc={openDoc} onClose={() => setOpenDoc(null)} />}
 
       {/* One picker for the whole sidebar, driven by the section's plus. */}
-      <input ref={uploadRef} type="file" accept=".pdf,.docx,.txt" className="hidden"
+      <input ref={uploadRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) chat.uploadFile(f);

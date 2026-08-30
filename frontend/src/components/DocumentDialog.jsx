@@ -9,22 +9,30 @@ import Icon from "./Icon";
 import Tooltip from "./Tooltip";
 
 /**
- * One document, two ways.
+ * A document, shown as what it is.
  *
- * Reading shows the extraction: the text the pipeline actually pulled out,
- * page by page, which for a scanned PDF is its OCR rather than a blank page.
- * Chunks shows what that text was split into and indexed as, which is what
- * retrieval searches. Between them they answer "what is in this file" and
- * "why did it match that", and the second question has no other answer in
- * the app.
+ * A text file, a Word file or a Markdown file opens to its source: the exact
+ * characters the pipeline read, numbered, in a monospaced face. That is the
+ * honest view of a file whose content IS text, and the numbers make it possible
+ * to talk about a particular line.
+ *
+ * A PDF opens to a card instead. Its extraction is a flattening of something
+ * that was laid out, and showing a wall of run-together text as though it were
+ * the document would misrepresent it. The file itself is one click away, in a
+ * reader built for it.
+ *
+ * The Chunks tab, what retrieval actually searched, belongs to the text kinds.
  */
+const PLAIN = ["txt", "md", "docx"];
 export default function DocumentDialog({ doc, onClose }) {
   const t = useT();
   const chat = useChat();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const isPlain = PLAIN.includes((doc.file_type || "").toLowerCase());
   const [view, setView] = useState("reading");
+  const [pageCount, setPageCount] = useState(null);
   const [content, setContent] = useState(null);
   const [chunks, setChunks] = useState(null);
   const [error, setError] = useState(false);
@@ -35,12 +43,21 @@ export default function DocumentDialog({ doc, onClose }) {
   useEffect(() => {
     let alive = true;
     setError(false);
+    // A PDF is never read here: its own reader does that, and extracting it
+    // again could mean re-running OCR to fill a panel nobody asked for.
+    if (!isPlain) {
+      client
+        .get(`/api/documents/${id}/pages`)
+        .then(({ data }) => alive && setPageCount(data.page_count || null))
+        .catch(() => {});
+      return () => { alive = false; };
+    }
     client
       .get(`/api/documents/${id}/content`)
       .then(({ data }) => alive && setContent(data))
       .catch(() => alive && setError(true));
     return () => { alive = false; };
-  }, [id]);
+  }, [id, isPlain]);
 
   // Fetched only if the chunks tab is opened: it is the larger of the two, and
   // most visits only ever want to read the document.
@@ -63,6 +80,7 @@ export default function DocumentDialog({ doc, onClose }) {
   const fullText = content
     ? content.pages.map((p) => p.text).join("\n\n")
     : "";
+  const lines = fullText ? fullText.split("\n") : [];
 
   function copyText() {
     navigator.clipboard?.writeText(fullText).then(
@@ -108,7 +126,8 @@ export default function DocumentDialog({ doc, onClose }) {
 
   return (
     <div className="modal-overlay doc-overlay" onClick={onClose}>
-      <div className="modal doc-modal" role="dialog" aria-modal="true" aria-label={doc.title}
+      <div className={`modal doc-modal ${isPlain ? "" : "is-file"}`}
+        role="dialog" aria-modal="true" aria-label={doc.title}
         onClick={(e) => e.stopPropagation()}>
 
         <div className="doc-head">
@@ -121,32 +140,36 @@ export default function DocumentDialog({ doc, onClose }) {
         </div>
 
         <div className="doc-bar">
-          <div className="set-seg doc-seg">
-            <Tooltip label={t("docs.readingView")}>
-              <button className={view === "reading" ? "active" : ""}
-                aria-label={t("docs.readingView")}
-                onClick={() => setView("reading")}>
-                <Icon name="eye" className="icon-sm" />
-              </button>
-            </Tooltip>
-            <Tooltip label={t("docs.chunksView")}>
-              <button className={view === "chunks" ? "active" : ""}
-                aria-label={t("docs.chunksView")}
-                onClick={() => setView("chunks")}>
-                <Icon name="db" className="icon-sm" />
-              </button>
-            </Tooltip>
-          </div>
+          {isPlain && (
+            <div className="set-seg doc-seg">
+              <Tooltip label={t("docs.readingView")}>
+                <button className={view === "reading" ? "active" : ""}
+                  aria-label={t("docs.readingView")}
+                  onClick={() => setView("reading")}>
+                  <Icon name="eye" className="icon-sm" />
+                </button>
+              </Tooltip>
+              <Tooltip label={t("docs.chunksView")}>
+                <button className={view === "chunks" ? "active" : ""}
+                  aria-label={t("docs.chunksView")}
+                  onClick={() => setView("chunks")}>
+                  <Icon name="db" className="icon-sm" />
+                </button>
+              </Tooltip>
+            </div>
+          )}
           <div className="grow" />
           <button className="btn doc-act" onClick={scopeToDoc}>
             <Icon name="target" className="icon-sm" /> {t("docs.scopeChat")}
           </button>
-          <Tooltip label={t("docs.copyText")}>
-            <button className="btn-icon" aria-label={t("docs.copyText")}
-              disabled={!fullText} onClick={copyText}>
-              <Icon name="copy" className="icon-sm" />
-            </button>
-          </Tooltip>
+          {isPlain && (
+            <Tooltip label={t("docs.copyText")}>
+              <button className="btn-icon" aria-label={t("docs.copyText")}
+                disabled={!fullText} onClick={copyText}>
+                <Icon name="copy" className="icon-sm" />
+              </button>
+            </Tooltip>
+          )}
           <Tooltip label={t("docs.download")}>
             <button className="btn-icon" aria-label={t("docs.download")} onClick={download}>
               <Icon name="upload" className="icon-sm doc-dl" />
@@ -164,25 +187,45 @@ export default function DocumentDialog({ doc, onClose }) {
         <div className="doc-body">
           {error && <p className="doc-note">{t("docs.loadFailed")}</p>}
 
-          {!error && view === "reading" && (
+          {/* A PDF: the file, not a flattening of it. */}
+          {!isPlain && (
+            <div className="doc-file">
+              <span className="doc-stack" aria-hidden="true">
+                <span className="doc-sheet" />
+              </span>
+              {pageCount ? (
+                <p className="doc-file-meta">
+                  {pageCount === 1 ? t("docs.onePage") : t("docs.pageCount", { n: pageCount })}
+                </p>
+              ) : null}
+              <button className="btn doc-file-dl" onClick={download}>
+                <Icon name="upload" className="icon-sm doc-dl" /> {t("docs.download")}
+              </button>
+            </div>
+          )}
+
+          {isPlain && !error && view === "reading" && (
             !content ? (
               <p className="doc-note">{t("docs.loading")}</p>
             ) : (
               <>
-                {content.pages.map((p) => (
-                  <section key={p.page_number} className="doc-page">
-                    {content.pages.length > 1 && (
-                      <div className="doc-page-no">{t("docs.page", { n: p.page_number })}</div>
-                    )}
-                    <p className="doc-text">{p.text}</p>
-                  </section>
-                ))}
+                {/* Numbered down the side, so a line can be pointed at. The
+                    number column does not select with the text: it is a
+                    counter, not part of the file. */}
+                <div className="doc-source">
+                  {lines.map((line, i) => (
+                    <div className="doc-line" key={i}>
+                      <span className="doc-ln">{i + 1}</span>
+                      <span className="doc-code">{line || "\u00a0"}</span>
+                    </div>
+                  ))}
+                </div>
                 {content.truncated && <p className="doc-note">{t("docs.truncated")}</p>}
               </>
             )
           )}
 
-          {!error && view === "chunks" && (
+          {isPlain && !error && view === "chunks" && (
             !chunks ? (
               <p className="doc-note">{t("docs.loading")}</p>
             ) : chunks.length === 0 ? (

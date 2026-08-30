@@ -29,7 +29,7 @@ from app.services.document_processor import extract_text
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
-ALLOWED = {"pdf", "docx", "txt"}
+ALLOWED = {"pdf", "docx", "txt", "md"}
 
 
 def _run_pipeline(document_id: uuid.UUID) -> None:
@@ -240,6 +240,22 @@ def document_chunks(
     """
     doc = _owned(db, document_id, current_user)
     return [DocumentChunk(**row) for row in vector_store.chunks_for_document(str(doc.document_id))]
+
+
+@router.get("/{document_id}/pages")
+def document_pages(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """The page count, for the card a PDF opens to.
+
+    Read from the chunks rather than from the file: the file would have to be
+    parsed again, and for a scanned PDF that means running OCR to answer a
+    question the index already knows.
+    """
+    doc = _owned(db, document_id, current_user)
+    return {"page_count": vector_store.page_count_for_document(str(doc.document_id))}
 
 
 @router.get("/{document_id}/file")

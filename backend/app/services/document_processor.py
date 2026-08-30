@@ -110,7 +110,10 @@ def extract_text(
         return _extract_pdf(path, on_ocr_start=on_ocr_start, on_page=on_page)
     if file_type == "docx":
         pages = _extract_docx(path)
-    elif file_type == "txt":
+    elif file_type in ("txt", "md"):
+        # Markdown is read as what it is on disk: text. Nothing downstream cares
+        # about the syntax, and the viewer shows the source rather than
+        # rendering it.
         pages = _extract_txt(path)
     else:
         raise ValueError(f"Unsupported file type: {file_type}")

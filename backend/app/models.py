@@ -83,7 +83,7 @@ class Document(Base):
     owner: Mapped["User"] = relationship(back_populates="documents")
 
     __table_args__ = (
-        CheckConstraint("file_type IN ('pdf','docx','txt')", name="ck_documents_file_type"),
+        CheckConstraint("file_type IN ('pdf','docx','txt','md')", name="ck_documents_file_type"),
         CheckConstraint("file_size > 0", name="ck_documents_file_size"),
         CheckConstraint(
             "processing_status IN ('pending','processing','ocr','done','failed')",

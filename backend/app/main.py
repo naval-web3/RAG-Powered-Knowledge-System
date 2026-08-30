@@ -59,6 +59,17 @@ def on_startup() -> None:
         conn.execute(
             text("ALTER TABLE users ADD COLUMN IF NOT EXISTS work_role VARCHAR(40)")
         )
+        # Widening a CHECK means replacing it: dropping first is what makes
+        # this safe to run again.
+        conn.execute(
+            text("ALTER TABLE documents DROP CONSTRAINT IF EXISTS ck_documents_file_type")
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE documents ADD CONSTRAINT ck_documents_file_type "
+                "CHECK (file_type IN ('pdf','docx','txt','md'))"
+            )
+        )
         conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS stage VARCHAR(20)"))
         conn.execute(
             text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS progress INTEGER NOT NULL DEFAULT 0")

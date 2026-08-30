@@ -69,7 +69,7 @@ export default function ChatPage() {
       id="page-chat"
       style={{ display: "flex", flexDirection: "column" }}
     >
-      <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={onAttach} />
+      <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={onAttach} />
 
       <div className="chat-scroll" ref={scrollRef}>
         <div className="chat-col">
