@@ -1811,6 +1811,31 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 
 
+/* Names that outrun their row end in a fade, not an ellipsis. Three dots are a
+   glyph: they read as content, and down a column of file names every row ends
+   up looking like every other. A fade just stops.
+
+   The mask is on the BOX, not the text, so a short title never touches the
+   faded zone and is left alone; only text that actually reaches the edge is
+   affected. And because it makes the text transparent rather than painting
+   over it, whatever the row's background happens to be at the time -- hover
+   tint, selected tint, the peeking panel -- is what shows through. */
+.conv-title,
+.search-hit-title,
+.user-chip .u-name,
+.user-chip .u-mail {
+  /* min-width:0 so a long name shrinks rather than widening the row it sits in. */
+  min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: clip;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+}
+/* The chip's two lines are narrower than a chat row, so they fade sooner. */
+.user-chip .u-name,
+.user-chip .u-mail {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
+}
+
 /* Keys sit in a row with a gap where the plus signs used to be. No font-size
    here: this is worn by a sidebar row and by a tooltip, and each sets its own.
    The arrow is sized in em so it tracks whichever that is. */
