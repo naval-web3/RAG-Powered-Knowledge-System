@@ -780,8 +780,11 @@ body {
 /* The current language, quiet, at the end of its row. */
 .pop-menu .pm-trail {
   margin-left: auto; padding-left: 14px; font-size: 12px; color: var(--text-3);
-  max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* The label gives way first: "Language" can be read from its icon and its
+   position, where a half-printed language name tells you nothing. */
+.pop-menu .pm-item > .pm-label { flex: 0 1 auto; }
 .pop-menu .pm-item:hover .pm-trail { color: var(--text-2); }
 
 /* ---------- Main column & topbar ---------- */

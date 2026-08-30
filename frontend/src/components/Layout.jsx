@@ -859,7 +859,7 @@ function Shell() {
               <button className="pm-item" onClick={() => { setUserMenu(false); setLangOpen(true); }}>
                 <Icon name="globe" className="icon-sm" />
                 <span className="pm-label">{t("common.language")}</span>
-                <span className="pm-trail">{languageOf(locale).native}</span>
+                <span className="pm-trail">{languageOf(locale).short}</span>
               </button>
               <button className="pm-item" onClick={openSettings}>
                 <Icon name="settings" className="icon-sm" /> {t("common.settings")}

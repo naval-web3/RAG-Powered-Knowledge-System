@@ -26,6 +26,7 @@ import Register from "../src/pages/Register";
 import LanguageDialog from "../src/components/LanguageDialog";
 import SettingsDialog, { SECTIONS } from "../src/components/SettingsDialog";
 import { LocaleProvider } from "../src/i18n";
+import { LANGUAGES } from "../src/i18n/languages";
 import STRINGS from "../src/i18n/strings";
 
 // Pages that need the chat providers, mounted at a route they read params from.
@@ -146,6 +147,19 @@ console.log("checking locale coverage:");
     });
   }
 }
+
+// The row in the user menu shows `short`, so two languages sharing one would be
+// indistinguishable there while looking fine in the picker.
+check("language short names are present and unique", () => {
+  const missing = LANGUAGES.filter((l) => !l.short || !l.short.trim());
+  if (missing.length) throw new Error(`no short name: ${missing.map((l) => l.id).join(", ")}`);
+  const seen = new Map();
+  for (const l of LANGUAGES) {
+    if (seen.has(l.short)) throw new Error(`${l.id} and ${seen.get(l.short)} both show "${l.short}"`);
+    seen.set(l.short, l.id);
+  }
+  return "ok".repeat(12);
+});
 
 // Render the shell in a non-English locale, so the wiring is exercised and not
 // just the dictionaries. Hindi shares no letters with English, which makes a
