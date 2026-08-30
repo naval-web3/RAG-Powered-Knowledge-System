@@ -11,7 +11,6 @@ const WORK = {
   "en-US": {
     "settings.work": "What best describes your work?",
     "settings.workNone": "Not set",
-    "settings.workSub": "It only changes how an answer is pitched, never what it may be drawn from.",
     "work.student": "Student",
     "work.research": "Research",
     "work.teaching": "Teaching",
@@ -32,7 +31,6 @@ const WORK = {
   "fr-FR": {
     "settings.work": "Que faites-vous ?",
     "settings.workNone": "Non renseigné",
-    "settings.workSub": "Cela change seulement le niveau des réponses, jamais leur source.",
     "work.student": "Étudiant",
     "work.research": "Recherche",
     "work.teaching": "Enseignement",
@@ -53,7 +51,6 @@ const WORK = {
   "de-DE": {
     "settings.work": "Was beschreibt Ihre Arbeit am besten?",
     "settings.workNone": "Nicht festgelegt",
-    "settings.workSub": "Das ändert nur, wie eine Antwort ausfällt, nie woraus sie stammt.",
     "work.student": "Studium",
     "work.research": "Forschung",
     "work.teaching": "Lehre",
@@ -74,7 +71,6 @@ const WORK = {
   "hi-IN": {
     "settings.work": "आपका काम क्या है?",
     "settings.workNone": "तय नहीं",
-    "settings.workSub": "इससे केवल यह बदलता है कि उत्तर किस स्तर पर दिया जाए, यह नहीं कि वह कहाँ से आए।",
     "work.student": "छात्र",
     "work.research": "शोध",
     "work.teaching": "अध्यापन",
@@ -95,7 +91,6 @@ const WORK = {
   "id-ID": {
     "settings.work": "Apa yang paling menggambarkan pekerjaan Anda?",
     "settings.workNone": "Belum diatur",
-    "settings.workSub": "Ini hanya mengubah cara jawaban disampaikan, bukan sumbernya.",
     "work.student": "Pelajar",
     "work.research": "Riset",
     "work.teaching": "Pengajaran",
@@ -116,7 +111,6 @@ const WORK = {
   "it-IT": {
     "settings.work": "Che lavoro fai?",
     "settings.workNone": "Non impostato",
-    "settings.workSub": "Cambia solo il taglio della risposta, mai la fonte da cui viene.",
     "work.student": "Studente",
     "work.research": "Ricerca",
     "work.teaching": "Insegnamento",
@@ -137,7 +131,6 @@ const WORK = {
   "ja-JP": {
     "settings.work": "どのお仕事に近いですか？",
     "settings.workNone": "未設定",
-    "settings.workSub": "回答の説明の仕方が変わるだけで、どこから答えるかは変わりません。",
     "work.student": "学生",
     "work.research": "研究",
     "work.teaching": "教育",
@@ -158,7 +151,6 @@ const WORK = {
   "ko-KR": {
     "settings.work": "어떤 일을 하시나요?",
     "settings.workNone": "설정 안 함",
-    "settings.workSub": "답변의 눈높이만 달라질 뿐, 답의 출처는 달라지지 않습니다.",
     "work.student": "학생",
     "work.research": "연구",
     "work.teaching": "교육",
@@ -179,7 +171,6 @@ const WORK = {
   "pt-BR": {
     "settings.work": "O que melhor descreve seu trabalho?",
     "settings.workNone": "Não definido",
-    "settings.workSub": "Muda apenas o nível da resposta, nunca de onde ela vem.",
     "work.student": "Estudante",
     "work.research": "Pesquisa",
     "work.teaching": "Ensino",
@@ -200,7 +191,6 @@ const WORK = {
   "es-419": {
     "settings.work": "¿Qué describe mejor tu trabajo?",
     "settings.workNone": "Sin definir",
-    "settings.workSub": "Solo cambia el nivel de la respuesta, nunca de dónde sale.",
     "work.student": "Estudiante",
     "work.research": "Investigación",
     "work.teaching": "Docencia",
@@ -221,7 +211,6 @@ const WORK = {
   "es-ES": {
     "settings.work": "¿Qué describe mejor tu trabajo?",
     "settings.workNone": "Sin definir",
-    "settings.workSub": "Solo cambia el nivel de la respuesta, nunca de dónde sale.",
     "work.student": "Estudiante",
     "work.research": "Investigación",
     "work.teaching": "Docencia",

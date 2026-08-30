@@ -209,7 +209,8 @@ check("SettingsDialog in Hindi", () => {
         </LocaleProvider>
       </MemoryRouter>
     );
-    for (const key of ["nav.account", "settings.profile", "settings.chatFont"]) {
+    for (const key of ["nav.account", "settings.profile", "settings.chatFont",
+                       "settings.work", "work.student"]) {
       if (!html.includes(STRINGS["hi-IN"][key])) {
         throw new Error(`${key} did not render in Hindi`);
       }

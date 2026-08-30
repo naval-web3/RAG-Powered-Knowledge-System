@@ -376,7 +376,7 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
                   <input className="set-input" value={user?.email || ""} disabled />
                 </Row>
 
-                <Row title={t("settings.work")} sub={t("settings.workSub")}>
+                <Row title={t("settings.work")}>
                   <select className="set-select" value={work}
                     onChange={(e) => saveWork(e.target.value)}>
                     <option value="">{t("settings.workNone")}</option>
