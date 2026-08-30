@@ -32,7 +32,14 @@ export default function Tooltip({ label, keys, placement = "bottom", className =
       return undefined;
     }
     const place = () => {
-      const anchor = anchorRef.current;
+      /* Measure the control, not the wrapper around it. They are the same box
+         while the control is in normal flow, but a control that is absolutely
+         positioned leaves its wrapper behind: the private bar's close button is
+         pinned to the right of the bar while its wrapper stays where the flow
+         put it, at the left. Measuring the wrapper pointed the label at an
+         empty corner of the screen. */
+      const wrap = anchorRef.current;
+      const anchor = wrap?.firstElementChild || wrap;
       const tip = tipRef.current;
       if (!anchor || !tip) return;
       const r = anchor.getBoundingClientRect();
