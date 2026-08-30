@@ -742,7 +742,10 @@ body {
 .conv-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .conv-actions { display: none; gap: 2px; }
 .conv-item:hover .conv-actions, .conv-item.active .conv-actions { display: flex; }
-.conv-actions .btn-icon { width: 26px; height: 26px; border-radius: 8px; color: var(--text-3); }
+/* HEIGHT MATTERS HERE: this button appears on hover, so anything taller than
+   the title's line box makes the row grow and shoves every row below it down.
+   22px sits inside the line, so hovering only paints -- it does not move. */
+.conv-actions .btn-icon { width: 26px; height: 20px; border-radius: 7px; color: var(--text-3); }
 .conv-actions .btn-icon:hover { color: var(--text); background: var(--border); }
 /* Renaming changes the words, not the row. No border, no fill, no padding of
    its own: the input also carries .conv-title, so it inherits the very box the
