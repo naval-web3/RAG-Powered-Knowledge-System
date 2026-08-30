@@ -22,6 +22,9 @@ import Icon from "./Icon";
 const GAP = 6;
 const EDGE = 8;
 const MAX_H = 320;
+// Below this a list is not worth opening in place; it would be a scrollbar with
+// a row and a half beside it.
+const MIN_H = 120;
 
 export default function Select({ value, options, onChange, ariaLabel, disabled = false }) {
   const btnRef = useRef(null);
@@ -44,16 +47,43 @@ export default function Select({ value, options, onChange, ariaLabel, disabled =
       const menu = menuRef.current;
       if (!btn || !menu) return;
       const r = btn.getBoundingClientRect();
-      const h = menu.offsetHeight;
-      const below = window.innerHeight - r.bottom - EDGE;
-      const above = r.top - EDGE;
-      // Below unless it genuinely does not fit and there is more room above.
-      const up = below < h && above > below;
-      const top = up ? Math.max(EDGE, r.top - h - GAP) : r.bottom + GAP;
+
+      /* Bounded by the dialog the control sits in, not just by the window. The
+         list is portalled to <body> so nothing clips it, which also means
+         nothing stops it hanging out of the panel it belongs to unless it is
+         told where the panel ends. */
+      const box = btn.closest(".modal")?.getBoundingClientRect();
+      const ceiling = Math.max(EDGE, box ? box.top + EDGE : EDGE);
+      const floor = Math.min(
+        window.innerHeight - EDGE,
+        box ? box.bottom - EDGE : window.innerHeight - EDGE
+      );
+
+      const roomBelow = floor - r.bottom - GAP;
+      const roomAbove = r.top - GAP - ceiling;
+      // scrollHeight is the content's height whatever max-height is set to, so
+      // it says how much room the list would like before it is given any.
+      const wanted = Math.min(MAX_H, menu.scrollHeight);
+      const up = roomBelow < wanted && roomAbove > roomBelow;
+      const maxH = Math.max(MIN_H, Math.min(MAX_H, up ? roomAbove : roomBelow));
+
       // Right-aligned: these sit at the right of a settings row, so their right
       // edges should line up down the panel.
       const right = Math.max(EDGE, window.innerWidth - r.right);
-      setPos((p) => (p && p.top === top && p.right === right ? p : { top, right }));
+      /* Opening upwards pins the BOTTOM edge instead of the top, so the list
+         grows away from the control without anyone having to know its height. */
+      const next = up
+        ? { top: null, bottom: Math.max(EDGE, window.innerHeight - r.top + GAP), right, maxH }
+        : { top: r.bottom + GAP, bottom: null, right, maxH };
+      setPos((prev) =>
+        prev &&
+        prev.top === next.top &&
+        prev.bottom === next.bottom &&
+        prev.right === next.right &&
+        prev.maxH === next.maxH
+          ? prev
+          : next
+      );
     };
     place();
 
@@ -138,9 +168,12 @@ export default function Select({ value, options, onChange, ariaLabel, disabled =
             role="listbox"
             aria-label={ariaLabel}
             style={{
-              top: pos ? pos.top : 0,
+              top: pos && pos.top != null ? pos.top : undefined,
+              bottom: pos && pos.bottom != null ? pos.bottom : undefined,
+              // Parked off-screen for the one frame before it is measured: it
+              // has to be laid out to have a height worth reading.
               right: pos ? pos.right : -9999,
-              maxHeight: MAX_H,
+              maxHeight: pos ? pos.maxH : MAX_H,
             }}
             onKeyDown={onKeyDown}
           >
