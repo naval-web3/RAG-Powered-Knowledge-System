@@ -1225,6 +1225,12 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .private-mark:active { transform: translateY(0) scale(.96); }
 .private-mark img { width: 56px; height: 56px; }
 #app.private-chat #sidebar { display: none; }
+/* And the strip that stands in for it. It is parked just off the left edge of
+   the bar, which is invisible while the bar starts at the window's edge, but
+   private mode insets the whole column by its padding and the strip's right
+   edge then shows in that gutter. Peeking it would slide all 282px of sidebar
+   colour across a screen the sidebar is not part of. */
+#app.private-chat .topbar::before { display: none !important; }
 #app.private-chat #btn-mobile-menu,
 #app.private-chat .tip-wrap.only-narrow,
 #app.private-chat #btn-sidebar-toggle { display: none !important; }

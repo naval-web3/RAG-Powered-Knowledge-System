@@ -302,6 +302,13 @@ function Shell() {
   const chat = useChat();
   const { locale, t } = useLocale();
 
+  /* Declared here rather than beside the rest of the derived values: the peek
+     effects below read privateActive, and a const declared under them is in its
+     temporal dead zone when their dependency arrays are evaluated. */
+  const onChat = location.pathname === "/";
+  const onNewChat = onChat && !chat.activeId;
+  const privateActive = chat.privateMode && onChat;
+
   const [collapsed, setCollapsed] = useState(false);
   const [peeking, setPeeking] = useState(false);
   const peekingRef = useRef(false);
@@ -350,7 +357,9 @@ function Shell() {
      fire in spurious pairs -- which made the panel flicker open and shut. A
      coordinate test cannot move under the pointer. */
   useEffect(() => {
-    if (!collapsed) return undefined;
+    // Not while private: the sidebar is gone from this screen, so there is
+    // nothing at the left edge to peek at.
+    if (!collapsed || privateActive) return undefined;
     const EDGE = 8;        // strip down the left edge
     const PANEL = 282;     // sidebar width, once it is out
     const onMove = (e) => {
@@ -381,8 +390,9 @@ function Shell() {
     };
   }, [collapsed]);
   useEffect(() => {
-    if (!collapsed) setPeeking(false); // pinned open: nothing to peek at
-  }, [collapsed]);
+    // Pinned open, or private: either way there is nothing to peek at.
+    if (!collapsed || privateActive) setPeeking(false);
+  }, [collapsed, privateActive]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [convSearch, setConvSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -403,9 +413,6 @@ function Shell() {
   const [themePref, setThemePref] = useState(getThemePref);
   const footRef = useRef(null);
 
-  const onChat = location.pathname === "/";
-  const onNewChat = onChat && !chat.activeId;
-  const privateActive = chat.privateMode && onChat;
   const [pendingDelete, setPendingDelete] = useState(null);
 
 
