@@ -485,8 +485,6 @@ function Shell() {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  const [provider, model] = chat.sel.split("|");
-
   function handleLogout() {
     logout();
     navigate("/welcome");
@@ -921,16 +919,9 @@ function Shell() {
                 </div>
               ))}
             <div className="grow" />
-            <span className="provider-pill" title="Active LLM provider">
-              <span className="dot" />
-              <span>{provider} · {model}</span>
-            </span>
-            <button className="btn-icon" title="Toggle theme" aria-label="Toggle theme"
-              onClick={toggleThemeBtn}>
-              <Icon name={isDark ? "sun" : "moon"} className="icon-sm" />
-            </button>
-            {/* Last, so it sits in the same corner the cross occupies in
-                private mode: one place to switch the mode either way. */}
+            {/* The only control left in the bar, and it sits in the same corner
+                the cross occupies in private mode: one place to switch the mode
+                either way. */}
             <Tooltip label="Private chat" keys="Ctrl+Shift+P">
               <button
                 className={`private-toggle ${chat.privateMode ? "on" : ""}`}
