@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useEdgeFade from "../useEdgeFade";
 import Icon from "./Icon";
 
 /**
@@ -25,6 +26,7 @@ const MAX_H = 320;
 export default function Select({ value, options, onChange, ariaLabel, disabled = false }) {
   const btnRef = useRef(null);
   const menuRef = useRef(null);
+  const [fadeRef, fade] = useEdgeFade();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const [active, setActive] = useState(0);
@@ -131,8 +133,8 @@ export default function Select({ value, options, onChange, ariaLabel, disabled =
       {open &&
         createPortal(
           <div
-            ref={menuRef}
-            className="sel-menu"
+            ref={(el) => { menuRef.current = el; fadeRef.current = el; }}
+            className={`sel-menu ${fade}`}
             role="listbox"
             aria-label={ariaLabel}
             style={{

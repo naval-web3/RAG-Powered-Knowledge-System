@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
+import useEdgeFade from "../useEdgeFade";
 import { getThemePref, setTheme } from "../theme";
 import { initialsOf } from "../utils";
 import ConfirmModal from "./ConfirmModal";
@@ -120,6 +121,7 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
   const isAdmin = user?.role === "admin";
 
   const [section, setSection] = useState(initialSection);
+  const [railRef, railFade] = useEdgeFade();
   const [railQuery, setRailQuery] = useState("");
   const paneRef = useRef(null);
 
@@ -332,7 +334,7 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
             <input value={railQuery} placeholder={t("common.search")}
               onChange={(e) => setRailQuery(e.target.value)} />
           </div>
-          <div className="set-rail-scroll">
+          <div className={`set-rail-scroll ${railFade}`} ref={railRef}>
             <div className="set-rail-label">{t("common.settings")}</div>
             {shown.map((s) => (
               <button key={s.id} className={`set-rail-item ${section === s.id ? "active" : ""}`}
@@ -462,10 +464,14 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
 
                 <h3 className="set-h">{t("settings.session")}</h3>
                 <Row title={t("common.signOut")} sub={t("settings.signOutSub")}>
-                  <button className="btn" onClick={() => { logout(); navigate("/welcome"); }}>{t("common.signOut")}</button>
+                  <button className="btn btn-strong" onClick={() => { logout(); navigate("/welcome"); }}>
+                    {t("common.signOut")}
+                  </button>
                 </Row>
                 <Row title={t("settings.deleteAccount")} sub={t("settings.deleteAccountSub")}>
-                  <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>{t("settings.deleteAccount")}</button>
+                  <button className="btn btn-strong" onClick={() => setConfirmDelete(true)}>
+                    {t("settings.deleteAccount")}
+                  </button>
                 </Row>
               </>
             )}

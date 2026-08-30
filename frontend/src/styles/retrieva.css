@@ -705,17 +705,20 @@ body {
   flex: 0 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
   padding: 4px 3px 0 12px;
 }
-/* Both scrollers dissolve their rows at whichever edge still has list behind
-   it, so neither ends on a row sliced flat by the overflow. */
-.sb-scroll, .sb-projects {
+/* Any scroller dissolves its rows at whichever edge still has list behind it,
+   so none of them ends on a row sliced flat by the overflow. The class is put
+   on by useEdgeFade, which is also what decides which edges are earning it.
+   The mask is on the box rather than the content, so it stays at the edges
+   while the list moves underneath. */
+.edge-fade {
   --fade-t: 0px; --fade-b: 0px;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0,
     #000 var(--fade-t), #000 calc(100% - var(--fade-b)), transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0,
     #000 var(--fade-t), #000 calc(100% - var(--fade-b)), transparent 100%);
 }
-.sb-scroll.fade-top, .sb-projects.fade-top { --fade-t: 22px; }
-.sb-scroll.fade-bot, .sb-projects.fade-bot { --fade-b: 22px; }
+.edge-fade.fade-top { --fade-t: 22px; }
+.edge-fade.fade-bot { --fade-b: 22px; }
 /* Fixed between the two scrollers: no negative margins, because it is a direct
    child of the sidebar and has no scroller padding to bleed into. */
 /* Qualified with .sb-group-row: that rule is declared further down the file and
@@ -1753,6 +1756,29 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   border-left: 2px solid var(--border); padding-left: 12px; margin-top: 14px;
 }
 .set-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+/* Buttons in this panel are quieter and smaller than the app's default: an
+   outline in the text's own colour rather than a fill, so a row reads as its
+   label first and its control second. currentColor means each keeps whatever
+   colour it already had, and the destructive ones stay red without a rule
+   each. */
+.set-scroll .btn {
+  padding: 6px 13px; font-size: 12.5px; border-radius: 999px;
+  border: 1px solid currentColor; background: none; box-shadow: none;
+  color: var(--text-2);
+}
+.set-scroll .btn:hover { color: var(--text); background: var(--surface-2); }
+.set-scroll .btn-primary { color: var(--accent); }
+.set-scroll .btn-primary:hover { color: var(--accent-hover); background: var(--accent-soft); }
+.set-scroll .btn-danger { color: var(--red); }
+.set-scroll .btn-danger:hover { color: var(--red); background: var(--red-soft); }
+.set-scroll .btn:disabled { opacity: .45; }
+/* The two that end something: filled rather than outlined, because leaving the
+   account and deleting it are not the same kind of act as saving a field. */
+.set-scroll .btn-strong,
+.set-scroll .btn-strong:hover {
+  background: var(--red); border-color: var(--red); color: #FFF;
+}
+.set-scroll .btn-strong:hover { filter: brightness(.93); }
 
 .set-input {
   width: 240px; max-width: 100%; padding: 8px 11px;

@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { ChatProvider, useChat } from "../context/ChatContext";
 import { ToastProvider } from "../context/ToastContext";
 import { useLocale, useT } from "../i18n";
+import useEdgeFade from "../useEdgeFade";
 import { languageOf } from "../i18n/languages";
 import { getThemePref, setTheme } from "../theme";
 import { initialsOf } from "../utils";
@@ -134,6 +135,7 @@ function PortalMenu({ anchorRef, align = "right", className = "", children }) {
  */
 function ProjectFlyout({ conv, projects, onMove, onCreate }) {
   const t = useT();
+  const [listRef, listFade] = useEdgeFade();
   const [q, setQ] = useState("");
   const boxRef = useRef(null);
   const [place, setPlace] = useState({ flip: false, lift: 0 });
@@ -172,7 +174,7 @@ function ProjectFlyout({ conv, projects, onMove, onCreate }) {
           }}
         />
       </div>
-      <div className="pm-flyout-list">
+      <div className={`pm-flyout-list ${listFade}`} ref={listRef}>
         {hits.map((p) => (
           <button key={p.project_id} className="pm-item" onClick={() => onMove(conv, p.project_id)}>
             <span className="pm-label">{p.name}</span>
@@ -318,11 +320,10 @@ function Shell() {
   const topbarRef = useRef(null);
   const reopenRef = useRef(null);
   const resultsRef = useRef(null);
+  const [hitsRef, hitsFade] = useEdgeFade();
   const resultsInnerRef = useRef(null);
-  const convScrollRef = useRef(null);
-  const [convFade, setConvFade] = useState({ top: false, bot: false });
-  const projScrollRef = useRef(null);
-  const [projFade, setProjFade] = useState({ top: false, bot: false });
+  const [convScrollRef, convFade] = useEdgeFade();
+  const [projScrollRef, projFade] = useEdgeFade();
   // Only one menu is open at a time, so one anchor ref each is enough.
   const rowMenuBtnRef = useRef(null);
   const titleMenuBtnRef = useRef(null);
@@ -459,24 +460,6 @@ function Shell() {
     ? chat.conversations.find((c) => c.conversation_id === chat.activeId)
     : null;
 
-  /* Both lists gain and lose their overflow as chats arrive, groups collapse
-     or the window resizes -- none of which fire a scroll event. */
-  function watchFade(ref, setFade) {
-    const el = ref.current;
-    if (!el) return undefined;
-    const measure = () => {
-      const top = el.scrollTop > 2;
-      const bot = el.scrollTop + el.clientHeight < el.scrollHeight - 2;
-      setFade((p) => (p.top === top && p.bot === bot ? p : { top, bot }));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    if (el.firstElementChild) ro.observe(el.firstElementChild);
-    return () => ro.disconnect();
-  }
-  useEffect(() => watchFade(convScrollRef, setConvFade));
-  useEffect(() => watchFade(projScrollRef, setProjFade));
 
   function menuAction(conv, key) {
     if (!conv) return;
@@ -722,9 +705,7 @@ function Shell() {
         </div>
 
         <div
-          className={`sb-projects ${projFade.top ? "fade-top" : ""} ${projFade.bot ? "fade-bot" : ""}`}
-          ref={projScrollRef}
-          onScroll={() => updateFade(projScrollRef, setProjFade)}>
+          className={`sb-projects ${projFade}`} ref={projScrollRef}>
 
           <div className="sb-group-row">
             <button className="sb-group-toggle" aria-expanded={!collapsedGroups.docs}
@@ -849,9 +830,7 @@ function Shell() {
         </div>
 
         <div
-          className={`sb-scroll ${convFade.top ? "fade-top" : ""} ${convFade.bot ? "fade-bot" : ""}`}
-          id="conv-list" ref={convScrollRef}
-          onScroll={() => updateFade(convScrollRef, setConvFade)}>
+          className={`sb-scroll ${convFade}`} id="conv-list" ref={convScrollRef}>
           {chatsOpen && (
           <>
           {chat.conversations.length === 0 && (
@@ -1096,7 +1075,8 @@ function Shell() {
                 </button>
               </Tooltip>
             </div>
-            <div className="search-results" ref={resultsRef}>
+            <div className={`search-results ${hitsFade}`}
+              ref={(el) => { resultsRef.current = el; hitsRef.current = el; }}>
               <div className="search-results-inner" ref={resultsInnerRef}>
                 {searchHits.length === 0 && (
                   <p className="search-empty">{t("sidebar.nothingMatches", { q: convSearch })}</p>

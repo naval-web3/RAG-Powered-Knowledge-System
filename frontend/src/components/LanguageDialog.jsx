@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocale } from "../i18n";
+import useEdgeFade from "../useEdgeFade";
 import { LANGUAGES } from "../i18n/languages";
 import Icon from "./Icon";
 
@@ -11,6 +12,7 @@ import Icon from "./Icon";
  */
 export default function LanguageDialog({ onClose }) {
   const { locale, setLocale, t } = useLocale();
+  const [gridRef, fade] = useEdgeFade();
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -28,7 +30,7 @@ export default function LanguageDialog({ onClose }) {
             <Icon name="x" className="icon-sm" />
           </button>
         </div>
-        <div className="lang-grid">
+        <div className={`lang-grid ${fade}`} ref={gridRef}>
           {LANGUAGES.map((l) => (
             <button key={l.id} className={`lang-card ${l.id === locale ? "selected" : ""}`}
               lang={l.id} aria-current={l.id === locale}
