@@ -2037,19 +2037,59 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 /* A PDF is not shown, it is handed over: the card is the file, not a reading
    of it. Small enough that it does not pretend to be a viewer. */
 .modal.doc-modal.is-file { max-width: 380px; height: auto; }
-.doc-file { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 14px 0 6px; }
+.doc-file { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 0 4px; }
 /* Three sheets, drawn rather than fetched: a thumbnail would mean rendering a
-   PDF page, which is the thing this view exists to avoid. */
-.doc-stack { position: relative; width: 132px; height: 96px; }
+   PDF page, which is the thing this view exists to avoid. The stack is also the
+   button, because taking the file is the only thing there is to do here. */
+.doc-stack {
+  position: relative; width: 148px; height: 108px;
+  background: none; border: 0; padding: 0; cursor: pointer;
+}
 .doc-stack::before, .doc-stack::after, .doc-sheet {
   content: ""; position: absolute; inset: 0;
   border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface);
+  transition: transform .18s var(--ease);
 }
 .doc-stack::before { transform: translate(8px, -6px) rotate(2deg); opacity: .5; }
 .doc-stack::after { transform: translate(4px, -3px) rotate(1deg); opacity: .75; }
 .doc-sheet { box-shadow: var(--shadow-sm); }
+/* The sheets fan a little further apart under the pointer, so the stack reads
+   as something you can take rather than a picture of one. */
+.doc-stack:hover::before { transform: translate(12px, -9px) rotate(3deg); }
+.doc-stack:hover::after { transform: translate(6px, -5px) rotate(1.5deg); }
+/* Only on hover: at rest the card says what the file is, not what to do. */
+.doc-stack-dl {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 8px; background: color-mix(in srgb, var(--surface) 88%, transparent);
+  font-size: 13px; font-weight: 600; color: var(--accent);
+  opacity: 0; transition: opacity .16s var(--ease);
+}
+.doc-stack:hover .doc-stack-dl,
+.doc-stack:focus-visible .doc-stack-dl { opacity: 1; }
 .doc-file-meta { font-size: 12.5px; color: var(--text-3); }
-.doc-file-dl { gap: 8px; }
+
+/* Reading a document: the same renderer the chat uses, given room to breathe
+   and a measure that does not run the full width of the dialog. */
+.doc-read { max-width: 68ch; margin: 0 auto; font-size: 15px; line-height: 1.75; color: var(--text); }
+.doc-read h2, .doc-read h3, .doc-read h4 { letter-spacing: -.01em; margin: 22px 0 8px; }
+.doc-read h2 { font-size: 21px; }
+.doc-read h3 { font-size: 17px; }
+.doc-read h4 { font-size: 15px; }
+.doc-read > *:first-child { margin-top: 0; }
+.doc-read p { margin-bottom: 13px; }
+.doc-read ul, .doc-read ol { margin: 4px 0 14px 22px; }
+.doc-read ul { list-style: disc; }
+.doc-read ol { list-style: decimal; }
+.doc-read li { margin-bottom: 6px; }
+.doc-read hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
+.doc-read code { font-family: var(--mono); font-size: .9em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+/* Markdown notation, coloured so the shape of a file reads at a glance. */
+.tok-mark { color: var(--text-3); }
+.tok-heading { color: var(--accent); font-weight: 600; }
+.tok-em { color: var(--text-3); }
+.tok-rule { color: var(--border-strong); }
 
 /* Each passage boxed, because where one ends and the next begins is the whole
    point of this view. */

@@ -4,6 +4,7 @@ import client from "../api/client";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
+import MarkdownLite from "./MarkdownLite";
 import ConfirmModal from "./ConfirmModal";
 import Icon from "./Icon";
 import Tooltip from "./Tooltip";
@@ -21,9 +22,42 @@ import Tooltip from "./Tooltip";
  * the document would misrepresent it. The file itself is one click away, in a
  * reader built for it.
  *
- * The Chunks tab, what retrieval actually searched, belongs to the text kinds.
+ * Two ways to look at one: read it, or read its source. Reading renders the
+ * headings, emphasis and lists that are in the file; code shows the characters
+ * that make them, numbered.
  */
 const PLAIN = ["txt", "md", "docx"];
+/* Enough Markdown to read the shape of a file at a glance: what a line IS
+   (heading, quote, rule, list marker, table pipe) and where emphasis is marked.
+   Not a parser, and deliberately not one: it colours the notation, and the
+   Reading tab is there for anyone who wants the meaning instead. */
+const MD_LINE = /^(\s*)(#{1,6}\s|>\s?|[-*+]\s|\d+[.)]\s)/;
+
+function highlight(line) {
+  if (!line) return "\u00a0";
+  if (/^\s*([-*_])\1{2,}\s*$/.test(line)) {
+    return <span className="tok-rule">{line}</span>;
+  }
+  const lead = line.match(MD_LINE);
+  const marker = lead ? lead[0] : "";
+  const rest = lead ? line.slice(marker.length) : line;
+  const isHeading = marker.trimStart().startsWith("#");
+  return (
+    <>
+      {marker && <span className="tok-mark">{marker}</span>}
+      <span className={isHeading ? "tok-heading" : undefined}>
+        {rest.split(/(\*\*[^*]+\*\*|`[^`]+`|\|)/g).filter(Boolean).map((part, i) => {
+          if (part === "|") return <span key={i} className="tok-mark">{part}</span>;
+          if (part.startsWith("**") || part.startsWith("`")) {
+            return <span key={i} className="tok-em">{part}</span>;
+          }
+          return <span key={i}>{part}</span>;
+        })}
+      </span>
+    </>
+  );
+}
+
 export default function DocumentDialog({ doc, onClose }) {
   const t = useT();
   const chat = useChat();
@@ -33,8 +67,11 @@ export default function DocumentDialog({ doc, onClose }) {
   const isPlain = PLAIN.includes((doc.file_type || "").toLowerCase());
   const [view, setView] = useState("reading");
   const [pageCount, setPageCount] = useState(null);
+  // Only a .md is worth colouring: the others are prose that happens to be
+  // monospaced, and painting stray asterisks in a .txt would invent structure
+  // the file does not have.
+  const isMd = (doc.file_type || "").toLowerCase() === "md";
   const [content, setContent] = useState(null);
-  const [chunks, setChunks] = useState(null);
   const [error, setError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -58,18 +95,6 @@ export default function DocumentDialog({ doc, onClose }) {
       .catch(() => alive && setError(true));
     return () => { alive = false; };
   }, [id, isPlain]);
-
-  // Fetched only if the chunks tab is opened: it is the larger of the two, and
-  // most visits only ever want to read the document.
-  useEffect(() => {
-    if (view !== "chunks" || chunks) return undefined;
-    let alive = true;
-    client
-      .get(`/api/documents/${id}/chunks`)
-      .then(({ data }) => alive && setChunks(data))
-      .catch(() => alive && setChunks([]));
-    return () => { alive = false; };
-  }, [view, chunks, id]);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -132,6 +157,15 @@ export default function DocumentDialog({ doc, onClose }) {
 
         <div className="doc-head">
           <h3 title={doc.title}>{doc.title}</h3>
+          {/* The card has no toolbar to put this on, and beside the name is
+              where it reads anyway: ask about THIS document. */}
+          {!isPlain && (
+            <Tooltip label={t("docs.scopeChat")} placement="left">
+              <button className="btn-icon" aria-label={t("docs.scopeChat")} onClick={scopeToDoc}>
+                <Icon name="target" className="icon-sm" />
+              </button>
+            </Tooltip>
+          )}
           <Tooltip label={t("common.close")} placement="left">
             <button className="btn-icon" aria-label={t("common.close")} onClick={onClose}>
               <Icon name="x" className="icon-sm" />
@@ -139,6 +173,7 @@ export default function DocumentDialog({ doc, onClose }) {
           </Tooltip>
         </div>
 
+        {isPlain && (
         <div className="doc-bar">
           {isPlain && (
             <div className="set-seg doc-seg">
@@ -149,11 +184,11 @@ export default function DocumentDialog({ doc, onClose }) {
                   <Icon name="eye" className="icon-sm" />
                 </button>
               </Tooltip>
-              <Tooltip label={t("docs.chunksView")}>
-                <button className={view === "chunks" ? "active" : ""}
-                  aria-label={t("docs.chunksView")}
-                  onClick={() => setView("chunks")}>
-                  <Icon name="db" className="icon-sm" />
+              <Tooltip label={t("docs.codeView")}>
+                <button className={view === "code" ? "active" : ""}
+                  aria-label={t("docs.codeView")}
+                  onClick={() => setView("code")}>
+                  <Icon name="code" className="icon-sm" />
                 </button>
               </Tooltip>
             </div>
@@ -183,6 +218,7 @@ export default function DocumentDialog({ doc, onClose }) {
             </button>
           </Tooltip>
         </div>
+        )}
 
         <div className="doc-body">
           {error && <p className="doc-note">{t("docs.loadFailed")}</p>}
@@ -190,66 +226,56 @@ export default function DocumentDialog({ doc, onClose }) {
           {/* A PDF: the file, not a flattening of it. */}
           {!isPlain && (
             <div className="doc-file">
-              <span className="doc-stack" aria-hidden="true">
+              {/* The sheets ARE the button: hovering them offers the file,
+                  which is the only thing this card is for. */}
+              <button className="doc-stack" onClick={download} aria-label={t("docs.download")}>
                 <span className="doc-sheet" />
-              </span>
+                <span className="doc-stack-dl">
+                  <Icon name="upload" className="icon-sm doc-dl" /> {t("docs.download")}
+                </span>
+              </button>
               {pageCount ? (
                 <p className="doc-file-meta">
                   {pageCount === 1 ? t("docs.onePage") : t("docs.pageCount", { n: pageCount })}
                 </p>
               ) : null}
-              <button className="btn doc-file-dl" onClick={download}>
-                <Icon name="upload" className="icon-sm doc-dl" /> {t("docs.download")}
-              </button>
             </div>
           )}
 
-          {isPlain && !error && view === "reading" && (
-            !content ? (
-              <p className="doc-note">{t("docs.loading")}</p>
-            ) : (
-              <>
-                {/* Numbered down the side, so a line can be pointed at. The
-                    number column does not select with the text: it is a
-                    counter, not part of the file. */}
-                <div className="doc-source">
-                  {lines.map((line, i) => (
-                    <div className="doc-line" key={i}>
-                      <span className="doc-ln">{i + 1}</span>
-                      <span className="doc-code">{line || "\u00a0"}</span>
-                    </div>
-                  ))}
-                </div>
-                {content.truncated && <p className="doc-note">{t("docs.truncated")}</p>}
-              </>
-            )
+          {isPlain && !error && !content && (
+            <p className="doc-note">{t("docs.loading")}</p>
           )}
 
-          {isPlain && !error && view === "chunks" && (
-            !chunks ? (
-              <p className="doc-note">{t("docs.loading")}</p>
-            ) : chunks.length === 0 ? (
-              <p className="doc-note">{t("docs.noChunks")}</p>
-            ) : (
-              <>
-                <p className="doc-note">{t("docs.chunksNote")}</p>
-                {chunks.map((c, i) => (
-                  <article key={i} className="doc-chunk">
-                    <header>
-                      <span className="doc-chunk-no">{t("docs.chunkLabel", { n: i + 1 })}</span>
-                      {c.page_number != null && (
-                        <span className="doc-chunk-meta">
-                          {t("docs.chunkMeta", { page: c.page_number })}
-                        </span>
-                      )}
-                      {c.section && <span className="doc-chunk-sec">{c.section}</span>}
-                    </header>
-                    <p>{c.text}</p>
-                  </article>
-                ))}
-              </>
-            )
+          {/* Read: the document as it is meant to be read. The same renderer
+              the chat uses, so a heading looks the same wherever it appears. */}
+          {isPlain && !error && content && view === "reading" && (
+            <>
+              <article className="doc-read">
+                <MarkdownLite text={fullText} />
+              </article>
+              {content.truncated && <p className="doc-note">{t("docs.truncated")}</p>}
+            </>
           )}
+
+          {/* Code: the characters that make it, numbered down the side. A long
+              line keeps one number, on its first row, because the number counts
+              lines in the file and not rows on the screen. */}
+          {isPlain && !error && content && view === "code" && (
+            <>
+              <div className="doc-source">
+                {lines.map((line, i) => (
+                  <div className="doc-line" key={i}>
+                    <span className="doc-ln">{i + 1}</span>
+                    <span className="doc-code">
+                      {isMd ? highlight(line) : line || "\u00a0"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {content.truncated && <p className="doc-note">{t("docs.truncated")}</p>}
+            </>
+          )}
+
         </div>
       </div>
 

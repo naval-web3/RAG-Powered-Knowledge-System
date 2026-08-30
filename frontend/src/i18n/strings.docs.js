@@ -20,18 +20,12 @@ const en = {
   "docs.deleteFailed": "Couldn’t delete that document",
 
   "docs.reading": "Reading",
-  "docs.chunks": "Chunks",
   "docs.readingView": "Read the extracted text",
-  "docs.chunksView": "See the indexed passages",
+  "docs.codeView": "Source",
   "docs.loading": "Reading the document…",
   "docs.loadFailed": "Couldn’t read this document.",
   "docs.page": "Page {n}",
   "docs.truncated": "The rest is not shown: this document is longer than the viewer will load.",
-  "docs.noChunks": "Nothing was indexed from this document.",
-  "docs.chunkLabel": "Passage {n}",
-  "docs.chunkMeta": "page {page}",
-  "docs.chunksNote":
-    "These are the passages retrieval searches. Neighbours overlap a little, so a sentence at a boundary belongs to both.",
 
   "docs.scopeChat": "Ask about this document",
   "docs.scoped": "Questions are now scoped to {title}",
@@ -57,18 +51,12 @@ const fr = {
   "docs.deleteFailed": "Suppression impossible",
 
   "docs.reading": "Lecture",
-  "docs.chunks": "Fragments",
   "docs.readingView": "Lire le texte extrait",
-  "docs.chunksView": "Voir les fragments indexés",
+  "docs.codeView": "Source",
   "docs.loading": "Lecture du document…",
   "docs.loadFailed": "Impossible de lire ce document.",
   "docs.page": "Page {n}",
   "docs.truncated": "La suite n’est pas affichée : ce document dépasse ce que la visionneuse charge.",
-  "docs.noChunks": "Rien n’a été indexé depuis ce document.",
-  "docs.chunkLabel": "Fragment {n}",
-  "docs.chunkMeta": "page {page}",
-  "docs.chunksNote":
-    "Ce sont les fragments que la recherche parcourt. Les voisins se chevauchent un peu, donc une phrase à la frontière appartient aux deux.",
 
   "docs.scopeChat": "Interroger ce document",
   "docs.scoped": "Les questions portent désormais sur {title}",
@@ -94,18 +82,12 @@ const de = {
   "docs.deleteFailed": "Dokument konnte nicht gelöscht werden",
 
   "docs.reading": "Lesen",
-  "docs.chunks": "Abschnitte",
   "docs.readingView": "Den extrahierten Text lesen",
-  "docs.chunksView": "Die indexierten Abschnitte ansehen",
+  "docs.codeView": "Quelltext",
   "docs.loading": "Dokument wird gelesen…",
   "docs.loadFailed": "Dieses Dokument konnte nicht gelesen werden.",
   "docs.page": "Seite {n}",
   "docs.truncated": "Der Rest wird nicht gezeigt: dieses Dokument ist länger, als die Ansicht lädt.",
-  "docs.noChunks": "Aus diesem Dokument wurde nichts indexiert.",
-  "docs.chunkLabel": "Abschnitt {n}",
-  "docs.chunkMeta": "Seite {page}",
-  "docs.chunksNote":
-    "Das sind die Abschnitte, die durchsucht werden. Nachbarn überlappen etwas, ein Satz an der Grenze gehört also zu beiden.",
 
   "docs.scopeChat": "Zu diesem Dokument fragen",
   "docs.scoped": "Fragen beziehen sich jetzt auf {title}",
@@ -131,18 +113,12 @@ const hi = {
   "docs.deleteFailed": "दस्तावेज़ नहीं हटाया जा सका",
 
   "docs.reading": "पढ़ें",
-  "docs.chunks": "खंड",
   "docs.readingView": "निकाला गया पाठ पढ़ें",
-  "docs.chunksView": "इंडेक्स किए खंड देखें",
+  "docs.codeView": "सोर्स",
   "docs.loading": "दस्तावेज़ पढ़ा जा रहा है…",
   "docs.loadFailed": "यह दस्तावेज़ पढ़ा नहीं जा सका।",
   "docs.page": "पृष्ठ {n}",
   "docs.truncated": "बाकी हिस्सा नहीं दिखाया गया: यह दस्तावेज़ व्यूअर की सीमा से बड़ा है।",
-  "docs.noChunks": "इस दस्तावेज़ से कुछ भी इंडेक्स नहीं हुआ।",
-  "docs.chunkLabel": "खंड {n}",
-  "docs.chunkMeta": "पृष्ठ {page}",
-  "docs.chunksNote":
-    "खोज इन्हीं खंडों में होती है। पड़ोसी खंड थोड़े ओवरलैप करते हैं, इसलिए सीमा पर आने वाला वाक्य दोनों में होता है।",
 
   "docs.scopeChat": "इसी दस्तावेज़ से पूछें",
   "docs.scoped": "अब प्रश्न {title} तक सीमित हैं",
@@ -168,18 +144,12 @@ const id = {
   "docs.deleteFailed": "Dokumen gagal dihapus",
 
   "docs.reading": "Baca",
-  "docs.chunks": "Bagian",
   "docs.readingView": "Baca teks hasil ekstraksi",
-  "docs.chunksView": "Lihat bagian yang terindeks",
+  "docs.codeView": "Sumber",
   "docs.loading": "Membaca dokumen…",
   "docs.loadFailed": "Dokumen ini tidak bisa dibaca.",
   "docs.page": "Halaman {n}",
   "docs.truncated": "Sisanya tidak ditampilkan: dokumen ini lebih panjang daripada yang dimuat penampil.",
-  "docs.noChunks": "Tidak ada yang diindeks dari dokumen ini.",
-  "docs.chunkLabel": "Bagian {n}",
-  "docs.chunkMeta": "halaman {page}",
-  "docs.chunksNote":
-    "Inilah bagian yang ditelusuri pencarian. Bagian bertetangga sedikit tumpang tindih, jadi kalimat di perbatasan milik keduanya.",
 
   "docs.scopeChat": "Tanya tentang dokumen ini",
   "docs.scoped": "Pertanyaan kini dibatasi pada {title}",
@@ -205,18 +175,12 @@ const it = {
   "docs.deleteFailed": "Impossibile eliminare il documento",
 
   "docs.reading": "Lettura",
-  "docs.chunks": "Frammenti",
   "docs.readingView": "Leggi il testo estratto",
-  "docs.chunksView": "Vedi i frammenti indicizzati",
+  "docs.codeView": "Sorgente",
   "docs.loading": "Lettura del documento…",
   "docs.loadFailed": "Non è stato possibile leggere questo documento.",
   "docs.page": "Pagina {n}",
   "docs.truncated": "Il resto non è mostrato: questo documento è più lungo di quanto il visualizzatore carichi.",
-  "docs.noChunks": "Da questo documento non è stato indicizzato nulla.",
-  "docs.chunkLabel": "Frammento {n}",
-  "docs.chunkMeta": "pagina {page}",
-  "docs.chunksNote":
-    "Sono i frammenti in cui cerca il recupero. I vicini si sovrappongono un poco, così una frase al confine appartiene a entrambi.",
 
   "docs.scopeChat": "Chiedi di questo documento",
   "docs.scoped": "Le domande ora riguardano {title}",
@@ -242,18 +206,12 @@ const ja = {
   "docs.deleteFailed": "ドキュメントを削除できませんでした",
 
   "docs.reading": "本文",
-  "docs.chunks": "チャンク",
   "docs.readingView": "抽出したテキストを読む",
-  "docs.chunksView": "インデックスしたチャンクを見る",
+  "docs.codeView": "ソース",
   "docs.loading": "ドキュメントを読み込んでいます…",
   "docs.loadFailed": "このドキュメントを読み込めませんでした。",
   "docs.page": "{n} ページ",
   "docs.truncated": "残りは表示していません。このドキュメントはビューアが読み込む長さを超えています。",
-  "docs.noChunks": "このドキュメントからは何もインデックスされていません。",
-  "docs.chunkLabel": "チャンク {n}",
-  "docs.chunkMeta": "{page} ページ",
-  "docs.chunksNote":
-    "検索が探すのはこのチャンクです。隣り合うチャンクは少し重なるので、境目の文は両方に含まれます。",
 
   "docs.scopeChat": "このドキュメントに質問する",
   "docs.scoped": "質問の範囲を「{title}」にしました",
@@ -279,18 +237,12 @@ const ko = {
   "docs.deleteFailed": "문서를 삭제하지 못했습니다",
 
   "docs.reading": "본문",
-  "docs.chunks": "조각",
   "docs.readingView": "추출된 텍스트 읽기",
-  "docs.chunksView": "색인된 조각 보기",
+  "docs.codeView": "소스",
   "docs.loading": "문서를 읽는 중…",
   "docs.loadFailed": "이 문서를 읽지 못했습니다.",
   "docs.page": "{n}쪽",
   "docs.truncated": "나머지는 표시하지 않습니다. 이 문서는 뷰어가 불러오는 길이를 넘습니다.",
-  "docs.noChunks": "이 문서에서 색인된 것이 없습니다.",
-  "docs.chunkLabel": "조각 {n}",
-  "docs.chunkMeta": "{page}쪽",
-  "docs.chunksNote":
-    "검색이 훑는 것이 이 조각들입니다. 이웃한 조각은 조금씩 겹치므로 경계의 문장은 양쪽에 다 들어갑니다.",
 
   "docs.scopeChat": "이 문서에 대해 묻기",
   "docs.scoped": "이제 질문 범위가 {title}입니다",
@@ -316,18 +268,12 @@ const pt = {
   "docs.deleteFailed": "Não foi possível excluir o documento",
 
   "docs.reading": "Leitura",
-  "docs.chunks": "Trechos",
   "docs.readingView": "Ler o texto extraído",
-  "docs.chunksView": "Ver os trechos indexados",
+  "docs.codeView": "Código-fonte",
   "docs.loading": "Lendo o documento…",
   "docs.loadFailed": "Não foi possível ler este documento.",
   "docs.page": "Página {n}",
   "docs.truncated": "O restante não é mostrado: este documento é maior do que o visualizador carrega.",
-  "docs.noChunks": "Nada foi indexado deste documento.",
-  "docs.chunkLabel": "Trecho {n}",
-  "docs.chunkMeta": "página {page}",
-  "docs.chunksNote":
-    "São estes os trechos que a busca percorre. Vizinhos se sobrepõem um pouco, então uma frase na fronteira pertence aos dois.",
 
   "docs.scopeChat": "Perguntar sobre este documento",
   "docs.scoped": "As perguntas agora se limitam a {title}",
@@ -353,18 +299,12 @@ const es419 = {
   "docs.deleteFailed": "No se pudo eliminar el documento",
 
   "docs.reading": "Lectura",
-  "docs.chunks": "Fragmentos",
   "docs.readingView": "Leer el texto extraído",
-  "docs.chunksView": "Ver los fragmentos indexados",
+  "docs.codeView": "Código fuente",
   "docs.loading": "Leyendo el documento…",
   "docs.loadFailed": "No se pudo leer este documento.",
   "docs.page": "Página {n}",
   "docs.truncated": "El resto no se muestra: este documento es más largo de lo que carga el visor.",
-  "docs.noChunks": "No se indexó nada de este documento.",
-  "docs.chunkLabel": "Fragmento {n}",
-  "docs.chunkMeta": "página {page}",
-  "docs.chunksNote":
-    "Estos son los fragmentos que recorre la búsqueda. Los vecinos se superponen un poco, así que una frase en el límite pertenece a ambos.",
 
   "docs.scopeChat": "Preguntar sobre este documento",
   "docs.scoped": "Las preguntas ahora se limitan a {title}",

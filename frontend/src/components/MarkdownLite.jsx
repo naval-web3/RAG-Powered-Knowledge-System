@@ -10,6 +10,8 @@
 
 // CommonMark allows -, * and + as bullet markers; the model uses + for its
 // sub-items, and omitting it left those lines rendering as literal text.
+const HEADING = /^(#{1,6})\s+(.*)$/;
+const RULE = /^\s*([-*_])\1{2,}\s*$/;
 const BULLET = /^(\s*)[-*+•]\s+(.*)$/;
 const NUMBERED = /^(\s*)\d+[.)]\s+(.*)$/;
 
@@ -123,6 +125,19 @@ export default function MarkdownLite({ text, fadeTail: fadeBudget = 0 }) {
 
   for (const raw of lines) {
     const line = raw.trimEnd();
+    const heading = line.match(HEADING);
+    if (heading) {
+      flushPara();
+      flushList();
+      blocks.push({ kind: "h", level: heading[1].length, text: heading[2] });
+      continue;
+    }
+    if (RULE.test(line)) {
+      flushPara();
+      flushList();
+      blocks.push({ kind: "hr" });
+      continue;
+    }
     const bullet = line.match(BULLET);
     const numbered = line.match(NUMBERED);
     const hit = bullet || numbered;
@@ -155,6 +170,13 @@ export default function MarkdownLite({ text, fadeTail: fadeBudget = 0 }) {
         const lastBlock = i === blocks.length - 1;
         const tail = lastBlock ? fadeBudget : 0;
         if (b.kind === "list") return renderList(b.nodes, String(i), 0, tail);
+        if (b.kind === "hr") return <hr key={i} />;
+        if (b.kind === "h") {
+          // Capped at h4: these are rendered inside a dialog, and an h1 sized
+          // for a page would shout across it.
+          const Tag = `h${Math.min(4, b.level + 1)}`;
+          return <Tag key={i}>{renderInline(b.text, String(i), tail)}</Tag>;
+        }
         return (
           <p key={i}>
             {b.lines.map((ln, j) => (
