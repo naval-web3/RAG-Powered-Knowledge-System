@@ -665,7 +665,9 @@ body {
   background: none; border: 0; box-shadow: none;
   color: var(--text); font-weight: 600;
 }
-.sb-new:hover { background: var(--surface); color: var(--accent); }
+/* --row-hover for the same reason as every other row on this panel: --surface
+   is white in light mode, so hovering cut a white card into the parchment. */
+.sb-new:hover { background: var(--row-hover); color: var(--accent); }
 /* Standing in for the Chat row that used to sit below it, so it wears the same
    highlight. Declared after :hover so an active button keeps its colour while
    the pointer is on it. */
@@ -739,9 +741,14 @@ body {
 .conv-item:hover .conv-actions, .conv-item.active .conv-actions { display: flex; }
 .conv-actions .btn-icon { width: 26px; height: 26px; border-radius: 8px; color: var(--text-3); }
 .conv-actions .btn-icon:hover { color: var(--text); background: var(--border); }
+/* --row-hover, not --surface. --surface is paper white in light mode, so a
+   field opened on the parchment panel arrived as a white card cut into it. This
+   is the token made for tinting a row against that panel, and it moves the
+   right way in both themes: it darkens in light and lightens in dark, where a
+   fixed colour would be wrong in one of the two. */
 .conv-item input.rename {
   flex: 1; font-size: 13px; padding: 3px 7px; border-radius: 6px;
-  border: 1px solid var(--accent); background: var(--surface);
+  border: 1px solid var(--accent); background: var(--row-hover); color: var(--text);
 }
 /* These fields carry an accent border of their own, so the global
    :focus-visible ring would draw a second one around it. The border is the
@@ -912,7 +919,8 @@ body {
   field-sizing: content;
   min-width: 8ch; max-width: 50vw; padding: 4px 8px; margin-left: -8px;
   border: 1px solid var(--accent); border-radius: var(--r-sm);
-  background: var(--surface); outline: none;
+  /* Same reasoning as the sidebar's rename field above. */
+  background: var(--row-hover); outline: none;
 }
 .topbar .grow { flex: 1; }
 .page { flex: 1; overflow-y: auto; min-height: 0; }
