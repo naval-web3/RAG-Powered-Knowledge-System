@@ -1684,20 +1684,28 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 /* ============================================================
    SETTINGS DIALOG
    ============================================================ */
-/* Centred, which is what makes the gap below equal the gap above at any window
-   height. It was anchored to the top to stop it jumping as the panels changed
-   height, but the panels do not change its height: the dialog is a fixed size
-   and the pane inside it scrolls, so there was nothing to jump.
+/* The two big dialogs, settings and the document viewer, are one size and are
+   declared together so they cannot drift apart. Both are a fixed box with their
+   own scrolling region inside.
+
+   Centred, which is what makes the gap below equal the gap above at any window
+   height. They were anchored to the top to stop a dialog jumping as its
+   contents changed height, which is true of the search dialog and not of these:
+   their height does not depend on what is in them, so there was nothing to
+   jump.
 
    920 rather than 1020: at 720 tall the wider box read as a band. Wider side
    padding too, which only comes into play on a window narrow enough for the
    max-width to stop binding, but that is exactly when a dialog pressed against
    the glass looks worst. */
-.modal-overlay.set-overlay { align-items: center; padding: 24px 32px; }
-.modal.set-modal {
-  max-width: 920px; height: min(78vh, 720px); max-height: none;
-  flex-direction: row; overflow: hidden; padding: 0;
+.modal-overlay.set-overlay,
+.modal-overlay.doc-overlay { align-items: center; padding: 24px 32px; }
+.modal.set-modal,
+.modal.doc-modal {
+  max-width: 920px; height: min(78vh, 720px); max-height: none; padding: 0;
 }
+/* The only difference: settings is a rail beside a pane, the viewer is a stack. */
+.modal.set-modal { flex-direction: row; overflow: hidden; }
 
 .set-rail {
   flex: none; width: 232px; display: flex; flex-direction: column;
@@ -1793,6 +1801,12 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   border: 1px solid var(--border); border-radius: var(--r-sm);
   background: var(--bg); color: var(--text); font-size: 13.5px;
 }
+/* A field that already has a border shows focus by colouring THAT border. The
+   global :focus-visible ring is offset two pixels outside whatever it is on,
+   which around a bordered field draws a second, detached outline: fine on a
+   button, wrong on something with an edge of its own. */
+.set-input:focus,
+.set-textarea:focus { outline: none; border-color: var(--accent); }
 .set-input:disabled { color: var(--text-3); }
 .set-input-sm { width: 110px; }
 .set-input-wrap { display: flex; align-items: center; gap: 4px; }
@@ -1979,10 +1993,6 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 .conv-item.doc-item { padding-bottom: 10px; }
 
-.modal-overlay.doc-overlay { align-items: flex-start; padding-top: 6vh; }
-.modal.doc-modal {
-  max-width: 860px; height: min(82vh, 820px); max-height: none; padding: 0;
-}
 .doc-head {
   display: flex; align-items: center; gap: 12px; flex: none;
   padding: 20px 22px 12px;
