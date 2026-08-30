@@ -289,6 +289,30 @@ function ChatMenuItems({ conv, projects, onAction, onMove, onCreate }) {
   );
 }
 
+/* The four things there are to do to a document. Deliberately not a copy of
+   ChatMenuItems: a document cannot be pinned or marked unread, and offering
+   either would be a row that does nothing. */
+function DocMenuItems({ onAction }) {
+  const t = useT();
+  return (
+    <>
+      <button className="pm-item" onClick={() => onAction("rename")}>
+        <Icon name="pencil" className="icon-sm" /> {t("common.rename")}
+      </button>
+      <button className="pm-item" onClick={() => onAction("ask")}>
+        <Icon name="target" className="icon-sm" /> {t("docs.scopeChat")}
+      </button>
+      <button className="pm-item" onClick={() => onAction("download")}>
+        <Icon name="upload" className="icon-sm doc-dl" /> {t("docs.download")}
+      </button>
+      <div className="pm-sep" />
+      <button className="pm-item danger" onClick={() => onAction("delete")}>
+        <Icon name="trash" className="icon-sm" /> {t("common.delete")}
+      </button>
+    </>
+  );
+}
+
 export default function Layout() {
   return (
     <ToastProvider>
@@ -417,6 +441,12 @@ function Shell() {
   const [langOpen, setLangOpen] = useState(false);
   // The document being read, or null. Rows open it; the dialog owns the rest.
   const [openDoc, setOpenDoc] = useState(null);
+  const [docMenuId, setDocMenuId] = useState(null);
+  const [docEditId, setDocEditId] = useState(null);
+  const [docTitle, setDocTitle] = useState("");
+  // Which document the confirm is about; null means it is shut.
+  const [docToDelete, setDocToDelete] = useState(null);
+  const docMenuBtnRef = useRef(null);
   const uploadRef = useRef(null);
   const [userMenu, setUserMenu] = useState(false);
   const [menuId, setMenuId] = useState(null);
@@ -487,6 +517,16 @@ function Shell() {
     } else if (key === "d") setPendingDelete(conv);
     else return;
     setMenuId(null);
+  }
+
+  function docMenuAction(d, key) {
+    if (!d) return;
+    if (key === "rename") { setDocEditId(d.document_id); setDocTitle(d.title); }
+    else if (key === "ask") { chat.scopeToDocument(d); navigate("/"); }
+    else if (key === "download") chat.downloadDocument(d);
+    else if (key === "delete") setDocToDelete(d);
+    else return;
+    setDocMenuId(null);
   }
 
   function moveConv(conv, projectId) {
@@ -747,11 +787,33 @@ function Shell() {
               )}
               {chat.docs.map((d) => {
                 const busy = d.processing_status !== "done" && d.processing_status !== "failed";
+                const open = docMenuId === d.document_id;
+                const editing = docEditId === d.document_id;
+                const commit = () => {
+                  chat.renameDocument(d.document_id, docTitle);
+                  setDocEditId(null);
+                };
                 return (
-                  <div key={d.document_id} className="conv-item doc-item"
-                    onClick={() => setOpenDoc(d)}>
+                  <div key={d.document_id}
+                    className={`conv-item doc-item ${open ? "menu-open" : ""}`}
+                    onClick={() => { if (!editing) setOpenDoc(d); }}>
                     <Icon name="file" className="icon-sm" />
-                    <span className="conv-title">{d.title}</span>
+                    {/* The same box in the same place, carrying the same class:
+                        the row does not reflow, it just becomes typeable. */}
+                    {editing ? (
+                      <input className="conv-title rename" autoFocus value={docTitle}
+                        aria-label={t("common.rename")}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setDocTitle(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commit();
+                          if (e.key === "Escape") setDocEditId(null);
+                        }}
+                        onBlur={commit} />
+                    ) : (
+                      <span className="conv-title">{d.title}</span>
+                    )}
                     {d.processing_status === "failed" && (
                       <Tooltip label={t("docs.failed")}>
                         <span className="doc-failed" />
@@ -765,6 +827,19 @@ function Shell() {
                         <span style={{ width: `${Math.max(4, d.progress || 0)}%` }} />
                       </span>
                     )}
+                    <div className="conv-actions" onClick={(e) => e.stopPropagation()}>
+                      <button className="btn-icon" aria-label={t("docs.options")}
+                        ref={open ? docMenuBtnRef : null}
+                        aria-expanded={open}
+                        onClick={() => setDocMenuId(open ? null : d.document_id)}>
+                        <Icon name="more-v" className="icon-sm" />
+                      </button>
+                      {open && (
+                        <PortalMenu anchorRef={docMenuBtnRef} align="right" className="conv-menu">
+                          <DocMenuItems onAction={(a) => docMenuAction(d, a)} />
+                        </PortalMenu>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -1122,6 +1197,21 @@ function Shell() {
           if (f) chat.uploadFile(f);
           e.target.value = "";
         }} />
+
+      {docToDelete && (
+        <ConfirmModal
+          title={t("docs.deleteTitle")}
+          text={t("docs.deleteText")}
+          okLabel={t("common.delete")}
+          onConfirm={() => {
+            chat.deleteDocument(docToDelete.document_id);
+            // Its own viewer cannot outlive it.
+            if (openDoc?.document_id === docToDelete.document_id) setOpenDoc(null);
+            setDocToDelete(null);
+          }}
+          onCancel={() => setDocToDelete(null)}
+        />
+      )}
 
       {pendingDelete && (
         <ConfirmModal

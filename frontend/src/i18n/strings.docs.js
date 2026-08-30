@@ -18,6 +18,7 @@ const en = {
     "This removes the file and everything indexed from it. Chats that cited it keep their text.",
   "docs.deleted": "Document deleted",
   "docs.deleteFailed": "Couldn’t delete that document",
+  "docs.renameFailed": "Couldn’t rename that document",
 
   "docs.reading": "Reading",
   "docs.readingView": "Read the extracted text",
@@ -49,6 +50,7 @@ const fr = {
     "Cela supprime le fichier et tout ce qui en a été indexé. Les discussions qui le citaient gardent leur texte.",
   "docs.deleted": "Document supprimé",
   "docs.deleteFailed": "Suppression impossible",
+  "docs.renameFailed": "Renommage impossible",
 
   "docs.reading": "Lecture",
   "docs.readingView": "Lire le texte extrait",
@@ -80,6 +82,7 @@ const de = {
     "Das entfernt die Datei und alles, was daraus indexiert wurde. Chats, die daraus zitiert haben, behalten ihren Text.",
   "docs.deleted": "Dokument gelöscht",
   "docs.deleteFailed": "Dokument konnte nicht gelöscht werden",
+  "docs.renameFailed": "Dokument konnte nicht umbenannt werden",
 
   "docs.reading": "Lesen",
   "docs.readingView": "Den extrahierten Text lesen",
@@ -111,6 +114,7 @@ const hi = {
     "इससे फ़ाइल और उससे इंडेक्स की गई हर चीज़ हट जाएगी। जिन चैट में इसका हवाला था, उनका पाठ बना रहेगा।",
   "docs.deleted": "दस्तावेज़ हटा दिया गया",
   "docs.deleteFailed": "दस्तावेज़ नहीं हटाया जा सका",
+  "docs.renameFailed": "दस्तावेज़ का नाम नहीं बदला जा सका",
 
   "docs.reading": "पढ़ें",
   "docs.readingView": "निकाला गया पाठ पढ़ें",
@@ -142,6 +146,7 @@ const id = {
     "Ini menghapus berkas dan semua yang diindeks darinya. Obrolan yang mengutipnya tetap menyimpan teksnya.",
   "docs.deleted": "Dokumen dihapus",
   "docs.deleteFailed": "Dokumen gagal dihapus",
+  "docs.renameFailed": "Dokumen gagal diganti namanya",
 
   "docs.reading": "Baca",
   "docs.readingView": "Baca teks hasil ekstraksi",
@@ -173,6 +178,7 @@ const it = {
     "Rimuove il file e tutto ciò che ne è stato indicizzato. Le chat che lo citavano conservano il loro testo.",
   "docs.deleted": "Documento eliminato",
   "docs.deleteFailed": "Impossibile eliminare il documento",
+  "docs.renameFailed": "Impossibile rinominare il documento",
 
   "docs.reading": "Lettura",
   "docs.readingView": "Leggi il testo estratto",
@@ -204,6 +210,7 @@ const ja = {
     "ファイルと、そこからインデックスしたものすべてを削除します。引用したチャットの本文は残ります。",
   "docs.deleted": "ドキュメントを削除しました",
   "docs.deleteFailed": "ドキュメントを削除できませんでした",
+  "docs.renameFailed": "ドキュメントの名前を変更できませんでした",
 
   "docs.reading": "本文",
   "docs.readingView": "抽出したテキストを読む",
@@ -235,6 +242,7 @@ const ko = {
     "파일과 거기서 색인된 모든 것을 제거합니다. 그것을 인용한 채팅의 본문은 그대로 남습니다.",
   "docs.deleted": "문서를 삭제했습니다",
   "docs.deleteFailed": "문서를 삭제하지 못했습니다",
+  "docs.renameFailed": "문서 이름을 바꾸지 못했습니다",
 
   "docs.reading": "본문",
   "docs.readingView": "추출된 텍스트 읽기",
@@ -266,6 +274,7 @@ const pt = {
     "Isso remove o arquivo e tudo que foi indexado dele. As conversas que o citaram mantêm seu texto.",
   "docs.deleted": "Documento excluído",
   "docs.deleteFailed": "Não foi possível excluir o documento",
+  "docs.renameFailed": "Não foi possível renomear o documento",
 
   "docs.reading": "Leitura",
   "docs.readingView": "Ler o texto extraído",
@@ -297,6 +306,7 @@ const es419 = {
     "Esto elimina el archivo y todo lo indexado a partir de él. Los chats que lo citaron conservan su texto.",
   "docs.deleted": "Documento eliminado",
   "docs.deleteFailed": "No se pudo eliminar el documento",
+  "docs.renameFailed": "No se pudo renombrar el documento",
 
   "docs.reading": "Lectura",
   "docs.readingView": "Leer el texto extraído",

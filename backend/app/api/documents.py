@@ -24,7 +24,13 @@ from app.config import settings
 from app.database import SessionLocal, get_db
 from app.deps import get_current_user
 from app.models import Document, Project, ProjectDocument, User
-from app.schemas import DocumentChunk, DocumentContent, DocumentOut, DocumentPage
+from app.schemas import (
+    DocumentChunk,
+    DocumentContent,
+    DocumentOut,
+    DocumentPage,
+    DocumentPatch,
+)
 from app.services import vector_store
 from app.services.document_processor import extract_text
 
@@ -322,6 +328,28 @@ def document_file(
         filename=doc.original_filename,
         media_type="application/octet-stream",
     )
+
+
+@router.patch("/{document_id}", response_model=DocumentOut)
+def rename_document(
+    document_id: uuid.UUID,
+    payload: DocumentPatch,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Document:
+    """Give a document a different title.
+
+    Nothing downstream is touched: the file stays where it is and the vectors
+    keep their own copy of the metadata, so a rename cannot invalidate an index.
+    """
+    doc = _owned(db, document_id, current_user)
+    title = payload.title.strip()
+    if not title:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "A title cannot be blank")
+    doc.title = title
+    db.commit()
+    db.refresh(doc)
+    return doc
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)

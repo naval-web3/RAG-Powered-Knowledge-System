@@ -135,6 +135,15 @@ class ConversationDetail(ConversationOut):
     messages: list[MessageOut] = []
 
 
+class DocumentPatch(BaseModel):
+    """The one thing about a document that is the user's to change.
+
+    Not `original_filename`: that is what the file is called when it is handed
+    back on download, and it should keep saying what was actually uploaded.
+    """
+    title: str = Field(min_length=1, max_length=255)
+
+
 # ---------- Document contents ----------
 class DocumentPage(BaseModel):
     page_number: int

@@ -142,18 +142,8 @@ export default function DocumentDialog({ doc, onClose }) {
     toast(t("docs.scoped", { title: doc.title }), "ok");
   }
 
-  async function download() {
-    try {
-      const res = await client.get(`/api/documents/${id}/file`, { responseType: "blob" });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = doc.original_filename || doc.title;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast(t("docs.loadFailed"), "err");
-    }
+  function download() {
+    chat.downloadDocument(doc);
   }
 
   async function remove() {

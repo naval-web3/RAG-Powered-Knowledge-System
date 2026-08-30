@@ -8,7 +8,7 @@ const ChatContext = createContext(null);
 export function ChatProvider({ children }) {
   const { toast } = useToast();
   // Sent with every question so answers come back in the reader's language.
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
 
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -246,6 +246,70 @@ export function ChatProvider({ children }) {
       }
     },
     [activeId, newChat, loadConversations, toast]
+  );
+
+  const renameDocument = useCallback(
+    async (id, title) => {
+      const clean = (title || "").trim();
+      if (!clean) return;
+      // Optimistic for the same reason renameConversation is: see the note there.
+      setDocs((prev) =>
+        prev.map((d) => (d.document_id === id ? { ...d, title: clean } : d))
+      );
+      try {
+        await client.patch(`/api/documents/${id}`, { title: clean });
+        loadDocs();
+      } catch {
+        loadDocs();
+        toast(t("docs.renameFailed"), "err");
+      }
+    },
+    [loadDocs, toast, t]
+  );
+
+  const deleteDocument = useCallback(
+    async (id) => {
+      try {
+        await client.delete(`/api/documents/${id}`);
+        // A question scoped to a document that no longer exists would be
+        // answered from nothing, so the scope goes with it.
+        setScopeDocId((cur) => (cur === id ? null : cur));
+        loadDocs();
+        toast(t("docs.deleted"), "ok");
+      } catch {
+        toast(t("docs.deleteFailed"), "err");
+      }
+    },
+    [loadDocs, toast, t]
+  );
+
+  /* Fetched as a blob because the endpoint wants the bearer token that an
+     <a href> cannot carry, then handed to a link that clicks itself. */
+  const downloadDocument = useCallback(
+    async (d) => {
+      try {
+        const res = await client.get(`/api/documents/${d.document_id}/file`, {
+          responseType: "blob",
+        });
+        const url = URL.createObjectURL(res.data);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = d.original_filename || d.title;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch {
+        toast(t("docs.loadFailed"), "err");
+      }
+    },
+    [toast, t]
+  );
+
+  const scopeToDocument = useCallback(
+    (d) => {
+      setScopeDocId(d.document_id);
+      toast(t("docs.scoped", { title: d.title }), "ok");
+    },
+    [toast, t]
   );
 
   const clearAllConversations = useCallback(async () => {
@@ -502,6 +566,10 @@ export function ChatProvider({ children }) {
     uploadProgress,
     loadConversations,
     loadDocs,
+    renameDocument,
+    deleteDocument,
+    downloadDocument,
+    scopeToDocument,
     loadModels,
     newChat,
     freshStarts,
