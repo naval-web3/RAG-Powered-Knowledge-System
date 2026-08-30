@@ -2044,33 +2044,40 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    it. Here it is sized by what is in it. */
 .modal.doc-modal.is-file .doc-body { flex: 0 0 auto; overflow: visible; }
 .doc-file { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 0 4px; }
-/* Three sheets, drawn rather than fetched: a thumbnail would mean rendering a
-   PDF page, which is the thing this view exists to avoid. The stack is also the
-   button, because taking the file is the only thing there is to do here. */
-/* Sized in JS from the page's own proportions, so nothing is cropped and a
-   deck does not have to pretend to be a report. */
+/* The sheets are decoration: two offset copies of whatever box the page turns
+   out to occupy, pinned to it with inset: 0. They cannot disagree with the
+   page's size because they are told it rather than told a number. */
 .doc-stack {
-  position: relative;
+  position: relative; display: block; width: 100%; max-width: 240px;
   background: none; border: 0; padding: 0; cursor: pointer;
 }
-.doc-stack::before, .doc-stack::after, .doc-sheet {
+.doc-stack::before, .doc-stack::after {
   content: ""; position: absolute; inset: 0;
   border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface);
   transition: transform .18s var(--ease);
 }
-.doc-stack::before { transform: translate(8px, -6px) rotate(2deg); opacity: .5; }
-.doc-stack::after { transform: translate(4px, -3px) rotate(1deg); opacity: .75; }
-.doc-sheet { box-shadow: var(--shadow-sm); overflow: hidden; }
-.doc-sheet img {
-  width: 100%; height: 100%; display: block;
-  /* Top-anchored: the first thing on a page is its title, and that is what a
-     thumbnail is for. */
-  object-fit: cover; object-position: top center;
+.doc-stack::before { transform: translate(9px, -7px) rotate(2deg); opacity: .45; }
+.doc-stack::after { transform: translate(5px, -4px) rotate(1deg); opacity: .7; }
+/* They fan a little further under the pointer, so the stack reads as something
+   you can take rather than a picture of one. */
+.doc-stack:hover::before { transform: translate(13px, -10px) rotate(3deg); }
+.doc-stack:hover::after { transform: translate(7px, -6px) rotate(1.6deg); }
+
+/* The page itself, in normal flow. This is the element with a size; everything
+   else on the card follows it. */
+.doc-page-img,
+.doc-page-blank {
+  position: relative; display: block; width: 100%;
+  border: 1px solid var(--border-strong); border-radius: 8px;
+  background: var(--surface); box-shadow: var(--shadow-sm);
 }
-/* The sheets fan a little further apart under the pointer, so the stack reads
-   as something you can take rather than a picture of one. */
-.doc-stack:hover::before { transform: translate(12px, -9px) rotate(3deg); }
-.doc-stack:hover::after { transform: translate(6px, -5px) rotate(1.5deg); }
+.doc-page-img { height: auto; }
+/* Roughly A4 while the page is on its way, so the card does not resize under
+   the pointer when it arrives. */
+.doc-page-blank {
+  aspect-ratio: 1 / 1.414;
+  display: flex; align-items: center; justify-content: center; color: var(--text-3);
+}
 /* Only on hover: at rest the card says what the file is, not what to do. */
 .doc-stack-dl {
   position: absolute; inset: 0; z-index: 1;
