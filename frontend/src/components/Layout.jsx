@@ -722,11 +722,8 @@ function Shell() {
           <div className="sb-group-row">
             <button className="sb-group-toggle" aria-expanded={!collapsedGroups.docs}
               onClick={() => toggleGroup("docs")}>
-              <Icon name={docsOpen ? "chev-d" : "chev-r"} className="chev" />
               <span>{t("docs.section")}</span>
-              {(!docsOpen || chat.docs.length > 0) && (
-                <span className="sb-group-count">{chat.docs.length}</span>
-              )}
+              <Icon name={docsOpen ? "chev-d" : "chev-r"} className="chev" />
             </button>
             <Tooltip label={t("docs.upload")}>
               <button className="btn-icon" aria-label={t("docs.upload")}
@@ -773,11 +770,8 @@ function Shell() {
           <div className="sb-group-row sb-projects-head">
             <button className="sb-group-toggle" aria-expanded={!collapsedGroups.projects}
               onClick={() => toggleGroup("projects")}>
-              <Icon name={projectsOpen ? "chev-d" : "chev-r"} className="chev" />
               <span>{t("sidebar.projects")}</span>
-              {!projectsOpen && chat.projects.length > 0 && (
-                <span className="sb-group-count">{chat.projects.length}</span>
-              )}
+              <Icon name={projectsOpen ? "chev-d" : "chev-r"} className="chev" />
             </button>
             <Tooltip label={t("sidebar.newProject")}>
               <button className="btn-icon" aria-label={t("sidebar.newProject")}
@@ -841,11 +835,8 @@ function Shell() {
         <div className="sb-group-row sb-chats-head">
           <button className="sb-group-toggle" aria-expanded={!collapsedGroups.chats}
             onClick={() => toggleGroup("chats")}>
-            <Icon name={chatsOpen ? "chev-d" : "chev-r"} className="chev" />
             <span>{t("sidebar.chats")}</span>
-            {!chatsOpen && filtered.length > 0 && (
-              <span className="sb-group-count">{filtered.length}</span>
-            )}
+            <Icon name={chatsOpen ? "chev-d" : "chev-r"} className="chev" />
           </button>
         </div>
 

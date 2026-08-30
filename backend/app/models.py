@@ -46,6 +46,9 @@ class User(Base):
     # project's they cannot switch citation or the answer-only-from-context
     # rules off.
     custom_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # One of rag_engine.WORK_ROLES, or NULL. Stored as the id and not as a
+    # label, so it survives the interface being read in another language.
+    work_role: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     documents: Mapped[list["Document"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
     conversations: Mapped[list["Conversation"]] = relationship(back_populates="owner", cascade="all, delete-orphan")

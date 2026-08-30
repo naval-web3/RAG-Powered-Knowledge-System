@@ -13,6 +13,7 @@ from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import PasswordResetToken, QueryLog, User
+from app.services.rag_engine import WORK_ROLES
 from app.schemas import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -167,6 +168,11 @@ def update_profile(
     if "custom_instructions" in payload.model_fields_set:
         text = (payload.custom_instructions or "").strip()
         current_user.custom_instructions = text or None
+    if "work_role" in payload.model_fields_set:
+        role = (payload.work_role or "").strip()
+        if role and role not in WORK_ROLES:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown work role")
+        current_user.work_role = role or None
     db.commit()
     db.refresh(current_user)
     return UserOut.model_validate(current_user)

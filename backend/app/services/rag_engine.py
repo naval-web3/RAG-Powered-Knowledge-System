@@ -122,6 +122,44 @@ LANGUAGE_NAMES = {
 _IMPLIED_LANGUAGE = "en-US"
 
 
+# What a reader does for a living, as the prompt should refer to them. Keys are
+# what the client sends and what the database stores; a value not in here is
+# ignored rather than passed through, for the same reason the locales are:
+# nothing a client can type reaches a system message.
+WORK_ROLES = {
+    "student": "a student",
+    "research": "a researcher",
+    "teaching": "a teacher",
+    "engineering": "engineering",
+    "product": "product management",
+    "design": "design",
+    "data_science": "data science",
+    "marketing": "marketing",
+    "sales": "sales",
+    "operations": "operations",
+    "finance": "finance",
+    "hr": "human resources",
+    "legal": "law",
+    "support": "customer support",
+    "healthcare": "healthcare",
+    "other": "",  # chosen deliberately, and says nothing worth putting in a prompt
+}
+
+
+def work_line(role: str | None) -> str | None:
+    """The sentence that pitches an answer at this reader, or None to say nothing."""
+    who = WORK_ROLES.get(role or "")
+    if not who:
+        return None
+    article = "is" if who.startswith("a ") else "is in"
+    return (
+        f"The person asking {article} {who}. Pitch the level of detail and the "
+        "vocabulary for that reader: assume what they would already know, and "
+        "explain what they would not. This changes how you explain something, "
+        "never what you are allowed to answer from."
+    )
+
+
 def language_line(locale: str | None) -> str | None:
     """The sentence that asks for a reply in `locale`, or None to say nothing."""
     if not locale or locale == _IMPLIED_LANGUAGE:
@@ -208,6 +246,7 @@ def _build_prompt(
     instructions: str | None = None,
     user_instructions: str | None = None,
     language: str | None = None,
+    work_role: str | None = None,
     has_history: bool = False,
     about_conversation: bool = False,
 ) -> ChatPromptTemplate:
@@ -232,6 +271,11 @@ def _build_prompt(
             "The user has also set these standing instructions for every chat:\n"
             f"{_escape_braces(user_instructions)}"
         )
+    # Above the language line but below anything the user actually wrote, so a
+    # standing instruction about how to explain things still wins.
+    work = work_line(work_role)
+    if work:
+        preamble.append(work)
     # Last in the preamble, so the instructions above it can overrule it.
     lang = language_line(language)
     if lang:
@@ -463,6 +507,7 @@ def _answer(
     instructions: str | None,
     user_instructions: str | None,
     language: str | None,
+    work_role: str | None,
     start: float,
     chunks: int,
     top_score: float,
@@ -477,7 +522,7 @@ def _answer(
     about_conversation = context is None
     try:
         chain = _build_prompt(
-            llm, instructions, user_instructions, language,
+            llm, instructions, user_instructions, language, work_role,
             has_history=bool(past), about_conversation=about_conversation,
         ) | llm.chat_model()
         payload: dict = {"question": query}
@@ -526,6 +571,7 @@ def _run(
     user_instructions: str | None = None,
     language: str | None = None,
     history: list[tuple[str, str]] | None = None,
+    work_role: str | None = None,
     stream: bool = False,
 ) -> Iterator[tuple[str, object]]:
     """Execute one turn: greeting/small-talk -> friendly reply; otherwise a
@@ -582,7 +628,7 @@ def _run(
     if past and is_about_conversation(query):
         yield from _answer(
             llm, query, None, [], past,
-            instructions, user_instructions, language, start, 0, 0.0, stream,
+            instructions, user_instructions, language, work_role, start, 0, 0.0, stream,
         )
         return
 
@@ -614,7 +660,7 @@ def _run(
     context, sources = _format_context(results)
     yield from _answer(
         llm, query, context, sources, past,
-        instructions, user_instructions, language,
+        instructions, user_instructions, language, work_role,
         start, len(results), top_score, stream,
     )
     return
@@ -632,6 +678,7 @@ def answer_query(
     user_instructions: str | None = None,
     language: str | None = None,
     history: list[tuple[str, str]] | None = None,
+    work_role: str | None = None,
 ) -> dict:
     """Run one turn and return the finished result."""
     for kind, payload in _run(
@@ -646,6 +693,7 @@ def answer_query(
         user_instructions=user_instructions,
         language=language,
         history=history,
+        work_role=work_role,
         stream=False,
     ):
         if kind == "done":
@@ -665,6 +713,7 @@ def answer_query_stream(
     user_instructions: str | None = None,
     language: str | None = None,
     history: list[tuple[str, str]] | None = None,
+    work_role: str | None = None,
 ) -> Iterator[tuple[str, object]]:
     """Run one turn, yielding ("token", text) as the model writes and finally
     ("done", result). Every early exit yields only the "done" event, so a
@@ -681,5 +730,6 @@ def answer_query_stream(
         user_instructions=user_instructions,
         language=language,
         history=history,
+        work_role=work_role,
         stream=True,
     )

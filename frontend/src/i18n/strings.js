@@ -17,6 +17,7 @@
 import CHAT from "./strings.chat";
 import DOCS from "./strings.docs";
 import SETTINGS from "./strings.settings";
+import WORK from "./strings.work";
 
 const en = {
   "common.settings": "Settings",
@@ -750,7 +751,7 @@ const SHELL = {
 const STRINGS = Object.fromEntries(
   Object.entries(SHELL).map(([id_, dict]) => [
     id_,
-    { ...dict, ...CHAT[id_], ...DOCS[id_], ...SETTINGS[id_] },
+    { ...dict, ...CHAT[id_], ...DOCS[id_], ...SETTINGS[id_], ...WORK[id_] },
   ])
 );
 

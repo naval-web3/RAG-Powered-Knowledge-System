@@ -56,6 +56,9 @@ def on_startup() -> None:
         conn.execute(
             text("ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_instructions TEXT")
         )
+        conn.execute(
+            text("ALTER TABLE users ADD COLUMN IF NOT EXISTS work_role VARCHAR(40)")
+        )
         conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS stage VARCHAR(20)"))
         conn.execute(
             text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS progress INTEGER NOT NULL DEFAULT 0")

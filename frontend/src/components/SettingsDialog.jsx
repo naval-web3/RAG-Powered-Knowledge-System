@@ -25,6 +25,15 @@ export const SECTIONS = [
   { id: "model", icon: "cpu" },
 ];
 
+/* Ids are fixed and English; the labels come from work.<id>. The order is the
+   one the picker shows, study first, because that is who uses this. */
+export const WORK_ROLES = [
+  "student", "research", "teaching",
+  "engineering", "product", "design", "data_science",
+  "marketing", "sales", "operations", "finance",
+  "hr", "legal", "support", "healthcare", "other",
+];
+
 function bytes(n) {
   if (!n) return "0 MB";
   const mb = n / (1024 * 1024);
@@ -114,6 +123,7 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
   const paneRef = useRef(null);
 
   const [name, setName] = useState(user?.username || "");
+  const [work, setWork] = useState(user?.work_role || "");
   const [instructions, setInstructions] = useState(user?.custom_instructions || "");
   const [savedInstructions, setSavedInstructions] = useState(user?.custom_instructions || "");
   const [theme, setThemeState] = useState(getThemePref());
@@ -158,6 +168,7 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
     client.get("/api/auth/me").then(({ data }) => {
       setInstructions(data.custom_instructions || "");
       setSavedInstructions(data.custom_instructions || "");
+      setWork(data.work_role || "");
     }).catch(() => {});
   }, []);
 
@@ -200,6 +211,20 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
       toast(t("settings.nameSaved"), "ok");
     } catch (err) {
       setName(user?.username || "");
+      toast(t("settings.nameSaveFailed"), "err", err?.response?.data?.detail);
+    }
+  }
+
+  /* Saved on change rather than behind a button: it is one choice from a fixed
+     list, so there is nothing to review before committing it. */
+  async function saveWork(role) {
+    const previous = work;
+    setWork(role);
+    try {
+      const { data } = await client.patch("/api/auth/me", { work_role: role });
+      updateUser({ work_role: data.work_role || "" });
+    } catch (err) {
+      setWork(previous);
       toast(t("settings.nameSaveFailed"), "err", err?.response?.data?.detail);
     }
   }
@@ -349,6 +374,16 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
                 </Row>
                 <Row title={t("settings.email")} sub={t("settings.emailSub")}>
                   <input className="set-input" value={user?.email || ""} disabled />
+                </Row>
+
+                <Row title={t("settings.work")} sub={t("settings.workSub")}>
+                  <select className="set-select" value={work}
+                    onChange={(e) => saveWork(e.target.value)}>
+                    <option value="">{t("settings.workNone")}</option>
+                    {WORK_ROLES.map((r) => (
+                      <option key={r} value={r}>{t(`work.${r}`)}</option>
+                    ))}
+                  </select>
                 </Row>
 
                 <Row title={t("settings.instructions")} stacked sub={t("settings.instructionsSub")}>

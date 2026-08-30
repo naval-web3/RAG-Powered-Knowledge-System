@@ -32,6 +32,7 @@ class UserOut(BaseModel):
     created_at: datetime
     last_login: datetime | None = None
     custom_instructions: str | None = None
+    work_role: str | None = None
 
 
 class Token(BaseModel):
@@ -263,6 +264,7 @@ class ProfileUpdate(BaseModel):
     """
     username: str | None = Field(default=None, min_length=3, max_length=100)
     custom_instructions: str | None = Field(default=None, max_length=4000)
+    work_role: str | None = Field(default=None, max_length=40)
 
 
 class PasswordChange(BaseModel):
