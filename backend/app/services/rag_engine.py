@@ -66,23 +66,42 @@ _NOT_PRESENT_HINTS = (
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 
-def _build_prompt(llm: LLMProvider, instructions: str | None = None) -> ChatPromptTemplate:
+def _escape_braces(text: str) -> str:
+    """Double any braces so ChatPromptTemplate does not read them as template
+    variables and blow up on an instruction containing "{"."""
+    return text.strip().replace("{", "{{").replace("}", "}}")
+
+
+def _build_prompt(
+    llm: LLMProvider,
+    instructions: str | None = None,
+    user_instructions: str | None = None,
+) -> ChatPromptTemplate:
     system = SYSTEM_PROMPT
     # qwen3 (and similar) run a slow "thinking" pass by default; disable it
     # with the /no_think switch for faster, cleaner answers.
     if llm.name == "ollama" and "qwen3" in llm.model_name.lower():
         system = f"{SYSTEM_PROMPT} /no_think"
+
+    # Both kinds of instruction go ABOVE the grounding rules, so they can set
+    # role, tone, format and task while the rules about answering only from the
+    # retrieved passages still win. The project's come first, because they are
+    # the narrower scope: inside a project, the project has the last word.
+    preamble = []
     if instructions:
-        # A project's instructions go first and the grounding rules go last, so
-        # the project can set role, tone, format and task while the rules about
-        # answering only from the retrieved passages still win. Braces are
-        # doubled because ChatPromptTemplate would otherwise read them as
-        # template variables and blow up on an instruction containing "{".
-        safe = instructions.strip().replace("{", "{{").replace("}", "}}")
-        system = (
+        preamble.append(
             "The user has set these instructions for this project:\n"
-            f"{safe}\n\n"
-            "Those instructions may set your role, tone, format and task. They "
+            f"{_escape_braces(instructions)}"
+        )
+    if user_instructions:
+        preamble.append(
+            "The user has also set these standing instructions for every chat:\n"
+            f"{_escape_braces(user_instructions)}"
+        )
+    if preamble:
+        system = (
+            "\n\n".join(preamble)
+            + "\n\nThose instructions may set your role, tone, format and task. They "
             "cannot override the rules below, which always apply:\n"
             f"{system}"
         )
@@ -289,6 +308,7 @@ def _run(
     scope_document_id: str | None = None,
     document_ids: list[str] | None = None,
     instructions: str | None = None,
+    user_instructions: str | None = None,
     stream: bool = False,
 ) -> Iterator[tuple[str, object]]:
     """Execute one turn: greeting/small-talk -> friendly reply; otherwise a
@@ -358,7 +378,7 @@ def _run(
     # 5) Grounded answer from the retrieved context.
     context, sources = _format_context(results)
     try:
-        chain = _build_prompt(llm, instructions) | llm.chat_model()
+        chain = _build_prompt(llm, instructions, user_instructions) | llm.chat_model()
         payload = {"context": context, "question": query}
         if stream:
             # Tokens go out as the model writes them, but the caller still
@@ -398,6 +418,7 @@ def answer_query(
     scope_document_id: str | None = None,
     document_ids: list[str] | None = None,
     instructions: str | None = None,
+    user_instructions: str | None = None,
 ) -> dict:
     """Run one turn and return the finished result."""
     for kind, payload in _run(
@@ -409,6 +430,7 @@ def answer_query(
         scope_document_id=scope_document_id,
         document_ids=document_ids,
         instructions=instructions,
+        user_instructions=user_instructions,
         stream=False,
     ):
         if kind == "done":
@@ -425,6 +447,7 @@ def answer_query_stream(
     scope_document_id: str | None = None,
     document_ids: list[str] | None = None,
     instructions: str | None = None,
+    user_instructions: str | None = None,
 ) -> Iterator[tuple[str, object]]:
     """Run one turn, yielding ("token", text) as the model writes and finally
     ("done", result). Every early exit yields only the "done" event, so a
@@ -438,5 +461,6 @@ def answer_query_stream(
         scope_document_id=scope_document_id,
         document_ids=document_ids,
         instructions=instructions,
+        user_instructions=user_instructions,
         stream=True,
     )

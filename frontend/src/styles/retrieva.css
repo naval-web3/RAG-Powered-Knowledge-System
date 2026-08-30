@@ -762,14 +762,6 @@ body {
 .pop-menu .pm-item:hover { background: var(--surface-2); color: var(--text); }
 .pop-menu .pm-item.danger { color: var(--red); }
 .pop-menu .pm-item.danger:hover { background: var(--red-fill); color: #FFF; }
-/* Pushed to the far right by the auto margin, so labels of any length keep
-   their letters in one column. */
-.pop-menu .pm-key {
-  margin-left: auto; padding-left: 14px; font-family: var(--mono); font-size: 11px;
-  color: var(--text-3); line-height: 1;
-}
-.pop-menu .pm-item:hover .pm-key { color: var(--text-2); }
-.pop-menu .pm-item.danger:hover .pm-key { color: rgba(255, 255, 255, .72); }
 .pop-menu .pm-sep { height: 1px; background: var(--border); margin: 5px 4px; }
 
 /* ---------- Main column & topbar ---------- */
@@ -793,18 +785,36 @@ body {
    every offset .pop-menu declares for the full-width user menu has to be
    released -- the component writes top and one of left/right inline. */
 .pop-menu.is-portal {
-  position: fixed; left: auto; right: auto; top: auto; bottom: auto;
-  margin: 0; max-height: calc(100vh - 16px); overflow-y: auto;
+  position: fixed; left: auto; right: auto; top: auto; bottom: auto; margin: 0;
 }
 .conv-menu { width: max-content; min-width: 196px; max-width: 260px; }
 /* The row's button is hover-only; with the menu out in <body>, moving the
    pointer onto it leaves the row and the dots would vanish under their own
    menu. */
 .conv-item.menu-open .conv-actions { display: flex; }
-/* The project face of the menu. Back reuses the right chevron, turned round --
-   the sprite has no left one. */
-.pop-menu .pm-back { color: var(--text-3); }
-.pm-back-chev { transform: rotate(180deg); }
+/* The submenu row and the panel that flies out of it. */
+.pm-sub-anchor { position: relative; }
+.pop-menu .pm-arrow { margin-left: auto; padding-left: 14px; color: var(--text-3); }
+.pop-menu .pm-item:hover .pm-arrow { color: var(--text-2); }
+/* Flush against the row's right edge: with no gap to cross, the pointer moving
+   into the flyout never leaves .pm-sub-anchor and the menu cannot flicker. */
+.pm-flyout {
+  position: absolute; left: 100%; right: auto; top: -7px; bottom: auto;
+  width: max-content; min-width: 232px; max-width: 300px;
+}
+.pm-flyout.flip { left: auto; right: 100%; }
+.pm-flyout .pm-item { padding-left: 10px; }
+.pm-flyout-list { max-height: 260px; overflow-y: auto; }
+.pm-search {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px 9px; margin-bottom: 3px;
+  border-bottom: 1px solid var(--border);
+}
+.pm-search .icon-sm { color: var(--text-3); flex: none; }
+.pm-search input {
+  flex: 1; min-width: 0; border: 0; background: none; outline: none;
+  font-size: 13px; color: var(--text);
+}
 .pop-menu .pm-label {
   flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }

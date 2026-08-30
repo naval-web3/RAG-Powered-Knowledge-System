@@ -41,6 +41,11 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Standing instructions the user sets once in Settings. They ride above the
+    # grounding rules on every answer, the same way a project's do, and like a
+    # project's they cannot switch citation or the answer-only-from-context
+    # rules off.
+    custom_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     documents: Mapped[list["Document"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
     conversations: Mapped[list["Conversation"]] = relationship(back_populates="owner", cascade="all, delete-orphan")

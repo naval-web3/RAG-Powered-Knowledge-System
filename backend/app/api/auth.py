@@ -152,16 +152,21 @@ def update_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> UserOut:
-    """Update the current user's display name (username)."""
-    new_name = payload.username.strip()
-    clash = (
-        db.query(User)
-        .filter(User.username == new_name, User.user_id != current_user.user_id)
-        .first()
-    )
-    if clash:
-        raise HTTPException(status.HTTP_409_CONFLICT, "That username is already taken")
-    current_user.username = new_name
+    """Update the current user's display name and standing instructions."""
+    if payload.username is not None:
+        new_name = payload.username.strip()
+        clash = (
+            db.query(User)
+            .filter(User.username == new_name, User.user_id != current_user.user_id)
+            .first()
+        )
+        if clash:
+            raise HTTPException(status.HTTP_409_CONFLICT, "That username is already taken")
+        current_user.username = new_name
+    # Sent-and-empty clears them; not sent at all leaves them be.
+    if "custom_instructions" in payload.model_fields_set:
+        text = (payload.custom_instructions or "").strip()
+        current_user.custom_instructions = text or None
     db.commit()
     db.refresh(current_user)
     return UserOut.model_validate(current_user)

@@ -123,6 +123,7 @@ def chat_stream(
             scope_document_id=scope_id,
             document_ids=doc_ids,
             instructions=instructions,
+            user_instructions=current_user.custom_instructions,
         ):
             if kind == "token":
                 yield _sse("token", {"t": item})
@@ -233,6 +234,7 @@ def chat(
             scope_document_id=scope_id,
             document_ids=doc_ids,
             instructions=instructions,
+            user_instructions=current_user.custom_instructions,
         )
         return ChatResponse(
             conversation_id=None,
@@ -274,6 +276,7 @@ def chat(
         scope_document_id=scope_id,
         document_ids=doc_ids,
         instructions=instructions,
+        user_instructions=current_user.custom_instructions,
     )
 
     sources_payload = [s.model_dump() for s in result["sources"]]

@@ -119,69 +119,139 @@ function PortalMenu({ anchorRef, align = "right", className = "", children }) {
 }
 
 /**
- * What is inside a chat menu. One component for the row menu and the one under
- * the conversation title, so their wording and their letters cannot drift.
+ * The project picker that flies out of "Add to project".
  *
- * The project list replaces the menu's contents rather than flying out beside
- * it: the menu is already placed by hand out in <body>, and a second popover
- * hanging off this one would need its own edge handling for no real gain.
+ * It is a plain absolutely-positioned child of the row rather than a second
+ * portal: it sits flush against the row's right edge (left: 100%, no gap), so
+ * the pointer crossing into it never leaves the hover area and no timer is
+ * needed to keep it open. It flips to the left when there is no room.
  */
-function ChatMenuItems({ conv, projects, view, onView, onAction, onMove }) {
-  if (view === "project") {
-    return (
-      <>
-        <button className="pm-item pm-back" onClick={() => onView("main")}>
-          <Icon name="chev-r" className="icon-sm pm-back-chev" /> Back
-        </button>
-        <div className="pm-sep" />
-        {projects.length === 0 ? (
+function ProjectFlyout({ conv, projects, onMove, onCreate }) {
+  const [q, setQ] = useState("");
+  const boxRef = useRef(null);
+  const [place, setPlace] = useState({ flip: false, lift: 0 });
+
+  /* Placed once, from the box's UNADJUSTED rect. Both corrections are deltas,
+     so measuring again after one had been applied would just chase itself. */
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    const r = box.getBoundingClientRect();
+    const flip = r.right > window.innerWidth - 8;
+    // Lift by however much hangs below the fold, but never past the top edge.
+    let lift = Math.max(0, r.bottom - (window.innerHeight - 8));
+    lift = Math.min(lift, Math.max(0, r.top - 8));
+    setPlace({ flip, lift });
+  }, []);
+
+  const query = q.trim().toLowerCase();
+  const hits = query ? projects.filter((p) => p.name.toLowerCase().includes(query)) : projects;
+  const exact = projects.some((p) => p.name.toLowerCase() === query);
+
+  return (
+    <div ref={boxRef} className={`pop-menu pm-flyout ${place.flip ? "flip" : ""}`}
+      style={place.lift ? { top: -7 - place.lift } : undefined}>
+      <div className="pm-search">
+        <Icon name="search" className="icon-sm" />
+        <input
+          autoFocus
+          value={q}
+          placeholder="Search or create a project"
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            if (hits.length === 1) onMove(conv, hits[0].project_id);
+            else if (query && !exact) onCreate(conv, q.trim());
+          }}
+        />
+      </div>
+      <div className="pm-flyout-list">
+        {hits.map((p) => (
+          <button key={p.project_id} className="pm-item" onClick={() => onMove(conv, p.project_id)}>
+            <span className="pm-label">{p.name}</span>
+            {conv.project_id === p.project_id && <Icon name="check" className="icon-sm pm-check" />}
+          </button>
+        ))}
+        {hits.length === 0 && (
           <p className="pm-empty">
-            No projects yet. Make one in the sidebar and it will show up here.
+            {projects.length === 0 ? "No projects yet." : `Nothing matches \u201c${q.trim()}\u201d.`}
           </p>
-        ) : (
-          projects.map((p) => (
-            <button key={p.project_id} className="pm-item"
-              onClick={() => onMove(conv, p.project_id)}>
-              <Icon name="book" className="icon-sm" />
-              <span className="pm-label">{p.name}</span>
-              {conv.project_id === p.project_id && (
-                <Icon name="check" className="icon-sm pm-check" />
-              )}
-            </button>
-          ))
         )}
-        {conv.project_id && (
-          <>
-            <div className="pm-sep" />
-            <button className="pm-item" onClick={() => onMove(conv, null)}>
-              <Icon name="x" className="icon-sm" /> Remove from project
-            </button>
-          </>
-        )}
-      </>
-    );
-  }
+      </div>
+      {conv.project_id && (
+        <>
+          <div className="pm-sep" />
+          <button className="pm-item" onClick={() => onMove(conv, null)}>
+            <Icon name="x" className="icon-sm" /> Remove from project
+          </button>
+        </>
+      )}
+      <div className="pm-sep" />
+      {/* Named by whatever is in the field. Empty, it points back at the field
+          rather than inventing a name. */}
+      <button
+        className="pm-item"
+        onClick={() => {
+          const name = q.trim();
+          if (name && !exact) onCreate(conv, name);
+          else boxRef.current?.querySelector("input")?.focus();
+        }}
+      >
+        <Icon name="plus" className="icon-sm" />
+        <span className="pm-label">
+          {q.trim() && !exact ? `Start \u201c${q.trim()}\u201d` : "Start a new project"}
+        </span>
+      </button>
+    </div>
+  );
+}
+
+/**
+ * What is inside a chat menu. One component for the row menu and the one under
+ * the conversation title, so their wording cannot drift apart.
+ */
+function ChatMenuItems({ conv, projects, onAction, onMove, onCreate }) {
+  const [subOpen, setSubOpen] = useState(false);
+  const closeTimer = useRef(null);
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  // A short grace period covers a diagonal move across the row's corner; the
+  // flyout itself is inside this element, so a straight move never triggers it.
+  const hold = () => { clearTimeout(closeTimer.current); setSubOpen(true); };
+  const release = () => {
+    clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setSubOpen(false), 150);
+  };
+
   return (
     <>
-      <button className="pm-item" onClick={() => onAction(conv, "p")}>
+      <button className="pm-item" onClick={() => onAction(conv, "p")} onMouseEnter={release}>
         <Icon name={conv.pinned ? "pin-off" : "pin"} className="icon-sm" />
-        {conv.pinned ? "Unpin" : "Pin"}<kbd className="pm-key">P</kbd>
+        {conv.pinned ? "Unpin" : "Pin"}
       </button>
-      <button className="pm-item" onClick={() => onAction(conv, "u")}>
+      <button className="pm-item" onClick={() => onAction(conv, "u")} onMouseEnter={release}>
         <Icon name={conv.unread ? "eye" : "eye-off"} className="icon-sm" />
-        {conv.unread ? "Mark as read" : "Mark as unread"}<kbd className="pm-key">U</kbd>
+        {conv.unread ? "Mark as read" : "Mark as unread"}
       </button>
-      <button className="pm-item" onClick={() => onAction(conv, "r")}>
-        <Icon name="pencil" className="icon-sm" /> Rename<kbd className="pm-key">R</kbd>
+      <button className="pm-item" onClick={() => onAction(conv, "r")} onMouseEnter={release}>
+        <Icon name="pencil" className="icon-sm" /> Rename
       </button>
-      <button className="pm-item" onClick={() => onAction(conv, "a")}>
-        <Icon name="book" className="icon-sm" />
-        {conv.project_id ? "Move to project" : "Add to project"}
-        <kbd className="pm-key">A</kbd>
-      </button>
+
+      <div className="pm-sub-anchor" onMouseEnter={hold} onMouseLeave={release}>
+        <button className="pm-item" aria-haspopup="true" aria-expanded={subOpen}
+          onClick={() => setSubOpen((o) => !o)}>
+          <Icon name="book" className="icon-sm" />
+          <span className="pm-label">{conv.project_id ? "Move to project" : "Add to project"}</span>
+          <Icon name="chev-r" className="icon-sm pm-arrow" />
+        </button>
+        {subOpen && (
+          <ProjectFlyout conv={conv} projects={projects} onMove={onMove} onCreate={onCreate} />
+        )}
+      </div>
+
       <div className="pm-sep" />
-      <button className="pm-item danger" onClick={() => onAction(conv, "d")}>
-        <Icon name="trash" className="icon-sm" /> Delete<kbd className="pm-key">D</kbd>
+      <button className="pm-item danger" onClick={() => onAction(conv, "d")} onMouseEnter={release}>
+        <Icon name="trash" className="icon-sm" /> Delete
       </button>
     </>
   );
@@ -303,8 +373,6 @@ function Shell() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
   const [menuId, setMenuId] = useState(null);
-  // "main" or "project": which face of the open chat menu is showing.
-  const [menuView, setMenuView] = useState("main");
   // The bar's menu has no conversation id of its own to key on.
   const TOPBAR_MENU = "topbar";
   const [editingId, setEditingId] = useState(null);
@@ -363,8 +431,6 @@ function Shell() {
 
   function menuAction(conv, key) {
     if (!conv) return;
-    // The only action that leaves the menu up: it has a second face to show.
-    if (key === "a") { setMenuView("project"); return; }
     if (key === "p") chat.setConversationFlags(conv.conversation_id, { pinned: !conv.pinned });
     else if (key === "u") chat.setConversationFlags(conv.conversation_id, { unread: !conv.unread });
     else if (key === "r") {
@@ -380,56 +446,25 @@ function Shell() {
     chat.moveConversation(conv.conversation_id, projectId);
   }
 
-  // A menu always opens on its first face, however it was last left.
-  useEffect(() => {
-    setMenuView("main");
-  }, [menuId]);
+  /* Create the project and file the chat into it in one go: the flyout is
+     reached from a chat, so a new project made there is always meant to hold
+     the chat that opened it. */
+  async function createAndMove(conv, name) {
+    setMenuId(null);
+    const project = await chat.createProject(name);
+    if (project) chat.moveConversation(conv.conversation_id, project.project_id);
+  }
 
-  /* The letters are live only while a menu is open, and never while something
-     is being typed into. Modifier combos stay with the browser, so Ctrl+P is
-     still print. No dependency array: the handler reads state that changes on
-     nearly every render, and a stale closure would act on the wrong chat. */
+  // Escape closes an open menu. The P/U/R/D letters were removed: they were
+  // undiscoverable and fired on chats the pointer had already left.
   useEffect(() => {
     if (menuId === null) return undefined;
     const onKey = (e) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const t = e.target;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
-      const key = e.key.toLowerCase();
-      // Escape backs out one step at a time rather than closing from inside
-      // the project list, which would lose the menu on a mis-key.
-      if (key === "escape") {
-        if (menuView === "project") setMenuView("main");
-        else setMenuId(null);
-        return;
-      }
-      // The project list has its own rows; the action letters would fire
-      // underneath it.
-      if (menuView === "project") return;
-      if (key.length !== 1 || !"purda".includes(key)) return;
-      const conv = menuId === TOPBAR_MENU
-        ? activeConversation
-        : chat.conversations.find((c) => c.conversation_id === menuId);
-      if (!conv) return;
-      e.preventDefault();
-      menuAction(conv, key);
+      if (e.key === "Escape") setMenuId(null);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
-
-  function updateFade(ref, setFade) {
-    const el = ref.current;
-    if (!el) return;
-    const top = el.scrollTop > 2;
-    const bot = el.scrollTop + el.clientHeight < el.scrollHeight - 2;
-    setFade((p) => (p.top === top && p.bot === bot ? p : { top, bot }));
-  }
-
-  function commitTitle() {
-    if (activeConversation) chat.renameConversation(activeConversation.conversation_id, titleDraft);
-    setTitleEditing(false);
-  }
+  }, [menuId]);
 
   // Close popovers on outside click / route change.
   useEffect(() => {
@@ -759,8 +794,8 @@ function Shell() {
                       </button>
                       {open && (
                         <PortalMenu anchorRef={rowMenuBtnRef} align="right" className="conv-menu">
-                          <ChatMenuItems conv={c} projects={chat.projects} view={menuView}
-                            onView={setMenuView} onAction={menuAction} onMove={moveConv} />
+                          <ChatMenuItems conv={c} projects={chat.projects}
+                            onAction={menuAction} onMove={moveConv} onCreate={createAndMove} />
                         </PortalMenu>
                       )}
                     </div>
@@ -873,7 +908,7 @@ function Shell() {
                   {menuId === TOPBAR_MENU && (
                     <PortalMenu anchorRef={titleMenuBtnRef} align="left" className="conv-menu title-menu">
                       <ChatMenuItems conv={activeConversation} projects={chat.projects}
-                        view={menuView} onView={setMenuView} onAction={menuAction} onMove={moveConv} />
+                        onAction={menuAction} onMove={moveConv} onCreate={createAndMove} />
                     </PortalMenu>
                   )}
                 </div>

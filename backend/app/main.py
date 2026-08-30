@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy import text, update
 
-from app.api import admin, auth, chat, documents, projects
+from app.api import admin, auth, chat, documents, projects, usage
 from app.api import settings as settings_api
 from app.config import settings
 from app import runtime_settings
@@ -52,6 +52,9 @@ def on_startup() -> None:
         )
         conn.execute(
             text("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS unread BOOLEAN NOT NULL DEFAULT false")
+        )
+        conn.execute(
+            text("ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_instructions TEXT")
         )
         conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS stage VARCHAR(20)"))
         conn.execute(
@@ -108,3 +111,4 @@ app.include_router(chat.router)
 app.include_router(projects.router)
 app.include_router(admin.router)
 app.include_router(settings_api.router)
+app.include_router(usage.router)

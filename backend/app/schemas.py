@@ -31,6 +31,7 @@ class UserOut(BaseModel):
     is_active: bool
     created_at: datetime
     last_login: datetime | None = None
+    custom_instructions: str | None = None
 
 
 class Token(BaseModel):
@@ -129,12 +130,38 @@ class ConversationDetail(ConversationOut):
     messages: list[MessageOut] = []
 
 
-# ---------- Admin ----------
+# ---------- Usage ----------
 class DayCount(BaseModel):
     date: str  # YYYY-MM-DD
     count: int
 
 
+class UsageBucket(BaseModel):
+    """One metered thing: what has been used, and the ceiling it counts against.
+
+    The counts are real. The limits are invented -- this project bills nobody --
+    and are declared here rather than buried in the UI so it is obvious which
+    half is which.
+    """
+    used: int
+    limit: int
+    resets_in_minutes: int | None = None
+
+
+class UsageOut(BaseModel):
+    session: UsageBucket
+    week: UsageBucket
+    storage: UsageBucket
+    queries_total: int
+    avg_response_ms: float
+    chunks_retrieved: int
+    documents: int
+    chunks_indexed: int
+    by_model: dict[str, int] = {}
+    by_day: list[DayCount] = []
+
+
+# ---------- Admin ----------
 class AdminStats(BaseModel):
     total_users: int
     active_users: int
@@ -198,7 +225,13 @@ class SettingsUpdate(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
-    username: str = Field(min_length=3, max_length=100)
+    """Any subset of the editable profile fields.
+
+    custom_instructions reads its presence from model_fields_set, because an
+    empty box means "clear them" and None means "leave them alone".
+    """
+    username: str | None = Field(default=None, min_length=3, max_length=100)
+    custom_instructions: str | None = Field(default=None, max_length=4000)
 
 
 class PasswordChange(BaseModel):
