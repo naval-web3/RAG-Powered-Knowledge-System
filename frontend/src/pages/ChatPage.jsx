@@ -265,10 +265,21 @@ function AnswerMark({ busy }) {
 function AiMessage({ message, mark }) {
   const { toast } = useToast();
   const [vote, setVote] = useState(null);
+  /* A copy says so on the button itself. A toast for it was a second thing to
+     look at, in the opposite corner, for something the pointer is already on. */
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef(null);
+  useEffect(() => () => clearTimeout(copiedTimer.current), []);
 
   function copy() {
     navigator.clipboard?.writeText(message.content).then(
-      () => toast("Answer copied", "ok"),
+      () => {
+        setCopied(true);
+        // Restarted, not stacked, so a second copy gets its own full second.
+        clearTimeout(copiedTimer.current);
+        copiedTimer.current = setTimeout(() => setCopied(false), 1000);
+      },
+      // A failure still needs saying: nothing on the button would explain it.
       () => toast("Couldn't copy", "err")
     );
   }
@@ -294,7 +305,9 @@ function AiMessage({ message, mark }) {
 
         {!message.error && !message.streaming && (
           <div className="msg-actions">
-            <button className="btn-icon" title="Copy" onClick={copy}><Icon name="copy" className="icon-sm" /></button>
+            <button className="btn-icon" title={copied ? "Copied" : "Copy"} onClick={copy}>
+              <Icon name={copied ? "check" : "copy"} className="icon-sm" />
+            </button>
             <button className={`btn-icon ${vote === "up" ? "voted" : ""}`} title="Good answer"
               onClick={() => { setVote("up"); toast("Marked as a good answer", "ok"); }}>
               <Icon name={vote === "up" ? "thumb-up-fill" : "thumb-up"} className="icon-sm" />
