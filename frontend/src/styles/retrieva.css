@@ -750,10 +750,17 @@ body {
 [data-theme="dark"] .avatar { background: var(--accent-soft-2); color: var(--accent); }
 /* .u-meta blockifies as a flex item, but its children were inline spans, so
    the name and the line under it ran together on one line and their ellipsis
-   rules did nothing. Stacking them is what puts the email on its own row. */
-.user-chip .u-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+   rules did nothing. Stacking them is what puts the email on its own row.
+
+   No align-items: flex-start. That made each line hug its own text, which is
+   invisible while the text is left aligned but means the box ends exactly
+   where the words do -- and a box that ends where its text ends cannot carry
+   the fade below, because every name would be sitting in the faded part.
+   Stretched, they fill the chip and only a name that actually overruns it
+   reaches the fade. */
+.user-chip .u-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .user-chip .u-name,
-.user-chip .u-mail { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-chip .u-mail { display: block; white-space: nowrap; }
 .user-chip .u-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
 .user-chip .u-mail { font-size: 11.5px; color: var(--text-3); }
 .pop-menu {
@@ -1815,14 +1822,13 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    glyph: they read as content, and down a column of file names every row ends
    up looking like every other. A fade just stops.
 
-   ONLY ADD A SELECTOR HERE IF ITS BOX FILLS THE ROW (flex: 1, or width: 100%).
+   ONLY ADD A SELECTOR HERE IF ITS BOX FILLS THE ROW (flex: 1, or stretched).
    The mask is on the box, not the text, so on a full-width box a short title
    never reaches the faded zone and is left alone, which is what lets one static
    rule be right for both short and long names. On a box that shrink-wraps its
    text the text always ends AT the edge, so every name fades, however short.
-   That is what happened to the account chip below: .u-meta is a column with
-   align-items: flex-start, so its two lines hug their content, and a four
-   letter name came out half faded. Those keep their ellipsis.
+   The account chip did exactly that until its column stopped using
+   align-items: flex-start; a four letter name came out half faded.
 
    A mask and not a gradient overlay, because it makes the text transparent
    instead of painting over it: whatever the row's background happens to be at
@@ -1830,7 +1836,9 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    through. An overlay would have to guess that colour, and be wrong on three
    backgrounds out of four. */
 .conv-title,
-.search-hit-title {
+.search-hit-title,
+.user-chip .u-name,
+.user-chip .u-mail {
   /* min-width:0 so a long name shrinks rather than widening the row it sits in. */
   min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: clip;
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
