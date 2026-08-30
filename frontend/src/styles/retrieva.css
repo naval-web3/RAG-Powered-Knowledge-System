@@ -676,12 +676,21 @@ body {
 /* Rows dissolve into the panel at whichever edge still has list behind it.
    The two stops stay at 0 until there is something hidden, so a list that fits
    is not dimmed at its ends for nothing. */
+/* overflow-x: hidden, not left to compute. Asking for overflow-y makes the
+   other axis auto as well, so anything absolutely positioned that reaches past
+   the panel -- a tooltip on a row, say -- both gets cut off AND counts as
+   content wide enough to deserve a scrollbar. Neither list ever scrolls
+   sideways, so say so. */
 .sb-scroll {
-  flex: 1; min-height: 0; overflow-y: auto; padding: 2px 3px 12px 12px;
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 2px 3px 12px 12px;
 }
 /* Projects scroll on their own so a long list cannot push the chats out. It
    shrinks to its content first and only starts scrolling past the cap. */
-.sb-projects { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 4px 3px 0 12px; }
+.sb-projects {
+  flex: 0 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 4px 3px 0 12px;
+}
 /* Both scrollers dissolve their rows at whichever edge still has list behind
    it, so neither ends on a row sliced flat by the overflow. */
 .sb-scroll, .sb-projects {
