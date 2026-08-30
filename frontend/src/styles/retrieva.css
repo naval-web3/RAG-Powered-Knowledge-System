@@ -650,6 +650,11 @@ body {
   color: var(--text); font-weight: 600;
 }
 .sb-new:hover { background: var(--surface); color: var(--accent); }
+/* Standing in for the Chat row that used to sit below it, so it wears the same
+   highlight. Declared after :hover so an active button keeps its colour while
+   the pointer is on it. */
+.sb-new.active { background: var(--accent-soft); color: var(--accent); }
+.sb-new.active:hover { color: var(--accent-hover); }
 .sb-nav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
 .sb-item {
   display: flex; align-items: center; gap: 11px; width: 100%;

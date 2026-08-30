@@ -385,6 +385,7 @@ function Shell() {
   const footRef = useRef(null);
 
   const onChat = location.pathname === "/";
+  const onNewChat = onChat && !chat.activeId;
   const privateActive = chat.privateMode && onChat;
   const [pendingDelete, setPendingDelete] = useState(null);
 
@@ -598,11 +599,8 @@ function Shell() {
   const shownChats = filtered.slice(0, RECENT_CHATS);
 
   const navItems = [
-    { page: "/", icon: "chat", label: "Chat" },
     { page: "/documents", icon: "file", label: "Documents", count: chat.docCount },
     ...(user?.role === "admin" ? [{ page: "/dashboard", icon: "grid", label: "Dashboard" }] : []),
-    // Settings is a dialog, so this row has no route to match against.
-    { action: openSettings, icon: "settings", label: "Settings" },
   ];
 
   const appClass = [
@@ -652,14 +650,14 @@ function Shell() {
         </div>
 
         <div className="sb-section">
-          <button className="btn sb-new" onClick={startNewChat}>
+          <button className={`btn sb-new ${onNewChat ? "active" : ""}`} onClick={startNewChat}>
             <Icon name="plus" className="icon-sm" /> New chat
           </button>
           <nav className="sb-nav">
             {navItems.map((it) => (
-              <button key={it.page || it.label}
-                className={`sb-item ${it.page && location.pathname === it.page ? "active" : ""}`}
-                onClick={() => (it.action ? it.action() : goto(it.page))}>
+              <button key={it.page}
+                className={`sb-item ${location.pathname === it.page ? "active" : ""}`}
+                onClick={() => goto(it.page)}>
                 <Icon name={it.icon} className="icon-sm" /> {it.label}
                 {it.count != null && <span className="count">{it.count}</span>}
               </button>
