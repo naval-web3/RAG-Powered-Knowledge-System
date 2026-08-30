@@ -887,6 +887,7 @@ function Shell() {
                     {editing ? (
                       <input className="conv-title rename" autoFocus value={editTitle}
                         aria-label={t("common.rename")}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) => setEditTitle(e.target.value)}
                         onClick={(e) => e.stopPropagation()}
                         onKeyDown={(e) => {
@@ -1018,6 +1019,7 @@ function Shell() {
                 <input
                   className="conv-title-edit"
                   autoFocus
+                  onFocus={(e) => e.target.select()}
                   // Fallback sizing for browsers without CSS field-sizing.
                   size={Math.max(8, titleDraft.length + 1)}
                   value={titleDraft}
