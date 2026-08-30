@@ -728,7 +728,7 @@ function Shell() {
                 <span className="sb-group-count">{chat.docs.length}</span>
               )}
             </button>
-            <Tooltip label={t("docs.upload")} placement="left">
+            <Tooltip label={t("docs.upload")}>
               <button className="btn-icon" aria-label={t("docs.upload")}
                 disabled={chat.uploading}
                 onClick={() => {
@@ -779,7 +779,7 @@ function Shell() {
                 <span className="sb-group-count">{chat.projects.length}</span>
               )}
             </button>
-            <Tooltip label={t("sidebar.newProject")} placement="left">
+            <Tooltip label={t("sidebar.newProject")}>
               <button className="btn-icon" aria-label={t("sidebar.newProject")}
                 onClick={() => {
                   // Creating one while the section is shut would hide the input.
