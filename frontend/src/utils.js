@@ -77,6 +77,12 @@ function bandNow() {
   return h < 12 ? "morning" : h < 18 ? "afternoon" : "evening";
 }
 
+/* Longer than any given name anyone actually has, and short enough that
+   "Good afternoon, " plus a name still reads as a greeting rather than a
+   headline. Display only: nobody is stopped from having a longer name, it is
+   just not all shouted at 34px. */
+const GREETING_NAME_MAX = 20;
+
 /**
  * The line above the composer on an empty chat.
  *
@@ -88,7 +94,14 @@ function bandNow() {
  * rotating prompts arrive as one "|"-joined string and are split here.
  */
 export function greetingFor(t, name, arrival = true) {
-  if (arrival) return t(`chat.greeting.${bandNow()}`, { name: firstName(name) });
+  if (arrival) {
+    const first = firstName(name);
+    const shown =
+      first.length > GREETING_NAME_MAX
+        ? `${first.slice(0, GREETING_NAME_MAX).trimEnd()}…`
+        : first;
+    return t(`chat.greeting.${bandNow()}`, { name: shown });
+  }
   return nextPrompt(t("chat.prompts").split("|"));
 }
 

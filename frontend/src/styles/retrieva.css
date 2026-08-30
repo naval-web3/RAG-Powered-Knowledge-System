@@ -920,7 +920,13 @@ body {
 /* Same mark as private mode and the end of an answer: the motif on its own,
    no plate behind it. */
 .empty-mark { width: 56px; height: 56px; margin: 0 auto 22px; display: block; }
-.chat-empty h2 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 600; letter-spacing: -.02em; margin-bottom: 30px; }
+.chat-empty h2 {
+  font-size: clamp(26px, 3.4vw, 34px); font-weight: 600; letter-spacing: -.02em;
+  margin-bottom: 30px;
+  /* An unbroken word overflows its container rather than being clipped by it,
+     so the 780px column above does not hold it in on its own. */
+  overflow-wrap: anywhere;
+}
 .chat-empty p { color: var(--text-2); font-size: 15px; margin-bottom: 8px; }
 .sugg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 640px; margin: 0 auto; text-align: left; }
 .sugg {
