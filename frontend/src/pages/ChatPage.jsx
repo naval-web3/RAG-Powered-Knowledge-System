@@ -297,11 +297,11 @@ function AiMessage({ message, mark }) {
             <button className="btn-icon" title="Copy" onClick={copy}><Icon name="copy" className="icon-sm" /></button>
             <button className={`btn-icon ${vote === "up" ? "voted" : ""}`} title="Good answer"
               onClick={() => { setVote("up"); toast("Marked as a good answer", "ok"); }}>
-              <Icon name="thumb-up" className="icon-sm" />
+              <Icon name={vote === "up" ? "thumb-up-fill" : "thumb-up"} className="icon-sm" />
             </button>
             <button className={`btn-icon ${vote === "down" ? "voted" : ""}`} title="Needs work"
               onClick={() => { setVote("down"); toast("Marked as needing work", "info"); }}>
-              <Icon name="thumb-down" className="icon-sm" />
+              <Icon name={vote === "down" ? "thumb-down-fill" : "thumb-down"} className="icon-sm" />
             </button>
           </div>
         )}
