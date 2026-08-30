@@ -1811,6 +1811,12 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 
 
+/* Keys sit in a row with a gap where the plus signs used to be. No font-size
+   here: this is worn by a sidebar row and by a tooltip, and each sets its own.
+   The arrow is sized in em so it tracks whichever that is. */
+.keys { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-style: normal; }
+.keys-shift { width: 1.15em; height: 1.15em; flex: none; }
+
 /* A keyboard hint that only exists while the pointer is on its row. Off-hover
    it is invisible but still laid out, so the row does not change width when a
    hint fades in and nudge the label under the cursor. Screen readers get it

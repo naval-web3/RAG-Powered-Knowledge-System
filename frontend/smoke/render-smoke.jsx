@@ -116,6 +116,27 @@ for (const [name, path, element, at] of INSIDE_APP) {
   );
 }
 
+// The hint is drawn from a sprite symbol by name, so a rename in one file and
+// not the other would leave an empty box that still renders fine.
+check("New chat hint draws its shift arrow", () => {
+  const html = renderToString(
+    <MemoryRouter initialEntries={["/"]}>
+      <LocaleProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<ChatPage />} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </LocaleProvider>
+    </MemoryRouter>
+  );
+  if (!html.includes("#i-shift")) throw new Error("no shift glyph in the sidebar");
+  if (html.includes("Ctrl+Shift")) throw new Error("a plus-joined shortcut is still rendered");
+  return html;
+});
+
 console.log("rendering the app shell:");
 for (const [name, at] of SHELL) {
   check(name, () =>

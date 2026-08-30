@@ -11,6 +11,7 @@ import { initialsOf } from "../utils";
 import ConfirmModal from "./ConfirmModal";
 import DocumentDialog from "./DocumentDialog";
 import Icon from "./Icon";
+import Keys from "./Keys";
 import LanguageDialog from "./LanguageDialog";
 import SettingsDialog from "./SettingsDialog";
 import Tooltip from "./Tooltip";
@@ -693,7 +694,7 @@ function Shell() {
         <div className="sb-section">
           <button className={`btn sb-new ${onNewChat ? "active" : ""}`} onClick={startNewChat}>
             <Icon name="plus" className="icon-sm" /> {t("sidebar.newChat")}
-            <kbd className="row-hint">Ctrl+Shift+O</kbd>
+            <Keys combo="ctrl+shift+o" className="row-hint" />
           </button>
           {navItems.length > 0 && (
           <nav className="sb-nav">
@@ -939,7 +940,7 @@ function Shell() {
               <button className="pm-item" onClick={openSettings}>
                 <Icon name="settings" className="icon-sm" />
                 <span className="pm-label">{t("common.settings")}</span>
-                <kbd className="row-hint">Ctrl+Shift+S</kbd>
+                <Keys combo="ctrl+shift+s" className="row-hint" />
               </button>
               <div className="pm-sep" />
               <button className="pm-item danger" onClick={handleLogout}>
@@ -1033,7 +1034,7 @@ function Shell() {
             {/* The only control left in the bar, and it sits in the same corner
                 the cross occupies in private mode: one place to switch the mode
                 either way. */}
-            <Tooltip label={t("topbar.privateChat")} keys="Ctrl+Shift+P">
+            <Tooltip label={t("topbar.privateChat")} keys={<Keys combo="ctrl+shift+p" />}>
               <button
                 className={`private-toggle ${chat.privateMode ? "on" : ""}`}
                 aria-label={t("topbar.privateChat")} aria-pressed={chat.privateMode}
