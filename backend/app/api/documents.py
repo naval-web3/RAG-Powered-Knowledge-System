@@ -15,6 +15,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi.responses import FileResponse
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
@@ -22,8 +23,9 @@ from app.config import settings
 from app.database import SessionLocal, get_db
 from app.deps import get_current_user
 from app.models import Document, Project, ProjectDocument, User
-from app.schemas import DocumentOut
+from app.schemas import DocumentChunk, DocumentContent, DocumentOut, DocumentPage
 from app.services import vector_store
+from app.services.document_processor import extract_text
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -167,6 +169,94 @@ def get_document(
     if doc is None or doc.user_id != current_user.user_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
     return DocumentOut.model_validate(doc)
+
+
+# A whole book pasted into a .txt would otherwise be sent to a browser in one
+# response. The viewer says when it has stopped.
+MAX_CONTENT_CHARS = 400_000
+
+
+def _owned(db: Session, document_id: uuid.UUID, user: User) -> Document:
+    doc = db.get(Document, document_id)
+    if doc is None or doc.user_id != user.user_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
+    return doc
+
+
+@router.get("/{document_id}/content", response_model=DocumentContent)
+def document_content(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DocumentContent:
+    """The document as text, page by page.
+
+    Re-extracted from the stored file on request. This is the same extraction
+    the pipeline indexed, so what the reader sees is what was searched, and a
+    scanned PDF shows its OCR rather than a blank page.
+    """
+    doc = _owned(db, document_id, current_user)
+    if not os.path.exists(doc.file_path):
+        raise HTTPException(status.HTTP_410_GONE, "The stored file is missing")
+    try:
+        pages = extract_text(doc.file_path, doc.file_type)
+    except Exception as exc:  # noqa: BLE001 - a bad file is the user's problem to see
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, f"Could not read this file: {exc}"
+        ) from exc
+
+    out: list[DocumentPage] = []
+    budget = MAX_CONTENT_CHARS
+    truncated = False
+    for number, text in pages:
+        text = text or ""
+        if len(text) > budget:
+            text = text[:budget]
+            truncated = True
+        budget -= len(text)
+        out.append(DocumentPage(page_number=number, text=text))
+        if budget <= 0:
+            truncated = truncated or len(out) < len(pages)
+            break
+    return DocumentContent(
+        document_id=doc.document_id,
+        title=doc.title,
+        file_type=doc.file_type,
+        pages=out,
+        truncated=truncated,
+    )
+
+
+@router.get("/{document_id}/chunks", response_model=list[DocumentChunk])
+def document_chunks(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[DocumentChunk]:
+    """The passages this document was split into, in split order.
+
+    What retrieval actually searches. Seeing them explains why a question
+    matched one part of a document and not another.
+    """
+    doc = _owned(db, document_id, current_user)
+    return [DocumentChunk(**row) for row in vector_store.chunks_for_document(str(doc.document_id))]
+
+
+@router.get("/{document_id}/file")
+def document_file(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> FileResponse:
+    """The original upload, byte for byte, under the name it arrived with."""
+    doc = _owned(db, document_id, current_user)
+    if not os.path.exists(doc.file_path):
+        raise HTTPException(status.HTTP_410_GONE, "The stored file is missing")
+    return FileResponse(
+        doc.file_path,
+        filename=doc.original_filename,
+        media_type="application/octet-stream",
+    )
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)

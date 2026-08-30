@@ -94,6 +94,42 @@ def similarity_search(
     return out
 
 
+def chunks_for_document(document_id: str) -> list[dict]:
+    """Every indexed chunk of one document, in the order it was split.
+
+    Reads the collection directly rather than searching it: this is not a
+    retrieval, it is showing the user what was stored, so there is no query to
+    rank against and no embedding to compute.
+    """
+    got = get_collection().get(
+        where={"document_id": str(document_id)},
+        include=["documents", "metadatas"],
+    )
+    rows = []
+    for text, meta in zip(got.get("documents") or [], got.get("metadatas") or []):
+        meta = meta or {}
+        rows.append(
+            {
+                "chunk_index": meta.get("chunk_index"),
+                "page_number": meta.get("page_number"),
+                "section": meta.get("section") or None,
+                "text": text or "",
+            }
+        )
+    # chunk_index restarts at 0 on every page (see document_processor), so page
+    # number has to lead or the pages interleave. Chroma promises no order of
+    # its own, so this has to be done here.
+    rows.sort(
+        key=lambda r: (
+            r["page_number"] is None,
+            r["page_number"] or 0,
+            r["chunk_index"] is None,
+            r["chunk_index"] or 0,
+        )
+    )
+    return rows
+
+
 def delete_document(document_id: str) -> None:
     """Remove all chunks belonging to a document from the vector store."""
     get_collection().delete(where={"document_id": document_id})

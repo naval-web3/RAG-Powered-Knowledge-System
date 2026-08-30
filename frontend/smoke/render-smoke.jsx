@@ -17,22 +17,29 @@ import { AuthProvider } from "../src/context/AuthContext";
 import { ChatProvider } from "../src/context/ChatContext";
 import { ToastProvider } from "../src/context/ToastContext";
 import ChatPage from "../src/pages/ChatPage";
-import DocumentsPage from "../src/pages/DocumentsPage";
 import ForgotPassword from "../src/pages/ForgotPassword";
 import Landing from "../src/pages/Landing";
 import Login from "../src/pages/Login";
 import ProjectPage from "../src/pages/ProjectPage";
 import Register from "../src/pages/Register";
+import DocumentDialog from "../src/components/DocumentDialog";
 import LanguageDialog from "../src/components/LanguageDialog";
 import SettingsDialog, { SECTIONS } from "../src/components/SettingsDialog";
 import { LocaleProvider } from "../src/i18n";
 import { LANGUAGES } from "../src/i18n/languages";
 import STRINGS from "../src/i18n/strings";
 
+const SAMPLE_DOC = {
+  document_id: "00000000-0000-0000-0000-000000000001",
+  title: "sample.pdf",
+  original_filename: "sample.pdf",
+  processing_status: "done",
+};
+
 // Pages that need the chat providers, mounted at a route they read params from.
 const INSIDE_APP = [
   ["ChatPage", "/", <ChatPage />, "/"],
-  ["DocumentsPage", "/documents", <DocumentsPage />, "/documents"],
+  ["DocumentDialog", "/", <DocumentDialog doc={SAMPLE_DOC} onClose={() => {}} />, "/"],
   // One entry per settings panel: they render conditionally, so rendering the
   // dialog once would only ever evaluate the first one.
   ...SECTIONS.map((s) => [

@@ -9,6 +9,7 @@ import { languageOf } from "../i18n/languages";
 import { getThemePref, setTheme } from "../theme";
 import { initialsOf } from "../utils";
 import ConfirmModal from "./ConfirmModal";
+import DocumentDialog from "./DocumentDialog";
 import Icon from "./Icon";
 import LanguageDialog from "./LanguageDialog";
 import SettingsDialog from "./SettingsDialog";
@@ -386,6 +387,9 @@ function Shell() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  // The document being read, or null. Rows open it; the dialog owns the rest.
+  const [openDoc, setOpenDoc] = useState(null);
+  const uploadRef = useRef(null);
   const [userMenu, setUserMenu] = useState(false);
   const [menuId, setMenuId] = useState(null);
   // The bar's menu has no conversation id of its own to key on.
@@ -404,21 +408,42 @@ function Shell() {
   const [pendingDelete, setPendingDelete] = useState(null);
 
 
-  /* Ctrl+Shift+P toggles private mode from anywhere. Ignored while typing, so
-     it cannot fire mid-message. */
+  /* The three window shortcuts, in one place.
+       Ctrl+Shift+O  new chat
+       Ctrl+Shift+S  settings
+       Ctrl+Shift+P  private mode
+
+     O and S work while you are typing: reaching for a new chat in the middle of
+     a draft is exactly when you want one, and neither touches what you wrote.
+     P keeps its guard, because it changes the mode of the chat you are typing
+     into, and doing that by accident mid-message would be its own small
+     disaster.
+
+     No dependency array: these read state that changes on nearly every render,
+     and a stale closure would act on the wrong chat. */
   useEffect(() => {
     const onKey = (e) => {
-      if (!e.ctrlKey || !e.shiftKey || e.key.toLowerCase() !== "p") return;
-      const el = document.activeElement;
-      const typing = el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT" || el.isContentEditable);
-      if (typing) return;
-      e.preventDefault();
-      if (!onChat) navigate("/");
-      chat.togglePrivate();
+      if (!e.ctrlKey || !e.shiftKey || e.altKey || e.metaKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "o") {
+        e.preventDefault();
+        startNewChat();
+      } else if (key === "s") {
+        e.preventDefault();
+        openSettings();
+      } else if (key === "p") {
+        const el = document.activeElement;
+        const typing =
+          el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT" || el.isContentEditable);
+        if (typing) return;
+        e.preventDefault();
+        if (!onChat) navigate("/");
+        chat.togglePrivate();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [chat, onChat, navigate]);
+  });
   const title = PAGE_TITLES[location.pathname] || "Retrieva";
   /* Only a saved conversation has a title worth showing; a new chat has none
      until the first exchange names it. */
@@ -606,18 +631,17 @@ function Shell() {
 
   const visibleProjects = chat.projects;
   const projectsOpen = !collapsedGroups.projects;
+  const docsOpen = !collapsedGroups.docs;
   const chatsOpen = !collapsedGroups.chats;
 
   // The API already returns conversations newest first, so the most recent ones
   // are simply the head of the list.
   const shownChats = filtered.slice(0, RECENT_CHATS);
 
-  const navItems = [
-    { page: "/documents", icon: "file", label: t("sidebar.documents"), count: chat.docCount },
-    ...(user?.role === "admin"
-      ? [{ page: "/dashboard", icon: "grid", label: t("sidebar.dashboard") }]
-      : []),
-  ];
+  // Documents have their own section below, so the nav is the dashboard alone.
+  const navItems = user?.role === "admin"
+    ? [{ page: "/dashboard", icon: "grid", label: t("sidebar.dashboard") }]
+    : [];
 
   const appClass = [
     collapsed ? "sb-collapsed" : "",
@@ -669,7 +693,9 @@ function Shell() {
         <div className="sb-section">
           <button className={`btn sb-new ${onNewChat ? "active" : ""}`} onClick={startNewChat}>
             <Icon name="plus" className="icon-sm" /> {t("sidebar.newChat")}
+            <kbd className="row-hint">Ctrl+Shift+O</kbd>
           </button>
+          {navItems.length > 0 && (
           <nav className="sb-nav">
             {navItems.map((it) => (
               <button key={it.page}
@@ -680,13 +706,62 @@ function Shell() {
               </button>
             ))}
           </nav>
+          )}
         </div>
 
         <div
           className={`sb-projects ${projFade.top ? "fade-top" : ""} ${projFade.bot ? "fade-bot" : ""}`}
           ref={projScrollRef}
           onScroll={() => updateFade(projScrollRef, setProjFade)}>
+
           <div className="sb-group-row">
+            <button className="sb-group-toggle" aria-expanded={!collapsedGroups.docs}
+              onClick={() => toggleGroup("docs")}>
+              <Icon name={docsOpen ? "chev-d" : "chev-r"} className="chev" />
+              <span>{t("docs.section")}</span>
+              {(!docsOpen || chat.docs.length > 0) && (
+                <span className="sb-group-count">{chat.docs.length}</span>
+              )}
+            </button>
+            <button className="btn-icon" title={t("docs.upload")} aria-label={t("docs.upload")}
+              disabled={chat.uploading}
+              onClick={() => {
+                setCollapsedGroups((p) => ({ ...p, docs: false }));
+                uploadRef.current?.click();
+              }}>
+              <Icon name={chat.uploading ? "refresh" : "plus"} className="icon-sm" />
+            </button>
+          </div>
+          {docsOpen && (
+            <>
+              {chat.docs.length === 0 && (
+                <div className="sb-empty sb-empty-sm">{t("docs.empty")}</div>
+              )}
+              {chat.docs.map((d) => {
+                const busy = d.processing_status !== "done" && d.processing_status !== "failed";
+                return (
+                  <div key={d.document_id} className="conv-item doc-item"
+                    onClick={() => setOpenDoc(d)}>
+                    <Icon name="file" className="icon-sm" />
+                    <span className="conv-title">{d.title}</span>
+                    {d.processing_status === "failed" && (
+                      <span className="doc-failed" title={t("docs.failed")} />
+                    )}
+                    {/* A bar only while there is something to watch: nearly every
+                        document is finished, and a full bar on all of them would
+                        be noise. */}
+                    {busy && (
+                      <span className="doc-progress">
+                        <span style={{ width: `${Math.max(4, d.progress || 0)}%` }} />
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          <div className="sb-group-row sb-projects-head">
             <button className="sb-group-toggle" aria-expanded={!collapsedGroups.projects}
               onClick={() => toggleGroup("projects")}>
               <Icon name={projectsOpen ? "chev-d" : "chev-r"} className="chev" />
@@ -862,7 +937,9 @@ function Shell() {
                 <span className="pm-trail">{languageOf(locale).short}</span>
               </button>
               <button className="pm-item" onClick={openSettings}>
-                <Icon name="settings" className="icon-sm" /> {t("common.settings")}
+                <Icon name="settings" className="icon-sm" />
+                <span className="pm-label">{t("common.settings")}</span>
+                <kbd className="row-hint">Ctrl+Shift+S</kbd>
               </button>
               <div className="pm-sep" />
               <button className="pm-item danger" onClick={handleLogout}>
@@ -1011,6 +1088,15 @@ function Shell() {
 
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {langOpen && <LanguageDialog onClose={() => setLangOpen(false)} />}
+      {openDoc && <DocumentDialog doc={openDoc} onClose={() => setOpenDoc(null)} />}
+
+      {/* One picker for the whole sidebar, driven by the section's plus. */}
+      <input ref={uploadRef} type="file" accept=".pdf,.docx,.txt" className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) chat.uploadFile(f);
+          e.target.value = "";
+        }} />
 
       {pendingDelete && (
         <ConfirmModal

@@ -134,6 +134,33 @@ class ConversationDetail(ConversationOut):
     messages: list[MessageOut] = []
 
 
+# ---------- Document contents ----------
+class DocumentPage(BaseModel):
+    page_number: int
+    text: str
+
+
+class DocumentContent(BaseModel):
+    """The document as text, page by page, re-extracted on request.
+
+    Not stored anywhere: the pipeline keeps the chunks, not the whole text, and
+    re-reading a file that is already on disk is cheaper than keeping a second
+    copy of every document in the database.
+    """
+    document_id: uuid.UUID
+    title: str
+    file_type: str
+    pages: list[DocumentPage] = []
+    truncated: bool = False
+
+
+class DocumentChunk(BaseModel):
+    chunk_index: int | None = None
+    page_number: int | None = None
+    section: str | None = None
+    text: str
+
+
 # ---------- Usage ----------
 class DayCount(BaseModel):
     date: str  # YYYY-MM-DD
