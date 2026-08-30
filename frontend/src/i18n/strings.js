@@ -15,6 +15,7 @@
  * merged in at the bottom, so no one dictionary grows past reading length.
  */
 import CHAT from "./strings.chat";
+import SETTINGS from "./strings.settings";
 
 const en = {
   "common.settings": "Settings",
@@ -746,7 +747,10 @@ const SHELL = {
 };
 
 const STRINGS = Object.fromEntries(
-  Object.entries(SHELL).map(([id_, dict]) => [id_, { ...dict, ...CHAT[id_] }])
+  Object.entries(SHELL).map(([id_, dict]) => [
+    id_,
+    { ...dict, ...CHAT[id_], ...SETTINGS[id_] },
+  ])
 );
 
 export default STRINGS;

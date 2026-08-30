@@ -35,7 +35,7 @@ const INSIDE_APP = [
   // One entry per settings panel: they render conditionally, so rendering the
   // dialog once would only ever evaluate the first one.
   ...SECTIONS.map((s) => [
-    `SettingsDialog · ${s.label}`,
+    `SettingsDialog · ${s.id}`,
     "/",
     <SettingsDialog onClose={() => {}} initialSection={s.id} />,
     "/",
@@ -151,6 +151,33 @@ console.log("checking locale coverage:");
 // just the dictionaries. Hindi shares no letters with English, which makes a
 // string that failed to translate obvious.
 console.log("rendering the shell in another language:");
+check("SettingsDialog in Hindi", () => {
+  globalThis.localStorage.setItem("retrieva-locale", "hi-IN");
+  try {
+    const html = renderToString(
+      <MemoryRouter initialEntries={["/"]}>
+        <LocaleProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <ChatProvider>
+                <SettingsDialog onClose={() => {}} initialSection="general" />
+              </ChatProvider>
+            </ToastProvider>
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>
+    );
+    for (const key of ["nav.account", "settings.profile", "settings.chatFont"]) {
+      if (!html.includes(STRINGS["hi-IN"][key])) {
+        throw new Error(`${key} did not render in Hindi`);
+      }
+    }
+    return html;
+  } finally {
+    globalThis.localStorage.removeItem("retrieva-locale");
+  }
+});
+
 check("Layout shell in Hindi", () => {
   globalThis.localStorage.setItem("retrieva-locale", "hi-IN");
   try {
