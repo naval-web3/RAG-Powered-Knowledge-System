@@ -1684,11 +1684,18 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 /* ============================================================
    SETTINGS DIALOG
    ============================================================ */
-/* Anchored rather than centred: the panels differ a lot in height, and a
-   centred box would jump up the screen every time the section changed. */
-.modal-overlay.set-overlay { align-items: flex-start; padding-top: 7vh; }
+/* Centred, which is what makes the gap below equal the gap above at any window
+   height. It was anchored to the top to stop it jumping as the panels changed
+   height, but the panels do not change its height: the dialog is a fixed size
+   and the pane inside it scrolls, so there was nothing to jump.
+
+   920 rather than 1020: at 720 tall the wider box read as a band. Wider side
+   padding too, which only comes into play on a window narrow enough for the
+   max-width to stop binding, but that is exactly when a dialog pressed against
+   the glass looks worst. */
+.modal-overlay.set-overlay { align-items: center; padding: 24px 32px; }
 .modal.set-modal {
-  max-width: 1020px; height: min(78vh, 720px); max-height: none;
+  max-width: 920px; height: min(78vh, 720px); max-height: none;
   flex-direction: row; overflow: hidden; padding: 0;
 }
 
