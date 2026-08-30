@@ -23,7 +23,10 @@ import Landing from "../src/pages/Landing";
 import Login from "../src/pages/Login";
 import ProjectPage from "../src/pages/ProjectPage";
 import Register from "../src/pages/Register";
+import LanguageDialog from "../src/components/LanguageDialog";
 import SettingsDialog, { SECTIONS } from "../src/components/SettingsDialog";
+import { LocaleProvider } from "../src/i18n";
+import STRINGS from "../src/i18n/strings";
 
 // Pages that need the chat providers, mounted at a route they read params from.
 const INSIDE_APP = [
@@ -37,6 +40,7 @@ const INSIDE_APP = [
     <SettingsDialog onClose={() => {}} initialSection={s.id} />,
     "/",
   ]),
+  ["LanguageDialog", "/", <LanguageDialog onClose={() => {}} />, "/"],
   ["ProjectPage", "/projects/:projectId", <ProjectPage />, "/projects/abc"],
 ];
 
@@ -75,7 +79,9 @@ for (const [name, element] of STANDALONE) {
   check(name, () =>
     renderToString(
       <MemoryRouter>
-        <AuthProvider>{element}</AuthProvider>
+        <LocaleProvider>
+          <AuthProvider>{element}</AuthProvider>
+        </LocaleProvider>
       </MemoryRouter>
     )
   );
@@ -86,6 +92,7 @@ for (const [name, path, element, at] of INSIDE_APP) {
   check(name, () =>
     renderToString(
       <MemoryRouter initialEntries={[at]}>
+        <LocaleProvider>
         <AuthProvider>
           <ToastProvider>
             <ChatProvider>
@@ -95,6 +102,7 @@ for (const [name, path, element, at] of INSIDE_APP) {
             </ChatProvider>
           </ToastProvider>
         </AuthProvider>
+        </LocaleProvider>
       </MemoryRouter>
     )
   );
@@ -105,6 +113,7 @@ for (const [name, at] of SHELL) {
   check(name, () =>
     renderToString(
       <MemoryRouter initialEntries={[at]}>
+        <LocaleProvider>
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Layout />}>
@@ -113,10 +122,59 @@ for (const [name, at] of SHELL) {
             </Route>
           </Routes>
         </AuthProvider>
+        </LocaleProvider>
       </MemoryRouter>
     )
   );
 }
+
+// Every locale must carry the same keys as English. A missing one falls back
+// to English at runtime, which reads as a half-translated screen rather than
+// an error, so nothing would otherwise catch it.
+console.log("checking locale coverage:");
+{
+  const base = Object.keys(STRINGS["en-US"]).sort();
+  for (const [id, dict] of Object.entries(STRINGS)) {
+    check(`${id} (${base.length} keys)`, () => {
+      const missing = base.filter((k) => !(k in dict));
+      const extra = Object.keys(dict).filter((k) => !base.includes(k));
+      if (missing.length) throw new Error(`missing ${missing.length}: ${missing.slice(0, 4).join(", ")}`);
+      if (extra.length) throw new Error(`not in English: ${extra.slice(0, 4).join(", ")}`);
+      const blank = base.filter((k) => !String(dict[k]).trim());
+      if (blank.length) throw new Error(`empty: ${blank.slice(0, 4).join(", ")}`);
+      return "ok".repeat(12);
+    });
+  }
+}
+
+// Render the shell in a non-English locale, so the wiring is exercised and not
+// just the dictionaries. Hindi shares no letters with English, which makes a
+// string that failed to translate obvious.
+console.log("rendering the shell in another language:");
+check("Layout shell in Hindi", () => {
+  globalThis.localStorage.setItem("retrieva-locale", "hi-IN");
+  try {
+    const html = renderToString(
+      <MemoryRouter initialEntries={["/"]}>
+        <LocaleProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<ChatPage />} />
+              </Route>
+            </Routes>
+          </AuthProvider>
+        </LocaleProvider>
+      </MemoryRouter>
+    );
+    if (!html.includes(STRINGS["hi-IN"]["sidebar.newChat"])) {
+      throw new Error("the sidebar did not render in Hindi");
+    }
+    return html;
+  } finally {
+    globalThis.localStorage.removeItem("retrieva-locale");
+  }
+});
 
 if (failed) {
   console.log(`\n${failed} page(s) failed to render.`);

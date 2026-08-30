@@ -768,6 +768,21 @@ body {
 .pop-menu .pm-item.danger { color: var(--red); }
 .pop-menu .pm-item.danger:hover { background: var(--red-fill); color: #FFF; }
 .pop-menu .pm-sep { height: 1px; background: var(--border); margin: 5px 4px; }
+/* A row that carries a control instead of being a button itself. Same metrics
+   as .pm-item so the labels line up down the menu. */
+.pop-menu .pm-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; font-size: 13.5px; color: var(--text-2);
+}
+.pop-menu .pm-row .pm-label { flex: 1; }
+.pop-menu .pm-seg { padding: 2px; }
+.pop-menu .pm-seg button { width: 27px; height: 23px; border-radius: 6px; }
+/* The current language, quiet, at the end of its row. */
+.pop-menu .pm-trail {
+  margin-left: auto; padding-left: 14px; font-size: 12px; color: var(--text-3);
+  max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pop-menu .pm-item:hover .pm-trail { color: var(--text-2); }
 
 /* ---------- Main column & topbar ---------- */
 #main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
@@ -1791,4 +1806,44 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   .set-scroll { padding: 20px 18px 32px; }
   .set-row { flex-direction: column; align-items: stretch; gap: 10px; }
   .set-row-ctl { justify-content: flex-start; }
+}
+
+
+/* ============================================================
+   LANGUAGE PICKER
+   ============================================================ */
+/* Every language at once in three columns, rather than a dropdown you scroll
+   blind. Someone who has landed in a script they cannot read needs to see the
+   whole list to find their way back. */
+.modal-overlay.lang-overlay { align-items: flex-start; padding-top: 10vh; }
+.modal.lang-modal { max-width: 900px; padding: 0; }
+.lang-head {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 24px 26px 6px;
+}
+.lang-head h3 { flex: 1; font-size: 22px; font-weight: 700; letter-spacing: -.015em; }
+.lang-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  padding: 12px 18px 24px; overflow-y: auto;
+}
+.lang-card {
+  position: relative; display: block; text-align: left;
+  padding: 10px 34px 10px 14px; border-radius: var(--r-md);
+  transition: background .13s;
+}
+.lang-card:hover { background: var(--row-hover); }
+.lang-card.selected { background: var(--accent-soft); }
+/* The language's own name leads; the English name is the way back for someone
+   who cannot read the first line. */
+.lang-native { display: block; font-size: 14.5px; color: var(--text); }
+.lang-english { display: block; font-size: 12.5px; color: var(--text-3); margin-top: 1px; }
+.lang-card.selected .lang-native { color: var(--accent-hover); font-weight: 600; }
+.lang-card.selected .lang-english { color: var(--accent); }
+.lang-check { position: absolute; top: 13px; right: 12px; color: var(--accent); }
+
+@media (max-width: 760px) {
+  .lang-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 520px) {
+  .lang-grid { grid-template-columns: 1fr; }
 }

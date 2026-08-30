@@ -4,10 +4,13 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ChatProvider, useChat } from "../context/ChatContext";
 import { ToastProvider } from "../context/ToastContext";
-import { resolvedTheme, toggleTheme } from "../theme";
+import { useLocale, useT } from "../i18n";
+import { languageOf } from "../i18n/languages";
+import { getThemePref, setTheme } from "../theme";
 import { initialsOf } from "../utils";
 import ConfirmModal from "./ConfirmModal";
 import Icon from "./Icon";
+import LanguageDialog from "./LanguageDialog";
 import SettingsDialog from "./SettingsDialog";
 import Tooltip from "./Tooltip";
 
@@ -18,36 +21,37 @@ const PAGE_TITLES = {
 };
 
 /**
- * How recent a date is, in words. Boundaries are calendar ones -- start of day,
- * of the week (Monday), of the month, of the year -- so "this week" means the
- * week we are in rather than the last seven days.
+ * How recent a date is, as a string KEY rather than words: the caller
+ * translates it. Boundaries are calendar ones -- start of day, of the week
+ * (Monday), of the month, of the year -- so "this week" means the week we are
+ * in rather than the last seven days.
  */
-function recencyLabel(dateish) {
+function recencyKey(dateish) {
   const then = new Date(dateish);
-  if (Number.isNaN(then.getTime())) return "Older";
+  if (Number.isNaN(then.getTime())) return "recency.older";
   const now = new Date();
   const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const today = startOfDay(now);
   const day = startOfDay(then);
   const daysBack = Math.round((today - day) / 86400000);
 
-  if (daysBack <= 0) return "Today";
-  if (daysBack === 1) return "Yesterday";
+  if (daysBack <= 0) return "recency.today";
+  if (daysBack === 1) return "recency.yesterday";
 
   const mondayOffset = (today.getDay() + 6) % 7; // getDay(): 0 = Sunday
   const thisWeek = new Date(today);
   thisWeek.setDate(today.getDate() - mondayOffset);
-  if (day >= thisWeek) return "This week";
+  if (day >= thisWeek) return "recency.thisWeek";
 
   const lastWeek = new Date(thisWeek);
   lastWeek.setDate(thisWeek.getDate() - 7);
-  if (day >= lastWeek) return "Past week";
+  if (day >= lastWeek) return "recency.pastWeek";
 
-  if (day >= new Date(now.getFullYear(), now.getMonth(), 1)) return "This month";
-  if (day >= new Date(now.getFullYear(), now.getMonth() - 1, 1)) return "Past month";
-  if (day >= new Date(now.getFullYear(), 0, 1)) return "This year";
-  if (day >= new Date(now.getFullYear() - 1, 0, 1)) return "Past year";
-  return "Older";
+  if (day >= new Date(now.getFullYear(), now.getMonth(), 1)) return "recency.thisMonth";
+  if (day >= new Date(now.getFullYear(), now.getMonth() - 1, 1)) return "recency.pastMonth";
+  if (day >= new Date(now.getFullYear(), 0, 1)) return "recency.thisYear";
+  if (day >= new Date(now.getFullYear() - 1, 0, 1)) return "recency.pastYear";
+  return "recency.older";
 }
 
 /**
@@ -127,6 +131,7 @@ function PortalMenu({ anchorRef, align = "right", className = "", children }) {
  * needed to keep it open. It flips to the left when there is no room.
  */
 function ProjectFlyout({ conv, projects, onMove, onCreate }) {
+  const t = useT();
   const [q, setQ] = useState("");
   const boxRef = useRef(null);
   const [place, setPlace] = useState({ flip: false, lift: 0 });
@@ -156,7 +161,7 @@ function ProjectFlyout({ conv, projects, onMove, onCreate }) {
         <input
           autoFocus
           value={q}
-          placeholder="Search or create a project"
+          placeholder={t("menu.searchOrCreate")}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;
@@ -174,7 +179,9 @@ function ProjectFlyout({ conv, projects, onMove, onCreate }) {
         ))}
         {hits.length === 0 && (
           <p className="pm-empty">
-            {projects.length === 0 ? "No projects yet." : `Nothing matches \u201c${q.trim()}\u201d.`}
+            {projects.length === 0
+              ? t("menu.noProjects")
+              : t("sidebar.nothingMatches", { q: q.trim() })}
           </p>
         )}
       </div>
@@ -182,7 +189,7 @@ function ProjectFlyout({ conv, projects, onMove, onCreate }) {
         <>
           <div className="pm-sep" />
           <button className="pm-item" onClick={() => onMove(conv, null)}>
-            <Icon name="x" className="icon-sm" /> Remove from project
+            <Icon name="x" className="icon-sm" /> {t("menu.removeFromProject")}
           </button>
         </>
       )}
@@ -199,7 +206,9 @@ function ProjectFlyout({ conv, projects, onMove, onCreate }) {
       >
         <Icon name="plus" className="icon-sm" />
         <span className="pm-label">
-          {q.trim() && !exact ? `Start \u201c${q.trim()}\u201d` : "Start a new project"}
+          {q.trim() && !exact
+            ? t("menu.startNamed", { name: q.trim() })
+            : t("menu.startNewProject")}
         </span>
       </button>
     </div>
@@ -211,6 +220,7 @@ function ProjectFlyout({ conv, projects, onMove, onCreate }) {
  * the conversation title, so their wording cannot drift apart.
  */
 function ChatMenuItems({ conv, projects, onAction, onMove, onCreate }) {
+  const t = useT();
   const [subOpen, setSubOpen] = useState(false);
   const closeTimer = useRef(null);
   useEffect(() => () => clearTimeout(closeTimer.current), []);
@@ -227,21 +237,23 @@ function ChatMenuItems({ conv, projects, onAction, onMove, onCreate }) {
     <>
       <button className="pm-item" onClick={() => onAction(conv, "p")} onMouseEnter={release}>
         <Icon name={conv.pinned ? "pin-off" : "pin"} className="icon-sm" />
-        {conv.pinned ? "Unpin" : "Pin"}
+        {conv.pinned ? t("menu.unpin") : t("menu.pin")}
       </button>
       <button className="pm-item" onClick={() => onAction(conv, "u")} onMouseEnter={release}>
         <Icon name={conv.unread ? "eye" : "eye-off"} className="icon-sm" />
-        {conv.unread ? "Mark as read" : "Mark as unread"}
+        {conv.unread ? t("menu.markRead") : t("menu.markUnread")}
       </button>
       <button className="pm-item" onClick={() => onAction(conv, "r")} onMouseEnter={release}>
-        <Icon name="pencil" className="icon-sm" /> Rename
+        <Icon name="pencil" className="icon-sm" /> {t("common.rename")}
       </button>
 
       <div className="pm-sub-anchor" onMouseEnter={hold} onMouseLeave={release}>
         <button className="pm-item" aria-haspopup="true" aria-expanded={subOpen}
           onClick={() => setSubOpen((o) => !o)}>
           <Icon name="book" className="icon-sm" />
-          <span className="pm-label">{conv.project_id ? "Move to project" : "Add to project"}</span>
+          <span className="pm-label">
+            {conv.project_id ? t("menu.moveToProject") : t("menu.addToProject")}
+          </span>
           <Icon name="chev-r" className="icon-sm pm-arrow" />
         </button>
         {subOpen && (
@@ -251,7 +263,7 @@ function ChatMenuItems({ conv, projects, onAction, onMove, onCreate }) {
 
       <div className="pm-sep" />
       <button className="pm-item danger" onClick={() => onAction(conv, "d")} onMouseEnter={release}>
-        <Icon name="trash" className="icon-sm" /> Delete
+        <Icon name="trash" className="icon-sm" /> {t("common.delete")}
       </button>
     </>
   );
@@ -286,6 +298,7 @@ function Shell() {
   const navigate = useNavigate();
   const location = useLocation();
   const chat = useChat();
+  const { locale, t } = useLocale();
 
   const [collapsed, setCollapsed] = useState(false);
   const [peeking, setPeeking] = useState(false);
@@ -372,6 +385,7 @@ function Shell() {
   const [convSearch, setConvSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
   const [menuId, setMenuId] = useState(null);
   // The bar's menu has no conversation id of its own to key on.
@@ -381,7 +395,7 @@ function Shell() {
   const [creatingProject, setCreatingProject] = useState(false);
   const [projName, setProjName] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState(readCollapsed);
-  const [isDark, setIsDark] = useState(resolvedTheme() === "dark");
+  const [themePref, setThemePref] = useState(getThemePref);
   const footRef = useRef(null);
 
   const onChat = location.pathname === "/";
@@ -505,9 +519,9 @@ function Shell() {
       return next;
     });
   }
-  function toggleThemeBtn() {
-    toggleTheme();
-    setIsDark(resolvedTheme() === "dark");
+  function changeTheme(pref) {
+    setThemePref(pref);
+    setTheme(pref);
   }
   function openConv(id) {
     chat.openConversation(id);
@@ -574,9 +588,9 @@ function Shell() {
       : chat.conversations;
     return hits.map((c) => ({
       conv: c,
-      when: recencyLabel(c.updated_at || c.created_at),
+      when: t(recencyKey(c.updated_at || c.created_at)),
     }));
-  }, [chat.conversations, query]);
+  }, [chat.conversations, query, t]);
 
   // Chats that belong to a project, keyed by project, newest first. A search
   // narrows these too, otherwise a chat filed under a project could not be
@@ -599,8 +613,10 @@ function Shell() {
   const shownChats = filtered.slice(0, RECENT_CHATS);
 
   const navItems = [
-    { page: "/documents", icon: "file", label: "Documents", count: chat.docCount },
-    ...(user?.role === "admin" ? [{ page: "/dashboard", icon: "grid", label: "Dashboard" }] : []),
+    { page: "/documents", icon: "file", label: t("sidebar.documents"), count: chat.docCount },
+    ...(user?.role === "admin"
+      ? [{ page: "/dashboard", icon: "grid", label: t("sidebar.dashboard") }]
+      : []),
   ];
 
   const appClass = [
@@ -628,14 +644,15 @@ function Shell() {
           {/* Peeking, this pins the sidebar open; pinned, it collapses it. The
               topbar's reopen button sits underneath the peek and cannot be
               clicked, so this is the only control that can pin. */}
-          <button className="btn-icon sb-search-btn" title="Search chats" aria-label="Search chats"
+          <button className="btn-icon sb-search-btn" title={t("sidebar.searchChats")}
+            aria-label={t("sidebar.searchChats")}
             onClick={() => { setConvSearch(""); setSearchOpen(true); }}>
             <Icon name="search" className="icon-sm" />
           </button>
           <button
             className="btn-icon"
-            title={collapsed ? "Keep sidebar open" : "Collapse sidebar"}
-            aria-label={collapsed ? "Keep sidebar open" : "Collapse sidebar"}
+            title={collapsed ? t("sidebar.keepOpen") : t("sidebar.collapse")}
+            aria-label={collapsed ? t("sidebar.keepOpen") : t("sidebar.collapse")}
             onClick={() => {
               if (collapsed) {
                 setPeeking(false);
@@ -651,7 +668,7 @@ function Shell() {
 
         <div className="sb-section">
           <button className={`btn sb-new ${onNewChat ? "active" : ""}`} onClick={startNewChat}>
-            <Icon name="plus" className="icon-sm" /> New chat
+            <Icon name="plus" className="icon-sm" /> {t("sidebar.newChat")}
           </button>
           <nav className="sb-nav">
             {navItems.map((it) => (
@@ -673,12 +690,12 @@ function Shell() {
             <button className="sb-group-toggle" aria-expanded={!collapsedGroups.projects}
               onClick={() => toggleGroup("projects")}>
               <Icon name={projectsOpen ? "chev-d" : "chev-r"} className="chev" />
-              <span>Projects</span>
+              <span>{t("sidebar.projects")}</span>
               {!projectsOpen && chat.projects.length > 0 && (
                 <span className="sb-group-count">{chat.projects.length}</span>
               )}
             </button>
-            <button className="btn-icon" title="New project"
+            <button className="btn-icon" title={t("sidebar.newProject")}
               onClick={() => {
                 // Creating one while the section is shut would hide the input.
                 setCollapsedGroups((p) => ({ ...p, projects: false }));
@@ -692,7 +709,7 @@ function Shell() {
           <>
           {creatingProject && (
             <div className="conv-item">
-              <input className="rename" autoFocus placeholder="Project name"
+              <input className="rename" autoFocus placeholder={t("sidebar.projectName")}
                 value={projName}
                 onChange={(e) => setProjName(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
@@ -705,7 +722,7 @@ function Shell() {
           )}
           {chat.projects.length === 0 && !creatingProject && (
             <div className="sb-empty sb-empty-sm">
-              A project keeps its own documents and instructions, so answers stay on one topic.
+              {t("sidebar.projectHint")}
             </div>
           )}
           {visibleProjects.map((p) => {
@@ -739,7 +756,7 @@ function Shell() {
           <button className="sb-group-toggle" aria-expanded={!collapsedGroups.chats}
             onClick={() => toggleGroup("chats")}>
             <Icon name={chatsOpen ? "chev-d" : "chev-r"} className="chev" />
-            <span>Chats</span>
+            <span>{t("sidebar.chats")}</span>
             {!chatsOpen && filtered.length > 0 && (
               <span className="sb-group-count">{filtered.length}</span>
             )}
@@ -753,10 +770,12 @@ function Shell() {
           {chatsOpen && (
           <>
           {chat.conversations.length === 0 && (
-            <div className="sb-empty">No conversations yet.<br />Start a new chat.</div>
+            <div className="sb-empty">
+              {t("sidebar.noConversations")}<br />{t("sidebar.startNewChat")}
+            </div>
           )}
           {chat.conversations.length > 0 && filtered.length === 0 && (
-            <div className="sb-empty">No conversations match “{convSearch}”.</div>
+            <div className="sb-empty">{t("sidebar.noMatchingChats", { q: convSearch })}</div>
           )}
           <div className="sb-chat-list">
             {shownChats.map((c) => {
@@ -789,7 +808,7 @@ function Shell() {
                     </span>
                     <span className="conv-title">{c.title}</span>
                     <div className="conv-actions" onClick={(e) => e.stopPropagation()}>
-                      <button className="btn-icon" aria-label="Chat options"
+                      <button className="btn-icon" aria-label={t("menu.chatOptions")}
                         ref={open ? rowMenuBtnRef : null}
                         aria-expanded={open}
                         onClick={() => setMenuId(open ? null : c.conversation_id)}>
@@ -811,7 +830,7 @@ function Shell() {
                it already lists everything, with dates and a filter. */
             <button className="sb-view-all"
               onClick={() => { setConvSearch(""); setSearchOpen(true); }}>
-              View all conversations
+              {t("sidebar.viewAll")}
             </button>
           )}
           </>
@@ -821,16 +840,33 @@ function Shell() {
         <div className="sb-foot" ref={footRef}>
           {userMenu && (
             <div className="pop-menu">
-              <button className="pm-item" onClick={() => { toggleThemeBtn(); }}>
-                <Icon name={isDark ? "sun" : "moon"} className="icon-sm" />
-                <span>{isDark ? "Light mode" : "Dark mode"}</span>
+              {/* Not a button: it holds three of them. The same segmented
+                  control as Settings > General, so the two agree on what the
+                  choice looks like and there is no "Dark mode" row that lies
+                  about which mode you are in. */}
+              <div className="pm-row">
+                <span className="pm-label">{t("common.appearance")}</span>
+                <div className="set-seg pm-seg">
+                  {[["system", "monitor"], ["light", "sun"], ["dark", "moon"]].map(([val, ic]) => (
+                    <button key={val} className={themePref === val ? "active" : ""}
+                      title={t(`theme.${val}`)} aria-label={t(`theme.${val}`)}
+                      onClick={() => changeTheme(val)}>
+                      <Icon name={ic} className="icon-sm" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button className="pm-item" onClick={() => { setUserMenu(false); setLangOpen(true); }}>
+                <Icon name="globe" className="icon-sm" />
+                <span className="pm-label">{t("common.language")}</span>
+                <span className="pm-trail">{languageOf(locale).native}</span>
               </button>
               <button className="pm-item" onClick={openSettings}>
-                <Icon name="settings" className="icon-sm" /> Settings
+                <Icon name="settings" className="icon-sm" /> {t("common.settings")}
               </button>
               <div className="pm-sep" />
               <button className="pm-item danger" onClick={handleLogout}>
-                <Icon name="logout" className="icon-sm" /> Sign out
+                <Icon name="logout" className="icon-sm" /> {t("common.signOut")}
               </button>
             </div>
           )}
@@ -852,22 +888,22 @@ function Shell() {
             /* Nothing but what the mode is, and the way out. */
             <>
               <span className="private-bar-label">
-                <Icon name="ghost" className="icon-sm" /> Private chat
+                <Icon name="ghost" className="icon-sm" /> {t("topbar.privateChat")}
               </span>
-              <button className="private-bar-x" title="Leave private chat"
-                aria-label="Leave private chat" onClick={() => chat.togglePrivate()}>
+              <button className="private-bar-x" title={t("topbar.leavePrivate")}
+                aria-label={t("topbar.leavePrivate")} onClick={() => chat.togglePrivate()}>
                 <Icon name="x" className="icon-sm" />
               </button>
             </>
           ) : (
             <>
-            <button className="btn-icon" id="btn-mobile-menu" aria-label="Open menu"
+            <button className="btn-icon" id="btn-mobile-menu" aria-label={t("sidebar.openMenu")}
               onClick={() => setMobileOpen(true)}>
               <Icon name="menu" />
             </button>
             {collapsed && (
-              <button ref={reopenRef} className="btn-icon sb-reopen" title="Open sidebar"
-                aria-label="Open sidebar"
+              <button ref={reopenRef} className="btn-icon sb-reopen" title={t("sidebar.openSidebar")}
+                aria-label={t("sidebar.openSidebar")}
                 onClick={() => { setPeeking(false); setCollapsed(false); }}>
                 <Icon name="panel" className="icon-sm" />
                 <span className="sb-dot" aria-hidden="true" />
@@ -897,12 +933,12 @@ function Shell() {
                 <div className="conv-title-wrap" onClick={(e) => e.stopPropagation()}>
                   <button
                     className="conv-title-btn"
-                    title="Rename this chat"
+                    title={t("topbar.renameChat")}
                     onClick={() => { setTitleDraft(activeConversation.title); setTitleEditing(true); }}
                   >
                     {activeConversation.title}
                   </button>
-                  <button className="btn-icon conv-title-caret" aria-label="Chat options"
+                  <button className="btn-icon conv-title-caret" aria-label={t("menu.chatOptions")}
                     ref={titleMenuBtnRef}
                     aria-expanded={menuId === TOPBAR_MENU}
                     onClick={() => setMenuId(menuId === TOPBAR_MENU ? null : TOPBAR_MENU)}>
@@ -920,10 +956,10 @@ function Shell() {
             {/* The only control left in the bar, and it sits in the same corner
                 the cross occupies in private mode: one place to switch the mode
                 either way. */}
-            <Tooltip label="Private chat" keys="Ctrl+Shift+P">
+            <Tooltip label={t("topbar.privateChat")} keys="Ctrl+Shift+P">
               <button
                 className={`private-toggle ${chat.privateMode ? "on" : ""}`}
-                aria-label="Toggle private chat" aria-pressed={chat.privateMode}
+                aria-label={t("topbar.privateChat")} aria-pressed={chat.privateMode}
                 onClick={() => { if (!onChat) navigate("/"); chat.togglePrivate(); }}>
                 <Icon name="ghost" className="ghost-icon" />
               </button>
@@ -944,12 +980,12 @@ function Shell() {
               <input
                 autoFocus
                 type="text"
-                placeholder="Search chats and projects"
+                placeholder={t("sidebar.searchPlaceholder")}
                 value={convSearch}
                 onChange={(e) => setConvSearch(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Escape") setSearchOpen(false); }}
               />
-              <button className="btn-icon" aria-label="Close search"
+              <button className="btn-icon" aria-label={t("sidebar.closeSearch")}
                 onClick={() => setSearchOpen(false)}>
                 <Icon name="x" className="icon-sm" />
               </button>
@@ -957,7 +993,7 @@ function Shell() {
             <div className="search-results" ref={resultsRef}>
               <div className="search-results-inner" ref={resultsInnerRef}>
                 {searchHits.length === 0 && (
-                  <p className="search-empty">Nothing matches “{convSearch}”.</p>
+                  <p className="search-empty">{t("sidebar.nothingMatches", { q: convSearch })}</p>
                 )}
                 {searchHits.map(({ conv, when }) => (
                   <button key={conv.conversation_id} className="search-hit"
@@ -974,12 +1010,13 @@ function Shell() {
       )}
 
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
+      {langOpen && <LanguageDialog onClose={() => setLangOpen(false)} />}
 
       {pendingDelete && (
         <ConfirmModal
-          title="Delete chat?"
-          text="Are you sure you want to delete this chat?"
-          okLabel="Delete"
+          title={t("dialog.deleteChatTitle")}
+          text={t("dialog.deleteChatText")}
+          okLabel={t("common.delete")}
           onConfirm={() => {
             chat.deleteConversation(pendingDelete.conversation_id);
             setPendingDelete(null);
