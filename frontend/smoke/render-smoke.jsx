@@ -23,13 +23,20 @@ import Landing from "../src/pages/Landing";
 import Login from "../src/pages/Login";
 import ProjectPage from "../src/pages/ProjectPage";
 import Register from "../src/pages/Register";
-import Settings from "../src/pages/Settings";
+import SettingsDialog, { SECTIONS } from "../src/components/SettingsDialog";
 
 // Pages that need the chat providers, mounted at a route they read params from.
 const INSIDE_APP = [
   ["ChatPage", "/", <ChatPage />, "/"],
   ["DocumentsPage", "/documents", <DocumentsPage />, "/documents"],
-  ["Settings", "/settings", <Settings />, "/settings"],
+  // One entry per settings panel: they render conditionally, so rendering the
+  // dialog once would only ever evaluate the first one.
+  ...SECTIONS.map((s) => [
+    `SettingsDialog · ${s.label}`,
+    "/",
+    <SettingsDialog onClose={() => {}} initialSection={s.id} />,
+    "/",
+  ]),
   ["ProjectPage", "/projects/:projectId", <ProjectPage />, "/projects/abc"],
 ];
 

@@ -9,7 +9,6 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import ProjectPage from "./pages/ProjectPage";
 import Register from "./pages/Register";
-import Settings from "./pages/Settings";
 
 function Protected({ children, adminOnly = false }) {
   const { user } = useAuth();
@@ -41,7 +40,9 @@ export default function App() {
         }
       >
         <Route index element={<ChatPage />} />
-        <Route path="settings" element={<Settings />} />
+        {/* Settings is a dialog now, opened from the sidebar. The path is kept
+            so an old bookmark lands on the app rather than nowhere. */}
+        <Route path="settings" element={<Navigate to="/" replace />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="projects/:projectId" element={<ProjectPage />} />
         <Route

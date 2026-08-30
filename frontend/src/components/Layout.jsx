@@ -8,13 +8,13 @@ import { resolvedTheme, toggleTheme } from "../theme";
 import { initialsOf } from "../utils";
 import ConfirmModal from "./ConfirmModal";
 import Icon from "./Icon";
+import SettingsDialog from "./SettingsDialog";
 import Tooltip from "./Tooltip";
 
 const PAGE_TITLES = {
   "/": "Chat",
   "/documents": "Documents",
   "/dashboard": "Dashboard",
-  "/settings": "Settings",
 };
 
 /**
@@ -371,6 +371,7 @@ function Shell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [convSearch, setConvSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
   const [menuId, setMenuId] = useState(null);
   // The bar's menu has no conversation id of its own to key on.
@@ -514,6 +515,11 @@ function Shell() {
     if (!onChat) navigate("/");
     setMobileOpen(false);
   }
+  function openSettings() {
+    setSettingsOpen(true);
+    setMobileOpen(false);
+    setUserMenu(false);
+  }
   function startNewChat() {
     chat.newChat();
     if (!onChat) navigate("/");
@@ -597,7 +603,8 @@ function Shell() {
     { page: "/", icon: "chat", label: "Chat" },
     { page: "/documents", icon: "file", label: "Documents", count: chat.docCount },
     ...(user?.role === "admin" ? [{ page: "/dashboard", icon: "grid", label: "Dashboard" }] : []),
-    { page: "/settings", icon: "sliders", label: "Settings" },
+    // Settings is a dialog, so this row has no route to match against.
+    { action: openSettings, icon: "sliders", label: "Settings" },
   ];
 
   const appClass = [
@@ -652,9 +659,9 @@ function Shell() {
           </button>
           <nav className="sb-nav">
             {navItems.map((it) => (
-              <button key={it.page}
-                className={`sb-item ${location.pathname === it.page ? "active" : ""}`}
-                onClick={() => goto(it.page)}>
+              <button key={it.page || it.label}
+                className={`sb-item ${it.page && location.pathname === it.page ? "active" : ""}`}
+                onClick={() => (it.action ? it.action() : goto(it.page))}>
                 <Icon name={it.icon} className="icon-sm" /> {it.label}
                 {it.count != null && <span className="count">{it.count}</span>}
               </button>
@@ -822,7 +829,7 @@ function Shell() {
                 <Icon name={isDark ? "sun" : "moon"} className="icon-sm" />
                 <span>{isDark ? "Light mode" : "Dark mode"}</span>
               </button>
-              <button className="pm-item" onClick={() => { setUserMenu(false); goto("/settings"); }}>
+              <button className="pm-item" onClick={openSettings}>
                 <Icon name="sliders" className="icon-sm" /> Settings
               </button>
               <div className="pm-sep" />
@@ -976,6 +983,8 @@ function Shell() {
           </div>
         </div>
       )}
+
+      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
 
       {pendingDelete && (
         <ConfirmModal

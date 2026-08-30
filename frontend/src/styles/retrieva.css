@@ -920,6 +920,14 @@ body {
 .bubble-edit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .msg-ai { display: flex; gap: 14px; }
 .msg-ai .body { flex: 1; min-width: 0; }
+/* The chat font covers what is read, not the furniture around it: answers and
+   the user's own bubbles. Everything else stays on Inter. */
+:root { --chat-font: var(--sans); }
+[data-chat-font="serif"] {
+  --chat-font: 'Iowan Old Style', 'Charter', Charter, 'Bitstream Charter', Georgia, serif;
+}
+[data-chat-font="mono"] { --chat-font: var(--mono); }
+.ai-content, .msg-user .bubble, .msg-user .bubble-edit { font-family: var(--chat-font); }
 .ai-content { font-size: 16px; line-height: 1.75; color: var(--text); word-break: break-word; }
 .ai-content p { margin-bottom: 13px; }
 .ai-content p:last-child { margin-bottom: 0; }
@@ -1628,4 +1636,162 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   #toasts { left: 16px; right: 16px; top: 64px; }
   .toast { max-width: none; }
   .provider-pill .pp-model { display: none; }
+}
+
+
+/* ============================================================
+   SETTINGS DIALOG
+   ============================================================ */
+/* Anchored rather than centred: the panels differ a lot in height, and a
+   centred box would jump up the screen every time the section changed. */
+.modal-overlay.set-overlay { align-items: flex-start; padding-top: 7vh; }
+.modal.set-modal {
+  max-width: 1020px; height: min(78vh, 720px); max-height: none;
+  flex-direction: row; overflow: hidden; padding: 0;
+}
+
+.set-rail {
+  flex: none; width: 232px; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border); background: var(--surface-2);
+  padding: 12px 10px;
+}
+.set-rail-search {
+  display: flex; align-items: center; gap: 8px; flex: none;
+  padding: 7px 10px; margin-bottom: 12px;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--bg);
+}
+.set-rail-search .icon-sm { color: var(--text-3); flex: none; }
+.set-rail-search input {
+  flex: 1; min-width: 0; border: 0; background: none; outline: none;
+  font-size: 13px; color: var(--text);
+}
+.set-rail-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.set-rail-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--text-3); padding: 12px 10px 6px;
+}
+.set-rail-item {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  font-size: 13.5px; font-weight: 500; color: var(--text-2);
+  text-align: left; transition: background .13s, color .13s;
+}
+.set-rail-item:hover { background: var(--row-hover); color: var(--text); }
+.set-rail-item.active { background: var(--row-active); color: var(--text); font-weight: 600; }
+.set-rail-item .icon-sm { flex: none; }
+.set-rail-out { margin-left: auto; color: var(--text-3); }
+.set-rail-empty { padding: 14px 10px; font-size: 13px; color: var(--text-3); }
+
+.set-pane { flex: 1; min-width: 0; position: relative; display: flex; }
+.set-close { position: absolute; top: 14px; right: 16px; z-index: 2; }
+.set-scroll { flex: 1; min-width: 0; overflow-y: auto; padding: 22px 30px 40px; }
+
+.set-h { font-size: 15px; font-weight: 700; letter-spacing: -.01em; margin: 26px 0 4px; }
+.set-scroll > .set-h:first-child, .set-h-row:first-child .set-h { margin-top: 4px; }
+.set-h-row { display: flex; align-items: baseline; gap: 10px; }
+.set-plan { font-size: 12.5px; color: var(--text-3); }
+
+/* Every setting is one row: what it is on the left, the control on the right.
+   `stacked` drops the control under the text for the wide ones. */
+.set-row {
+  display: flex; align-items: center; gap: 20px;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.set-row.stacked { flex-direction: column; align-items: stretch; gap: 10px; }
+.set-row-text { flex: 1; min-width: 0; }
+.set-row-title { font-size: 14px; color: var(--text); }
+.set-row-sub { font-size: 12.5px; line-height: 1.5; color: var(--text-3); margin-top: 3px; }
+.set-row-ctl { flex: none; display: flex; align-items: center; gap: 8px; }
+.set-row.stacked .set-row-ctl { flex: 1; display: block; }
+.set-value { font-size: 13.5px; color: var(--text-2); }
+.set-chip {
+  font-family: var(--mono); font-size: 11.5px; color: var(--text-2);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 8px;
+}
+.set-note { font-size: 13px; line-height: 1.6; color: var(--text-3); margin: 10px 0 4px; }
+.set-note-warn {
+  border-left: 2px solid var(--border); padding-left: 12px; margin-top: 14px;
+}
+.set-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+
+.set-input {
+  width: 240px; max-width: 100%; padding: 8px 11px;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--bg); color: var(--text); font-size: 13.5px;
+}
+.set-input:disabled { color: var(--text-3); }
+.set-input-sm { width: 110px; }
+.set-input-wrap { display: flex; align-items: center; gap: 4px; }
+.set-select {
+  padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--bg); color: var(--text); font-size: 13.5px; min-width: 150px;
+}
+.set-textarea {
+  width: 100%; padding: 11px 13px; resize: vertical; min-height: 96px;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--bg); color: var(--text);
+  font-family: var(--sans); font-size: 13.5px; line-height: 1.6;
+}
+.set-range { display: flex; align-items: center; gap: 12px; }
+.set-range input { width: 170px; }
+.set-range-val {
+  font-family: var(--mono); font-size: 12.5px; font-weight: 600;
+  color: var(--accent); min-width: 26px; text-align: right;
+}
+
+/* Three-way appearance switch, one segmented control rather than three tiles. */
+.set-seg { display: flex; gap: 2px; padding: 3px; border-radius: var(--r-md); background: var(--surface-2); }
+.set-seg button {
+  width: 32px; height: 28px; border-radius: 7px; color: var(--text-3);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .13s, color .13s;
+}
+.set-seg button:hover { color: var(--text-2); }
+.set-seg button.active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow-sm); }
+
+.set-toggle {
+  width: 40px; height: 23px; border-radius: 999px; flex: none;
+  background: var(--border); position: relative; transition: background .16s var(--ease);
+}
+.set-toggle.on { background: var(--accent); }
+.set-knob {
+  position: absolute; top: 3px; left: 3px; width: 17px; height: 17px;
+  border-radius: 50%; background: #FFF; box-shadow: var(--shadow-sm);
+  transition: transform .16s var(--ease);
+}
+.set-toggle.on .set-knob { transform: translateX(17px); }
+
+.set-meter { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.set-meter-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.set-meter-num { font-size: 13px; color: var(--text-2); white-space: nowrap; }
+.set-meter-of { color: var(--text-3); }
+.set-bar { height: 6px; border-radius: 999px; background: var(--surface-2); margin-top: 10px; overflow: hidden; }
+.set-bar span { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width .3s var(--ease); }
+
+/* Bars, not a line: a count per day is discrete, and 14 of them read better
+   as columns than as a curve drawn through them. */
+.set-spark { display: flex; align-items: flex-end; gap: 4px; height: 46px; width: 100%; }
+.set-spark-bar { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.set-spark-bar > span { width: 100%; border-radius: 3px; background: var(--accent); }
+.set-spark-bar > span.empty { background: var(--border); }
+
+.set-updated {
+  display: flex; align-items: center; gap: 8px; margin-top: 22px;
+  font-size: 12.5px; color: var(--text-3);
+}
+
+@media (max-width: 860px) {
+  .modal.set-modal { flex-direction: column; height: min(86vh, 760px); }
+  .set-rail {
+    width: auto; border-right: 0; border-bottom: 1px solid var(--border);
+    padding: 10px;
+  }
+  .set-rail-scroll { display: flex; gap: 4px; overflow-x: auto; }
+  .set-rail-label, .set-rail-out { display: none; }
+  .set-rail-item { width: auto; white-space: nowrap; }
+  .set-scroll { padding: 20px 18px 32px; }
+  .set-row { flex-direction: column; align-items: stretch; gap: 10px; }
+  .set-row-ctl { justify-content: flex-start; }
 }
