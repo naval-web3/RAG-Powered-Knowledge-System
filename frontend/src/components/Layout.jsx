@@ -133,11 +133,16 @@ function PortalMenu({ anchorRef, align = "right", className = "", children }) {
  * the pointer crossing into it never leaves the hover area and no timer is
  * needed to keep it open. It flips to the left when there is no room.
  */
+// The tallest the project list is allowed to get, before it is trimmed back to
+// a whole number of rows.
+const FLYOUT_LIST_MAX = 260;
+
 function ProjectFlyout({ conv, projects, onMove, onCreate }) {
   const t = useT();
-  const [listRef, listFade] = useEdgeFade();
   const [q, setQ] = useState("");
   const boxRef = useRef(null);
+  const listRef = useRef(null);
+  const [listMax, setListMax] = useState(FLYOUT_LIST_MAX);
   const [place, setPlace] = useState({ flip: false, lift: 0 });
 
   /* Placed once, from the box's UNADJUSTED rect. Both corrections are deltas,
@@ -152,6 +157,17 @@ function ProjectFlyout({ conv, projects, onMove, onCreate }) {
     lift = Math.min(lift, Math.max(0, r.top - 8));
     setPlace({ flip, lift });
   }, []);
+
+  /* Cut to a whole number of rows, so the list never ends on half a project
+     name. Re-measured as a filter narrows it, because the last row is a
+     different row then. */
+  useLayoutEffect(() => {
+    const el = listRef.current;
+    const row = el?.querySelector(".pm-item")?.offsetHeight;
+    if (!row) return;
+    const rows = Math.max(1, Math.floor(FLYOUT_LIST_MAX / row));
+    setListMax((prev) => (prev === rows * row ? prev : rows * row));
+  });
 
   const query = q.trim().toLowerCase();
   const hits = query ? projects.filter((p) => p.name.toLowerCase().includes(query)) : projects;
@@ -174,7 +190,7 @@ function ProjectFlyout({ conv, projects, onMove, onCreate }) {
           }}
         />
       </div>
-      <div className={`pm-flyout-list ${listFade}`} ref={listRef}>
+      <div className="pm-flyout-list" ref={listRef} style={{ maxHeight: listMax }}>
         {hits.map((p) => (
           <button key={p.project_id} className="pm-item" onClick={() => onMove(conv, p.project_id)}>
             <span className="pm-label">{p.name}</span>
