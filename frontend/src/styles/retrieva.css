@@ -1762,10 +1762,6 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .set-input:disabled { color: var(--text-3); }
 .set-input-sm { width: 110px; }
 .set-input-wrap { display: flex; align-items: center; gap: 4px; }
-.set-select {
-  padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--r-sm);
-  background: var(--bg); color: var(--text); font-size: 13.5px; min-width: 150px;
-}
 .set-textarea {
   width: 100%; padding: 11px 13px; resize: vertical; min-height: 96px;
   border: 1px solid var(--border); border-radius: var(--r-md);
@@ -2007,3 +2003,47 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   .doc-act span { display: none; }
   .doc-body { padding: 16px 16px 28px; }
 }
+
+
+/* ============================================================
+   SELECT
+   ============================================================ */
+/* No box at rest: in a settings row the label carries the meaning and the value
+   is the answer, so a field outline around the answer is one border too many.
+   The fill arrives under the pointer and stays while the list is open, which is
+   what says "this is the thing you are operating". */
+.sel-trigger {
+  display: inline-flex; align-items: center; gap: 6px;
+  max-width: 260px; padding: 7px 10px; border: 0; border-radius: var(--r-sm);
+  background: none; color: var(--text); font-size: 13.5px; cursor: pointer;
+  transition: background .14s var(--ease), color .14s var(--ease);
+}
+.sel-trigger:hover { background: var(--row-hover); }
+.sel-trigger.is-open { background: var(--row-hover); }
+.sel-trigger:disabled { color: var(--text-3); cursor: not-allowed; }
+.sel-trigger:disabled:hover { background: none; }
+.sel-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-chev { flex: none; color: var(--text-3); transition: transform .16s var(--ease); }
+.sel-trigger.is-open .sel-chev { transform: rotate(180deg); }
+
+/* Fixed and in <body>, like every other menu here: the settings pane scrolls,
+   and a scrolling parent clips what leaves it on both axes. */
+.sel-menu {
+  position: fixed; z-index: 200; min-width: 200px; max-width: 320px;
+  overflow-y: auto; padding: 6px;
+  background: var(--popover); border: 1px solid var(--border);
+  border-radius: var(--r-md); box-shadow: var(--shadow-lg);
+  animation: popIn .16s var(--ease);
+}
+.sel-opt {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  font-size: 13.5px; color: var(--text-2); text-align: left; cursor: pointer;
+  background: none; border: 0;
+}
+.sel-opt > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Highlight follows the pointer AND the arrow keys, so one rule covers both and
+   they can never disagree about which row is current. */
+.sel-opt.active { background: var(--surface-2); color: var(--text); }
+.sel-opt.chosen { color: var(--text); font-weight: 600; }
+.sel-check { flex: none; color: var(--accent); }

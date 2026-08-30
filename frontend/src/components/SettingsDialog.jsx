@@ -10,6 +10,7 @@ import { getThemePref, setTheme } from "../theme";
 import { initialsOf } from "../utils";
 import ConfirmModal from "./ConfirmModal";
 import Icon from "./Icon";
+import Select from "./Select";
 import Tooltip from "./Tooltip";
 
 /* One entry per panel. The label is nav.<id> and the search blob is
@@ -377,13 +378,15 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
                 </Row>
 
                 <Row title={t("settings.work")}>
-                  <select className="set-select" value={work}
-                    onChange={(e) => saveWork(e.target.value)}>
-                    <option value="">{t("settings.workNone")}</option>
-                    {WORK_ROLES.map((r) => (
-                      <option key={r} value={r}>{t(`work.${r}`)}</option>
-                    ))}
-                  </select>
+                  <Select
+                    value={work}
+                    ariaLabel={t("settings.work")}
+                    onChange={saveWork}
+                    options={[
+                      { value: "", label: t("settings.workNone") },
+                      ...WORK_ROLES.map((r) => ({ value: r, label: t(`work.${r}`) })),
+                    ]}
+                  />
                 </Row>
 
                 <Row title={t("settings.instructions")} stacked sub={t("settings.instructionsSub")}>
@@ -414,10 +417,12 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
                   </div>
                 </Row>
                 <Row title={t("settings.chatFont")} sub={t("settings.chatFontSub")}>
-                  <select className="set-select" value={font}
-                    onChange={(e) => { setFontState(e.target.value); setChatFont(e.target.value); }}>
-                    {CHAT_FONTS.map((f) => <option key={f.id} value={f.id}>{t(`font.${f.id}`)}</option>)}
-                  </select>
+                  <Select
+                    value={font}
+                    ariaLabel={t("settings.chatFont")}
+                    onChange={(v) => { setFontState(v); setChatFont(v); }}
+                    options={CHAT_FONTS.map((f) => ({ value: f.id, label: t(`font.${f.id}`) }))}
+                  />
                 </Row>
               </>
             )}
@@ -606,16 +611,22 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
                       </div>
                     </Row>
                     <Row title={t("settings.ollamaModel")}>
-                      <select className="set-select" value={cfg.OLLAMA_MODEL} disabled={!isAdmin}
-                        onChange={(e) => setCfg({ ...cfg, OLLAMA_MODEL: e.target.value })}>
-                        {ollamaModels.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
+                      <Select
+                        value={cfg.OLLAMA_MODEL}
+                        ariaLabel={t("settings.ollamaModel")}
+                        disabled={!isAdmin}
+                        onChange={(v) => setCfg({ ...cfg, OLLAMA_MODEL: v })}
+                        options={ollamaModels.map((m) => ({ value: m, label: m }))}
+                      />
                     </Row>
                     <Row title={t("settings.openaiModel")}>
-                      <select className="set-select" value={cfg.OPENAI_CHAT_MODEL} disabled={!isAdmin}
-                        onChange={(e) => setCfg({ ...cfg, OPENAI_CHAT_MODEL: e.target.value })}>
-                        {openaiModels.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
+                      <Select
+                        value={cfg.OPENAI_CHAT_MODEL}
+                        ariaLabel={t("settings.openaiModel")}
+                        disabled={!isAdmin}
+                        onChange={(v) => setCfg({ ...cfg, OPENAI_CHAT_MODEL: v })}
+                        options={openaiModels.map((m) => ({ value: m, label: m }))}
+                      />
                     </Row>
                     <Row title={t("settings.temperature")} sub={t("settings.temperatureSub")}>
                       <div className="set-range">

@@ -209,8 +209,10 @@ check("SettingsDialog in Hindi", () => {
         </LocaleProvider>
       </MemoryRouter>
     );
+    /* settings.workNone, not a role label: the options live in a popover that
+       only exists while it is open, so a closed Select renders its value alone. */
     for (const key of ["nav.account", "settings.profile", "settings.chatFont",
-                       "settings.work", "work.student"]) {
+                       "settings.work", "settings.workNone"]) {
       if (!html.includes(STRINGS["hi-IN"][key])) {
         throw new Error(`${key} did not render in Hindi`);
       }
