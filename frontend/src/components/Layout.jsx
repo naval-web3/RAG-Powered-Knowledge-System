@@ -796,7 +796,8 @@ function Shell() {
           <>
           {creatingProject && (
             <div className="conv-item">
-              <input className="rename" autoFocus placeholder={t("sidebar.projectName")}
+              <Icon name="book" className="icon-sm" />
+              <input className="conv-title rename" autoFocus placeholder={t("sidebar.projectName")}
                 value={projName}
                 onChange={(e) => setProjName(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
@@ -864,25 +865,16 @@ function Shell() {
           <div className="sb-chat-list">
             {shownChats.map((c) => {
                 const active = c.conversation_id === chat.activeId;
-                if (editingId === c.conversation_id) {
-                  return (
-                    <div key={c.conversation_id} className="conv-item">
-                      <input className="rename" autoFocus value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") { chat.renameConversation(c.conversation_id, editTitle); setEditingId(null); }
-                          if (e.key === "Escape") setEditingId(null);
-                        }}
-                        onBlur={() => { chat.renameConversation(c.conversation_id, editTitle); setEditingId(null); }} />
-                    </div>
-                  );
-                }
                 const open = menuId === c.conversation_id;
+                const editing = editingId === c.conversation_id;
+                const commit = () => {
+                  chat.renameConversation(c.conversation_id, editTitle);
+                  setEditingId(null);
+                };
                 return (
                   <div key={c.conversation_id}
                     className={`conv-item ${active ? "active" : ""} ${c.unread ? "is-unread" : ""} ${open ? "menu-open" : ""}`}
-                    onClick={() => openConv(c.conversation_id)}>
+                    onClick={() => { if (!editing) openConv(c.conversation_id); }}>
                     <span className="conv-mark">
                       {/* A pinned row swaps its icon rather than gaining a second
                           one: the pin says as much as the chat glyph did. */}
@@ -890,7 +882,21 @@ function Shell() {
                         className={`icon-sm ${c.pinned ? "conv-pin" : ""}`} />
                       {c.unread && <span className="conv-unread" aria-label="Unread" />}
                     </span>
-                    <span className="conv-title">{c.title}</span>
+                    {/* The same box in the same place, carrying the same class:
+                        the row does not reflow, it just becomes typeable. */}
+                    {editing ? (
+                      <input className="conv-title rename" autoFocus value={editTitle}
+                        aria-label={t("common.rename")}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commit();
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        onBlur={commit} />
+                    ) : (
+                      <span className="conv-title">{c.title}</span>
+                    )}
                     <div className="conv-actions" onClick={(e) => e.stopPropagation()}>
                       <button className="btn-icon" aria-label={t("menu.chatOptions")}
                         ref={open ? rowMenuBtnRef : null}

@@ -741,15 +741,19 @@ body {
 .conv-item:hover .conv-actions, .conv-item.active .conv-actions { display: flex; }
 .conv-actions .btn-icon { width: 26px; height: 26px; border-radius: 8px; color: var(--text-3); }
 .conv-actions .btn-icon:hover { color: var(--text); background: var(--border); }
-/* --row-hover, not --surface. --surface is paper white in light mode, so a
-   field opened on the parchment panel arrived as a white card cut into it. This
-   is the token made for tinting a row against that panel, and it moves the
-   right way in both themes: it darkens in light and lightens in dark, where a
-   fixed colour would be wrong in one of the two. */
+/* Renaming changes the words, not the row. No border, no fill, no padding of
+   its own: the input also carries .conv-title, so it inherits the very box the
+   text had and the row does not shift by a pixel when it appears. The icon, the
+   unread dot and the row's highlight all stay, and the caret is the only thing
+   that says anything has changed. */
 .conv-item input.rename {
-  flex: 1; font-size: 13px; padding: 3px 7px; border-radius: 6px;
-  border: 1px solid var(--accent); background: var(--row-hover); color: var(--text);
+  padding: 0; border: 0; outline: none; background: none;
+  color: inherit; font: inherit; letter-spacing: inherit;
+  /* .conv-title fades its last 22px, which would swallow the caret at the end
+     of a long name. An input scrolls its own text, so it needs no fade. */
+  -webkit-mask-image: none; mask-image: none;
 }
+.conv-item input.rename::placeholder { color: var(--text-3); }
 /* These fields carry an accent border of their own, so the global
    :focus-visible ring would draw a second one around it. The border is the
    focus indicator here. */
