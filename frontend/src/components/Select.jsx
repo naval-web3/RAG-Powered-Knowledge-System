@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import useEdgeFade from "../useEdgeFade";
 import Icon from "./Icon";
 
 /**
@@ -29,7 +28,6 @@ const MIN_H = 120;
 export default function Select({ value, options, onChange, ariaLabel, disabled = false }) {
   const btnRef = useRef(null);
   const menuRef = useRef(null);
-  const [fadeRef, fade] = useEdgeFade();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const [active, setActive] = useState(0);
@@ -65,7 +63,18 @@ export default function Select({ value, options, onChange, ariaLabel, disabled =
       // it says how much room the list would like before it is given any.
       const wanted = Math.min(MAX_H, menu.scrollHeight);
       const up = roomBelow < wanted && roomAbove > roomBelow;
-      const maxH = Math.max(MIN_H, Math.min(MAX_H, up ? roomAbove : roomBelow));
+      const room = Math.max(MIN_H, Math.min(MAX_H, up ? roomAbove : roomBelow));
+
+      /* Trimmed down to a whole number of rows. A list is allowed to be shorter
+         than the space it has, and ending on a complete row is worth more than
+         the twenty spare pixels: a half-drawn row at the bottom reads as broken
+         rather than as "there is more". Both numbers are measured rather than
+         written down, so changing the padding or the type does not quietly
+         leave this behind. */
+      const row = menu.querySelector(".sel-opt")?.offsetHeight || 34;
+      const padY = 2 * parseFloat(getComputedStyle(menu).paddingTop || 0);
+      const rows = Math.max(1, Math.floor((room - padY) / row));
+      const maxH = Math.min(room, rows * row + padY);
 
       // Right-aligned: these sit at the right of a settings row, so their right
       // edges should line up down the panel.
@@ -163,8 +172,8 @@ export default function Select({ value, options, onChange, ariaLabel, disabled =
       {open &&
         createPortal(
           <div
-            ref={(el) => { menuRef.current = el; fadeRef(el); }}
-            className={`sel-menu ${fade}`}
+            ref={menuRef}
+            className="sel-menu"
             role="listbox"
             aria-label={ariaLabel}
             style={{
