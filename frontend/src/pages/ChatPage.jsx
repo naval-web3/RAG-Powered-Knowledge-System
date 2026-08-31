@@ -358,6 +358,10 @@ const PH_ERASE_MS = 22;    // per character, deleting
 function useRotatingPlaceholder(active, prompts) {
   const key = prompts.join("|");
   const [text, setText] = useState(prompts[0] || "");
+  // Which prompt the animation is currently working towards, so a pause can
+  // finish the job instead of guessing from a prefix that several prompts and
+  // the empty string all match.
+  const targetRef = useRef(0);
 
   // A language switch lands on the first prompt in the new language instead of
   // leaving the old one frozen on screen.
@@ -366,9 +370,20 @@ function useRotatingPlaceholder(active, prompts) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
+  /* Focus can land mid-word, and half a prompt sitting in the box reads as a
+     bug rather than an animation. Stopping completes the prompt instead of
+     freezing on whatever character it had reached. Safe against the loop
+     writing over it: the loop only resumes inside a microtask, and its first
+     act after waking is to see it has been stopped and return. */
   useEffect(() => {
-    // Frozen, not reset: pausing on focus should leave the prompt where it is
-    // rather than snapping back to the first one.
+    if (active) return;
+    setText(prompts[targetRef.current] || prompts[0] || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, key]);
+
+  useEffect(() => {
+    // Frozen, not reset: pausing should leave the prompt where it is rather
+    // than snapping back to the first one.
     if (!active || prompts.length < 2) return undefined;
     if (typeof window !== "undefined" && window.matchMedia
         && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
@@ -387,6 +402,7 @@ function useRotatingPlaceholder(active, prompts) {
       // Resume from whatever is on screen, so a blur does not restart the cycle.
       let i = prompts.indexOf(text);
       if (i < 0) i = 0;
+      targetRef.current = i;
       for (;;) {
         setText(prompts[i]);
         await wait(PH_HOLD_MS);
@@ -398,6 +414,7 @@ function useRotatingPlaceholder(active, prompts) {
           if (stopped) return;
         }
         i = (i + 1) % prompts.length;
+        targetRef.current = i;
         const next = prompts[i];
         for (let c = 1; c <= next.length; c++) {
           setText(next.slice(0, c));
