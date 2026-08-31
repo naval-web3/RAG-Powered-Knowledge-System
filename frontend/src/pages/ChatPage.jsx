@@ -741,7 +741,7 @@ function ModelMenu() {
   return (
     <div className="menu-anchor" ref={ref}>
       <button className="model-btn" aria-haspopup="true" onClick={toggleOpen}>
-        <span>{current}</span><Icon name="chev-d" className="icon-sm" />
+        <span>{current}</span>
       </button>
       {open && (
         <div className="drop-menu">
@@ -790,7 +790,6 @@ function ScopeMenu() {
         onClick={() => setOpen((o) => !o)}>
         <Icon name="target" className="icon-sm" />
         <span id="scope-btn-label">{label}</span>
-        <Icon name="chev-d" className="icon-sm" />
       </button>
       {open && (
         <div className="drop-menu" id="scope-menu">
