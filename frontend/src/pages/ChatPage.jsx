@@ -347,7 +347,7 @@ function AiMessage({ message, mark }) {
    new-chat screen, where a blank box tells a first-time reader nothing about
    what the app can be asked. */
 const PLACEHOLDER_KEYS = ["chat.placeholder", "chat.placeholder2", "chat.placeholder3"];
-const PH_HOLD_MS = 3800;   // how long each prompt rests before it gives way
+const PH_HOLD_MS = 5000;   // how long each prompt rests before it gives way
 const PH_FADE_MS = 400;    // must match the .ta-ghost opacity transition
 const PH_TYPE_MS = 45;     // per character, typing
 const PH_ERASE_MS = 22;    // per character, deleting
