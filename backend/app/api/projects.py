@@ -9,6 +9,7 @@ unrelated invoice that happens to live in the same account.
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -94,12 +95,27 @@ def update_project(
     current_user: User = Depends(get_current_user),
 ) -> ProjectOut:
     project = _owned(db, project_id, current_user)
+    fields: dict[str, object] = {}
     if payload.name is not None:
-        project.name = payload.name.strip()[:120]
+        fields["name"] = payload.name.strip()[:120]
     if payload.instructions is not None:
-        project.instructions = payload.instructions.strip() or None
-    db.commit()
-    db.refresh(project)
+        fields["instructions"] = payload.instructions.strip() or None
+    if payload.pinned is not None:
+        fields["pinned"] = payload.pinned
+
+    if fields:
+        # Restating updated_at keeps the column's onupdate from firing. Renaming
+        # a project or pinning it is not work done inside the project, and the
+        # list is ordered by updated_at, so letting it bump would jump the row
+        # to the top. A Core UPDATE, because the ORM drops a no-op assignment
+        # and lets the default through anyway.
+        db.execute(
+            update(Project)
+            .where(Project.project_id == project_id)
+            .values(updated_at=project.updated_at, **fields)
+        )
+        db.commit()
+        db.refresh(project)
     return _out(db, project)
 
 

@@ -79,6 +79,9 @@ class Document(Base):
     stage: Mapped[str | None] = mapped_column(String(20), nullable=True)
     progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False, server_default="0")
     stage_detail: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Kept in the sidebar. Everything else lives on the library page, so this is
+    # the user saying which few files are worth a permanent place.
+    pinned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
 
     owner: Mapped["User"] = relationship(back_populates="documents")
 
@@ -208,6 +211,8 @@ class Project(Base):
     # "all"      -> retrieve from the user's whole library
     # "selected" -> retrieve only from the linked documents below
     doc_scope: Mapped[str] = mapped_column(String(10), default="selected", nullable=False)
+    # Kept in the sidebar; the rest live on the projects page.
+    pinned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), index=True

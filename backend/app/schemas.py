@@ -57,6 +57,7 @@ class DocumentOut(BaseModel):
     stage: str | None = None
     progress: int = 0
     stage_detail: str | None = None
+    pinned: bool = False
 
 
 # ---------- Chat / RAG ----------
@@ -136,12 +137,16 @@ class ConversationDetail(ConversationOut):
 
 
 class DocumentPatch(BaseModel):
-    """The one thing about a document that is the user's to change.
+    """The things about a document that are the user's to change.
 
     Not `original_filename`: that is what the file is called when it is handed
     back on download, and it should keep saying what was actually uploaded.
+
+    Both fields are optional so a pin does not have to resend the title, and a
+    rename does not have to know the pin state.
     """
-    title: str = Field(min_length=1, max_length=255)
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    pinned: bool | None = None
 
 
 # ---------- Document contents ----------
@@ -309,6 +314,7 @@ class ProjectCreate(BaseModel):
 class ProjectUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     instructions: str | None = None
+    pinned: bool | None = None
 
 
 class ProjectDocumentsUpdate(BaseModel):
@@ -326,5 +332,6 @@ class ProjectOut(BaseModel):
     doc_scope: str
     created_at: datetime
     updated_at: datetime
+    pinned: bool = False
     document_ids: list[uuid.UUID] = []
     conversation_count: int = 0

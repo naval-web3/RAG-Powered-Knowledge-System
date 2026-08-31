@@ -75,6 +75,14 @@ def on_startup() -> None:
             text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS progress INTEGER NOT NULL DEFAULT 0")
         )
         conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS stage_detail VARCHAR(120)"))
+        # Only pinned documents and projects appear in the sidebar; the rest are
+        # reached from their own page.
+        conn.execute(
+            text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS pinned BOOLEAN NOT NULL DEFAULT false")
+        )
+        conn.execute(
+            text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS pinned BOOLEAN NOT NULL DEFAULT false")
+        )
         # projects / project_documents are new tables, so create_all makes them;
         # conversations already exists, so its new column needs adding by hand.
         conn.execute(

@@ -331,22 +331,26 @@ def document_file(
 
 
 @router.patch("/{document_id}", response_model=DocumentOut)
-def rename_document(
+def update_document(
     document_id: uuid.UUID,
     payload: DocumentPatch,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Document:
-    """Give a document a different title.
+    """Retitle a document, or pin it to the sidebar. Only what is sent is touched.
 
-    Nothing downstream is touched: the file stays where it is and the vectors
-    keep their own copy of the metadata, so a rename cannot invalidate an index.
+    Nothing downstream is touched either way: the file stays where it is and the
+    vectors keep their own copy of the metadata, so neither a rename nor a pin
+    can invalidate an index.
     """
     doc = _owned(db, document_id, current_user)
-    title = payload.title.strip()
-    if not title:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "A title cannot be blank")
-    doc.title = title
+    if payload.title is not None:
+        title = payload.title.strip()
+        if not title:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "A title cannot be blank")
+        doc.title = title
+    if payload.pinned is not None:
+        doc.pinned = payload.pinned
     db.commit()
     db.refresh(doc)
     return doc
