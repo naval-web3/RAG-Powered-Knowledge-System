@@ -1149,8 +1149,12 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
    leaves the layout: a control that appears by changing display would resize
    the row under the pointer, which is the bug the row menus already taught us. */
 .sb-group-row .sb-see-all { opacity: 0; pointer-events: none; transition: opacity .13s; }
+/* :focus-visible on the button, NOT :focus-within on the row. :focus-within
+   matches plain focus, and clicking a button leaves focus on it, so the arrow
+   stayed lit after the pointer had gone. :focus-visible ignores a mouse click
+   and still answers to the keyboard, which is the only reason the rule exists. */
 .sb-group-row:hover .sb-see-all,
-.sb-group-row:focus-within .sb-see-all { opacity: 1; pointer-events: auto; }
+.sb-group-row .sb-see-all:focus-visible { opacity: 1; pointer-events: auto; }
 /* Stands in for the rows it will be replaced by, so it borrows their metrics
    exactly: same padding, same gap, same type, same left edge. */
 .sb-pin-hint {
