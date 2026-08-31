@@ -1154,7 +1154,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 }
 .private-toggle:hover { color: var(--text); background: none; }
 .private-toggle.on { color: var(--accent); }
-.ghost-icon { width: 21px; height: 21px; flex: none; }
+.ghost-icon { width: 24px; height: 24px; flex: none; }
 /* Rises and settles once per hover, rather than looping while the pointer
    rests on it. */
 .private-toggle:hover .ghost-icon { animation: ghost-float .45s var(--ease); }
