@@ -348,34 +348,21 @@ function AiMessage({ message, mark }) {
    what the app can be asked. */
 const PLACEHOLDER_KEYS = ["chat.placeholder", "chat.placeholder2", "chat.placeholder3"];
 const PH_HOLD_MS = 5000;   // how long each prompt rests before it gives way
-const PH_FADE_MS = 400;    // must match the .ta-ghost opacity transition
 const PH_TYPE_MS = 45;     // per character, typing
 const PH_ERASE_MS = 22;    // per character, deleting
 
-/* TEMPORARY, while the two transitions are compared. "type" deletes the current
-   prompt a character at a time and types the next one in behind a caret;
-   "fade" crossfades between them whole. Typing is the default while the user
-   judges it, since it is the harder of the two to miss. Back to the other with
-   localStorage.setItem("placeholderAnim", "fade") and a reload; clear it with
-   removeItem to follow the default again. Once one is chosen, the loser and
-   this switch both come out. The typeof guard is for the smoke renderer, which
-   runs in node where there is no localStorage. */
-const PLACEHOLDER_ANIM =
-  (typeof localStorage !== "undefined" && localStorage.getItem("placeholderAnim")) || "type";
-
-/* Returns the text to paint and whether it should be showing. Driven by a
-   chain of timeouts rather than an interval: the two modes have very different
-   rhythms, and a half-typed prompt must never be interrupted by the next tick. */
-function useRotatingPlaceholder(active, mode, prompts) {
+/* Returns the text to paint. Driven by a chain of timeouts rather than an
+   interval: erasing and typing run at different rates and neither is a whole
+   number of ticks, so a half-typed prompt must never be cut off by the next
+   one coming due. */
+function useRotatingPlaceholder(active, prompts) {
   const key = prompts.join("|");
   const [text, setText] = useState(prompts[0] || "");
-  const [visible, setVisible] = useState(true);
 
   // A language switch lands on the first prompt in the new language instead of
   // leaving the old one frozen on screen.
   useEffect(() => {
     setText(prompts[0] || "");
-    setVisible(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
@@ -401,33 +388,21 @@ function useRotatingPlaceholder(active, mode, prompts) {
       let i = prompts.indexOf(text);
       if (i < 0) i = 0;
       for (;;) {
-        if (mode === "type") {
-          setText(prompts[i]);
-          setVisible(true);
-          await wait(PH_HOLD_MS);
+        setText(prompts[i]);
+        await wait(PH_HOLD_MS);
+        if (stopped) return;
+        const cur = prompts[i];
+        for (let c = cur.length; c >= 0; c--) {
+          setText(cur.slice(0, c));
+          await wait(PH_ERASE_MS);
           if (stopped) return;
-          const cur = prompts[i];
-          for (let c = cur.length; c >= 0; c--) {
-            setText(cur.slice(0, c));
-            await wait(PH_ERASE_MS);
-            if (stopped) return;
-          }
-          i = (i + 1) % prompts.length;
-          const next = prompts[i];
-          for (let c = 1; c <= next.length; c++) {
-            setText(next.slice(0, c));
-            await wait(PH_TYPE_MS);
-            if (stopped) return;
-          }
-        } else {
-          setText(prompts[i]);
-          setVisible(true);
-          await wait(PH_HOLD_MS);
+        }
+        i = (i + 1) % prompts.length;
+        const next = prompts[i];
+        for (let c = 1; c <= next.length; c++) {
+          setText(next.slice(0, c));
+          await wait(PH_TYPE_MS);
           if (stopped) return;
-          setVisible(false);
-          await wait(PH_FADE_MS);
-          if (stopped) return;
-          i = (i + 1) % prompts.length;
         }
       }
     })();
@@ -438,9 +413,9 @@ function useRotatingPlaceholder(active, mode, prompts) {
       if (release) release();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, mode, key]);
+  }, [active, key]);
 
-  return { text, visible };
+  return text;
 }
 
 function Composer({ fileRef, rotate }) {
@@ -465,7 +440,7 @@ function Composer({ fileRef, rotate }) {
   // field is actually in use.
   const prompts = PLACEHOLDER_KEYS.map((k) => t(k));
   const showGhost = !!rotate && !text && !recording;
-  const ph = useRotatingPlaceholder(showGhost && !focused, PLACEHOLDER_ANIM, prompts);
+  const phText = useRotatingPlaceholder(showGhost && !focused, prompts);
 
   function joinText(a, b) {
     const left = (a || "").trim();
@@ -618,8 +593,7 @@ function Composer({ fileRef, rotate }) {
             {/* aria-hidden: the textarea already names itself with aria-label,
                 and a prompt that changes under a screen reader is noise. */}
             {showGhost && (
-              <span className={`ta-ghost ta-${PLACEHOLDER_ANIM} ${ph.visible ? "in" : ""}`}
-                aria-hidden="true">{ph.text}</span>
+              <span className="ta-ghost" aria-hidden="true">{phText}</span>
             )}
           </div>
           <div className="composer-row">

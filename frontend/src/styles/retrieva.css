@@ -1134,8 +1134,6 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   font-size: 15px; line-height: 1.5; color: var(--text-3);
   pointer-events: none; white-space: nowrap; overflow: hidden;
 }
-.ta-ghost.ta-fade { opacity: 0; transition: opacity .4s var(--ease); }
-.ta-ghost.ta-fade.in { opacity: 1; }
 /* Typing needs no caret: the text growing and shrinking is the motion, and a
    bar blinking beside a prompt nobody typed reads as a cursor sitting in the
    field, which is misleading when the box is in fact empty. */
@@ -1350,7 +1348,6 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 @media (prefers-reduced-motion: reduce) {
   .private-toggle:hover .ghost-eye { animation: none; }
   .send-btn { animation: none; }
-  .ta-ghost.ta-fade { opacity: 1; transition: none; }
 }
 
 /* Private mode takes over the whole shell, like a browser's incognito window:
