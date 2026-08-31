@@ -512,17 +512,18 @@ function Composer({ fileRef }) {
                   <Icon name="stop" className="icon-sm" />
                 </button>
               </Tooltip>
-            ) : (
+            ) : text.trim() ? (
+              /* Mounted with the first character rather than sitting there
+                 greyed out: an empty composer has nothing to send. */
               <Tooltip label={t("chat.send")} placement="top">
-                <button className="send-btn" disabled={!text.trim()} aria-label={t("chat.send")}
+                <button className="send-btn" aria-label={t("chat.send")}
                   onClick={submit}>
                   <Icon name="send" className="icon-sm" />
                 </button>
               </Tooltip>
-            )}
+            ) : null}
           </div>
         </div>
-        <div className="composer-hint">{t("chat.hint")}</div>
       </div>
     </div>
   );
@@ -625,7 +626,7 @@ function ModelMenu() {
   return (
     <div className="menu-anchor" ref={ref}>
       <button className="model-btn" aria-haspopup="true" onClick={toggleOpen}>
-        <span className="dot" /><span>{current}</span><Icon name="chev-d" className="icon-sm" />
+        <span>{current}</span><Icon name="chev-d" className="icon-sm" />
       </button>
       {open && (
         <div className="drop-menu">

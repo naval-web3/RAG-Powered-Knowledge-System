@@ -1091,35 +1091,38 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .composer-zone { flex: none; padding: 6px 20px 18px; background: linear-gradient(to top, var(--bg) 70%, transparent); }
 .composer { max-width: 780px; margin: 0 auto; }
 .composer-box {
-  background: var(--surface); border: 1px solid var(--border-strong);
-  border-radius: 20px; box-shadow: var(--shadow-md);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: var(--shadow-sm);
   transition: border-color .15s, box-shadow .15s;
 }
-.composer-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-md); }
+/* Focus darkens the edge instead of firing a ring: the box is already the
+   loudest thing on the page and does not need announcing twice. */
+.composer-box:focus-within { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
 .composer-box textarea {
   width: 100%; border: 0; background: transparent; resize: none;
-  padding: 15px 18px 6px; font-size: 15px; line-height: 1.5;
-  max-height: 190px; min-height: 52px; outline: none; overflow-y: auto;
+  padding: 18px 18px 12px; font-size: 15px; line-height: 1.5;
+  max-height: 190px; min-height: 60px; outline: none; overflow-y: auto;
 }
-.composer-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px 10px; }
+.composer-row { display: flex; align-items: center; gap: 4px; padding: 0 12px 12px; }
+/* No border and no plate: these read as labels you can click. A hover
+   background is the only chrome they get. */
 .model-btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border);
-  font-family: var(--mono); font-size: 11.5px; color: var(--text-2);
-  transition: border-color .13s, background .13s;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 9px; border-radius: 8px;
+  font-size: 12.5px; color: var(--text-2);
+  transition: background .13s, color .13s;
 }
-.model-btn:hover { border-color: var(--border-strong); background: var(--surface-2); }
-.model-btn .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.model-btn:hover { background: var(--surface-2); color: var(--text); }
+@keyframes send-in { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: none; } }
 .send-btn {
   width: 36px; height: 36px; border-radius: 12px; flex: none;
   background: var(--accent); color: #FFF8F2;
   display: flex; align-items: center; justify-content: center;
   transition: background .15s, transform .12s var(--ease), opacity .15s;
+  animation: send-in .14s var(--ease);
 }
 .send-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
-.send-btn:disabled { opacity: .35; transform: none; cursor: not-allowed; }
 .send-btn.stop { background: var(--text); }
-.composer-hint { text-align: center; font-size: 11.5px; color: var(--text-3); margin-top: 10px; }
 
 /* ---------- Private chat & retrieval scope ---------- */
 .private-badge {
@@ -1192,6 +1195,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 
 @media (prefers-reduced-motion: reduce) {
   .private-toggle:hover .ghost-icon { animation: none; }
+  .send-btn { animation: none; }
 }
 
 /* Private mode takes over the whole shell, like a browser's incognito window:
@@ -1288,10 +1292,10 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 }
 
 #app.private-chat .composer-box { border-style: dashed; border-color: var(--blue); }
-#app.private-chat .composer-box:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft), var(--shadow-md); }
+#app.private-chat .composer-box:focus-within { border-color: var(--blue); box-shadow: var(--shadow-md); }
 .scope-btn #scope-btn-label { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.scope-btn.scoped { border-color: var(--accent); background: var(--accent-soft-2); color: var(--accent); }
-.scope-btn.scoped:hover { border-color: var(--accent); background: var(--accent-soft); }
+.scope-btn.scoped { background: var(--accent-soft-2); color: var(--accent); }
+.scope-btn.scoped:hover { background: var(--accent-soft); color: var(--accent); }
 #scope-menu { min-width: 280px; max-width: 330px; }
 #scope-menu .d-name { display: block; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scope-empty { padding: 10px 12px 12px; font-size: 12.5px; color: var(--text-3); }
