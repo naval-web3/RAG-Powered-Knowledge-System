@@ -12,7 +12,14 @@
 export default function Ghost({ className = "icon", ...rest }) {
   return (
     <svg className={className} viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" {...rest}>
-      <path d="M220,120v96a4.00007,4.00007,0,0,1-6.5332,3.0957L186.667,197.168,159.86621,219.0957a4.00069,4.00069,0,0,1-5.06641,0L128,197.168,101.2002,219.0957a4.00069,4.00069,0,0,1-5.06641,0L69.333,197.168,42.5332,219.0957A4,4,0,0,1,36,216V120a92,92,0,0,1,184,0Zm-8,0a84,84,0,0,0-168,0v87.55908L66.7998,188.9043a4.00069,4.00069,0,0,1,5.06641,0L98.667,210.832,125.4668,188.9043a4.00025,4.00025,0,0,1,5.0664,0L157.333,210.832l26.80078-21.92773a4.00069,4.00069,0,0,1,5.06641,0L212,207.55908Z" />
+      {/* Stroked as well as filled. The artwork's wall is 8 units on a 256
+          viewBox, which is 0.75px at the 24px this is drawn at — lighter than
+          the icons beside it, which land near 1.25px. A 4-unit stroke rides
+          the ring's own edges, adding 2 units either side, so the wall reads
+          as 12 and the ghost sits just under its neighbours' weight. */}
+      <path
+        stroke="currentColor" strokeWidth="4" strokeLinejoin="round"
+        d="M220,120v96a4.00007,4.00007,0,0,1-6.5332,3.0957L186.667,197.168,159.86621,219.0957a4.00069,4.00069,0,0,1-5.06641,0L128,197.168,101.2002,219.0957a4.00069,4.00069,0,0,1-5.06641,0L69.333,197.168,42.5332,219.0957A4,4,0,0,1,36,216V120a92,92,0,0,1,184,0Zm-8,0a84,84,0,0,0-168,0v87.55908L66.7998,188.9043a4.00069,4.00069,0,0,1,5.06641,0L98.667,210.832,125.4668,188.9043a4.00025,4.00025,0,0,1,5.0664,0L157.333,210.832l26.80078-21.92773a4.00069,4.00069,0,0,1,5.06641,0L212,207.55908Z" />
       {/* Both eyes carry the same class and so glance together: two eyes that
           moved independently would not read as looking at anything. */}
       <circle className="ghost-eye" cx="100" cy="116" r="8" />
