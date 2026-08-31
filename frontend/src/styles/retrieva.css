@@ -1256,14 +1256,24 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .private-toggle:hover { color: var(--text); background: none; }
 .private-toggle.on { color: var(--accent); }
 .ghost-icon { width: 24px; height: 24px; flex: none; }
-/* Rises and settles once per hover, rather than looping while the pointer
-   rests on it. */
-.private-toggle:hover .ghost-icon { animation: ghost-float .45s var(--ease); }
-@keyframes ghost-float {
-  0%   { transform: none; }
-  45%  { transform: translateY(-3px); }
-  100% { transform: none; }
+/* One glance when the pointer arrives -- left, right, up, then back to the
+   middle -- and then it settles, rather than looping while the pointer rests on
+   it. This control sits in the top bar and is always on screen; something
+   twitching up there permanently would be hard to stop noticing.
+   The distances are SVG user units, and the artwork is a 256 viewBox drawn at
+   24px, so one unit is 0.094px on screen: a 10-unit glance would have moved the
+   eyes less than a pixel and been invisible. 18 units is 1.7px, slightly more
+   than an eye's own diameter, which is what makes it read as looking. At full
+   travel the eyes still sit well inside the head, whose cavity spans 44..212 at
+   this height. */
+@keyframes ghost-look {
+  0%, 8%  { transform: translate(0, 0); }
+  26%     { transform: translate(-18px, 0); }
+  52%     { transform: translate(18px, 0); }
+  76%     { transform: translate(0, -14px); }
+  100%    { transform: translate(0, 0); }
 }
+.private-toggle:hover .ghost-eye { animation: ghost-look 1.1s var(--ease); }
 
 /* Tooltip: a dark label under the control, after a short delay. */
 .tip-wrap { display: inline-flex; }
@@ -1292,7 +1302,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .tip.placed { opacity: 1; transform: none; transition-delay: .4s; }
 
 @media (prefers-reduced-motion: reduce) {
-  .private-toggle:hover .ghost-icon { animation: none; }
+  .private-toggle:hover .ghost-eye { animation: none; }
   .send-btn { animation: none; }
   .ta-ghost.ta-fade { opacity: 1; transition: none; }
   .ta-ghost.ta-type::after { animation: none; }

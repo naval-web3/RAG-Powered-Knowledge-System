@@ -11,6 +11,7 @@ import { getThemePref, setTheme } from "../theme";
 import { initialsOf } from "../utils";
 import ConfirmModal from "./ConfirmModal";
 import DocumentDialog from "./DocumentDialog";
+import Ghost from "./Ghost";
 import Icon from "./Icon";
 import Keys from "./Keys";
 import LanguageDialog from "./LanguageDialog";
@@ -1089,7 +1090,7 @@ function Shell() {
             /* Nothing but what the mode is, and the way out. */
             <>
               <span className="private-bar-label">
-                <Icon name="ghost" className="icon-sm" /> {t("topbar.privateChat")}
+                <Ghost className="icon-sm" /> {t("topbar.privateChat")}
               </span>
               {/* Same corner as the toggle it replaces, so the same escape. */}
               <Tooltip label={t("topbar.leavePrivate")} placement="left">
@@ -1171,7 +1172,7 @@ function Shell() {
                 className={`private-toggle ${chat.privateMode ? "on" : ""}`}
                 aria-label={t("topbar.privateChat")} aria-pressed={chat.privateMode}
                 onClick={() => { if (!onChat) navigate("/"); chat.togglePrivate(); }}>
-                <Icon name="ghost" className="ghost-icon" />
+                <Ghost className="ghost-icon" />
               </button>
             </Tooltip>
             </>

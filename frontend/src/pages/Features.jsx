@@ -1,3 +1,4 @@
+import Ghost from "../components/Ghost";
 import Icon from "../components/Icon";
 import LandingShell, { CtaBand } from "../components/LandingShell";
 
@@ -87,7 +88,10 @@ export default function Features() {
         <div className="more-grid">
           {MORE.map((m) => (
             <div className="more-item" key={m.title}>
-              <Icon name={m.icon} className="icon-sm" />
+              {/* The one mark in this grid that is not in the sprite. */}
+              {m.icon === "ghost"
+                ? <Ghost className="icon-sm" />
+                : <Icon name={m.icon} className="icon-sm" />}
               <div>
                 <b>{m.title}</b>
                 <p>{m.body}</p>
