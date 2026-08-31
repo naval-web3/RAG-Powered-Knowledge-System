@@ -1275,10 +1275,12 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .private-toggle:hover { color: var(--text); background: none; }
 .private-toggle.on { color: var(--accent); }
 .ghost-icon { width: 24px; height: 24px; flex: none; }
-/* One glance when the pointer arrives -- left, right, up, then back to the
-   middle -- and then it settles, rather than looping while the pointer rests on
-   it. This control sits in the top bar and is always on screen; something
-   twitching up there permanently would be hard to stop noticing.
+/* The eyes look around for as long as the pointer is on the ghost -- left,
+   right, up, back to the middle, and round again. The cycle starts and ends
+   dead centre, so the loop has no seam, and it rests there briefly at the top
+   of each pass rather than swinging without pause. Nothing moves until the
+   pointer arrives: this control sits in the top bar and is on screen at all
+   times.
    The distances are SVG user units, and the artwork is a 256 viewBox drawn at
    24px, so one unit is 0.094px on screen: a 10-unit glance would have moved the
    eyes less than a pixel and been invisible. 18 units is 1.7px, slightly more
@@ -1292,7 +1294,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   76%     { transform: translate(0, -14px); }
   100%    { transform: translate(0, 0); }
 }
-.private-toggle:hover .ghost-eye { animation: ghost-look 2.2s var(--ease); }
+.private-toggle:hover .ghost-eye { animation: ghost-look 2.2s var(--ease) infinite; }
 
 /* Tooltip: a dark label under the control, after a short delay. */
 .tip-wrap { display: inline-flex; }
