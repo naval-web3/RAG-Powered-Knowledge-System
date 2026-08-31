@@ -292,12 +292,16 @@ function ChatMenuItems({ conv, projects, onAction, onMove, onCreate }) {
 /* The four things there are to do to a document. Deliberately not a copy of
    ChatMenuItems: a document cannot be pinned or marked unread, and offering
    either would be a row that does nothing. */
-function DocMenuItems({ onAction }) {
+function DocMenuItems({ pinned, onAction }) {
   const t = useT();
   return (
     <>
       <button className="pm-item" onClick={() => onAction("rename")}>
         <Icon name="pencil" className="icon-sm" /> {t("common.rename")}
+      </button>
+      <button className="pm-item" onClick={() => onAction("pin")}>
+        <Icon name={pinned ? "pin-off" : "pin"} className="icon-sm" />
+        {pinned ? t("common.unpin") : t("common.pin")}
       </button>
       <button className="pm-item" onClick={() => onAction("ask")}>
         <Icon name="target" className="icon-sm" /> {t("docs.scopeChat")}
@@ -440,7 +444,7 @@ function Shell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   // The document being read, or null. Rows open it; the dialog owns the rest.
-  const [openDoc, setOpenDoc] = useState(null);
+  const { openDoc, setOpenDoc } = chat;
   const [docMenuId, setDocMenuId] = useState(null);
   const [docEditId, setDocEditId] = useState(null);
   const [docTitle, setDocTitle] = useState("");
@@ -522,6 +526,7 @@ function Shell() {
   function docMenuAction(d, key) {
     if (!d) return;
     if (key === "rename") { setDocEditId(d.document_id); setDocTitle(d.title); }
+    else if (key === "pin") chat.pinDocument(d.document_id, !d.pinned);
     else if (key === "ask") { chat.scopeToDocument(d); navigate("/"); }
     else if (key === "download") chat.downloadDocument(d);
     else if (key === "delete") setDocToDelete(d);
@@ -679,7 +684,12 @@ function Shell() {
     return out;
   }, [chat.conversations]);
 
-  const visibleProjects = chat.projects;
+  /* The sidebar now carries only what was pinned to it. Everything else is
+     one click away, on the page each section's arrow opens. */
+  const visibleProjects = useMemo(
+    () => chat.projects.filter((p) => p.pinned), [chat.projects]
+  );
+  const visibleDocs = useMemo(() => chat.docs.filter((d) => d.pinned), [chat.docs]);
   const projectsOpen = !collapsedGroups.projects;
   const docsOpen = !collapsedGroups.docs;
   const chatsOpen = !collapsedGroups.chats;
@@ -772,6 +782,12 @@ function Shell() {
               <span>{t("docs.section")}</span>
               <Icon name={docsOpen ? "chev-d" : "chev-r"} className="chev" />
             </button>
+            <Tooltip label={t("sidebar.seeAll")}>
+              <button className="btn-icon sb-see-all" aria-label={t("sidebar.seeAll")}
+                onClick={() => goto("/documents")}>
+                <Icon name="move-up-right" className="icon-sm" />
+              </button>
+            </Tooltip>
             <Tooltip label={t("docs.upload")}>
               <button className="btn-icon" aria-label={t("docs.upload")}
                 disabled={chat.uploading}
@@ -785,10 +801,18 @@ function Shell() {
           </div>
           {docsOpen && (
             <>
-              {chat.docs.length === 0 && (
-                <div className="sb-empty sb-empty-sm">{t("docs.empty")}</div>
+              {/* Nothing uploaded and nothing pinned are different problems,
+                  and only the second one has a page to point at. */}
+              {visibleDocs.length === 0 && (
+                <div className="sb-empty sb-empty-sm">
+                  {chat.docs.length === 0 ? t("docs.empty") : (
+                    <button className="sb-empty-link" onClick={() => goto("/documents")}>
+                      {t("sidebar.nothingPinned")}
+                    </button>
+                  )}
+                </div>
               )}
-              {chat.docs.map((d) => {
+              {visibleDocs.map((d) => {
                 const busy = d.processing_status !== "done" && d.processing_status !== "failed";
                 const open = docMenuId === d.document_id;
                 const editing = docEditId === d.document_id;
@@ -839,7 +863,8 @@ function Shell() {
                       </button>
                       {open && (
                         <PortalMenu anchorRef={docMenuBtnRef} align="right" className="conv-menu">
-                          <DocMenuItems onAction={(a) => docMenuAction(d, a)} />
+                          <DocMenuItems pinned={!!d.pinned}
+                            onAction={(a) => docMenuAction(d, a)} />
                         </PortalMenu>
                       )}
                     </div>
@@ -855,6 +880,12 @@ function Shell() {
               <span>{t("sidebar.projects")}</span>
               <Icon name={projectsOpen ? "chev-d" : "chev-r"} className="chev" />
             </button>
+            <Tooltip label={t("sidebar.seeAll")}>
+              <button className="btn-icon sb-see-all" aria-label={t("sidebar.seeAll")}
+                onClick={() => goto("/projects")}>
+                <Icon name="move-up-right" className="icon-sm" />
+              </button>
+            </Tooltip>
             <Tooltip label={t("sidebar.newProject")}>
               <button className="btn-icon" aria-label={t("sidebar.newProject")}
                 onClick={() => {
@@ -883,9 +914,13 @@ function Shell() {
                 onBlur={submitNewProject} />
             </div>
           )}
-          {chat.projects.length === 0 && !creatingProject && (
+          {visibleProjects.length === 0 && !creatingProject && (
             <div className="sb-empty sb-empty-sm">
-              {t("sidebar.projectHint")}
+              {chat.projects.length === 0 ? t("sidebar.projectHint") : (
+                <button className="sb-empty-link" onClick={() => goto("/projects")}>
+                  {t("sidebar.nothingPinned")}
+                </button>
+              )}
             </div>
           )}
           {visibleProjects.map((p) => {

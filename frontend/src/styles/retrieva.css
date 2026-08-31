@@ -1145,6 +1145,75 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .send-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
 .send-btn.stop { background: var(--text); }
 
+/* The arrow to each section's own page. It is revealed on hover but never
+   leaves the layout: a control that appears by changing display would resize
+   the row under the pointer, which is the bug the row menus already taught us. */
+.sb-group-row .sb-see-all { opacity: 0; pointer-events: none; transition: opacity .13s; }
+.sb-group-row:hover .sb-see-all,
+.sb-group-row:focus-within .sb-see-all { opacity: 1; pointer-events: auto; }
+.sb-empty-link { color: var(--text-3); text-decoration: underline; text-underline-offset: 2px; }
+.sb-empty-link:hover { color: var(--text-2); }
+
+/* ---------- Library pages: all documents, all projects ---------- */
+.lib-pad { max-width: 1040px; margin: 0 auto; }
+.lib-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.lib-head .page-title { margin: 0; flex: 1; }
+.lib-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lib-search {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-3);
+  transition: border-color .13s;
+}
+.lib-search:focus-within { border-color: var(--border-strong); }
+.lib-search input {
+  border: 0; background: transparent; outline: none; width: 150px;
+  font-size: 13.5px; color: var(--text);
+}
+.lib-sort { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--text-3); }
+.lib-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.lib-card {
+  display: flex; flex-direction: column; gap: 10px; text-align: left;
+  min-height: 132px; padding: 16px 16px 14px;
+  border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface);
+  transition: border-color .13s, box-shadow .13s;
+}
+.lib-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+.lib-card-top { display: flex; align-items: flex-start; gap: 8px; }
+.lib-card-name {
+  flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Clamped, and anywhere-breaking: instructions are free text and may well
+   contain a URL with no spaces in it. */
+.lib-card-body {
+  margin: 0; font-size: 13px; line-height: 1.55; color: var(--text-2);
+  overflow: hidden; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+}
+.lib-card-foot {
+  margin-top: auto; display: flex; align-items: baseline; gap: 10px;
+  font-size: 12px; color: var(--text-3);
+}
+.lib-meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Quiet until the card is under the pointer -- unless it is pinned, which is a
+   state worth seeing at a glance. */
+.lib-pin {
+  flex: none; width: 26px; height: 26px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-3); opacity: 0;
+  transition: opacity .13s, background .13s, color .13s;
+}
+.lib-card:hover .lib-pin, .lib-pin:focus-visible, .lib-pin.on { opacity: 1; }
+.lib-pin:hover { background: var(--surface-2); color: var(--text); }
+.lib-pin.on { color: var(--accent); }
+.lib-empty { padding: 40px 0; text-align: center; color: var(--text-3); font-size: 13.5px; }
+.lib-new {
+  width: 100%; margin-bottom: 14px; padding: 12px 14px;
+  border: 1px solid var(--accent); border-radius: var(--r-lg);
+  background: var(--surface); font-size: 14px; outline: none;
+}
+
 /* ---------- Private chat & retrieval scope ---------- */
 .private-badge {
   display: inline-flex; align-items: center; gap: 6px;

@@ -31,6 +31,9 @@ export function ChatProvider({ children }) {
   const [sel, setSel] = useState("ollama|llama3.2:3b");
 
   const [docs, setDocs] = useState([]);
+  // Which document the preview dialog is showing. It lives here because both
+  // the sidebar and the documents page open it.
+  const [openDoc, setOpenDoc] = useState(null);
   const [scopeDocId, setScopeDocId] = useState(null);
 
   const [uploading, setUploading] = useState(false);
@@ -258,6 +261,25 @@ export function ChatProvider({ children }) {
       );
       try {
         await client.patch(`/api/documents/${id}`, { title: clean });
+        loadDocs();
+      } catch {
+        loadDocs();
+        toast(t("docs.renameFailed"), "err");
+      }
+    },
+    [loadDocs, toast, t]
+  );
+
+  /* Pinning decides whether a document appears in the sidebar at all, so it is
+     applied optimistically: the row should leave or arrive under the pointer
+     that asked for it, not a round trip later. */
+  const pinDocument = useCallback(
+    async (id, pinned) => {
+      setDocs((prev) =>
+        prev.map((d) => (d.document_id === id ? { ...d, pinned } : d))
+      );
+      try {
+        await client.patch(`/api/documents/${id}`, { pinned });
         loadDocs();
       } catch {
         loadDocs();
@@ -567,6 +589,9 @@ export function ChatProvider({ children }) {
     loadConversations,
     loadDocs,
     renameDocument,
+    pinDocument,
+    openDoc,
+    setOpenDoc,
     deleteDocument,
     downloadDocument,
     scopeToDocument,

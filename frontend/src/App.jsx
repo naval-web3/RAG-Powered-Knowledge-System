@@ -3,11 +3,13 @@ import Layout from "./components/Layout";
 import { useAuth } from "./context/AuthContext";
 import AdminPage from "./pages/AdminPage";
 import ChatPage from "./pages/ChatPage";
+import DocumentsPage from "./pages/DocumentsPage";
 import Features from "./pages/Features";
 import ForgotPassword from "./pages/ForgotPassword";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import ProjectPage from "./pages/ProjectPage";
+import ProjectsPage from "./pages/ProjectsPage";
 import Register from "./pages/Register";
 import UnderTheHood from "./pages/UnderTheHood";
 
@@ -47,7 +49,8 @@ export default function App() {
             so an old bookmark lands on the app rather than nowhere. */}
         <Route path="settings" element={<Navigate to="/" replace />} />
         {/* Documents live in the sidebar now, and open in a dialog. */}
-        <Route path="documents" element={<Navigate to="/" replace />} />
+        <Route path="documents" element={<DocumentsPage />} />
+        <Route path="projects" element={<ProjectsPage />} />
         <Route path="projects/:projectId" element={<ProjectPage />} />
         <Route
           path="dashboard"
