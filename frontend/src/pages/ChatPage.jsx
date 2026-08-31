@@ -117,7 +117,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <Composer fileRef={fileRef} />
+      <Composer fileRef={fileRef} rotate={empty} />
     </section>
   );
 }
@@ -343,11 +343,109 @@ function AiMessage({ message, mark }) {
   );
 }
 
-function Composer({ fileRef }) {
+/* The prompt field cycles through a few example questions on the empty
+   new-chat screen, where a blank box tells a first-time reader nothing about
+   what the app can be asked. */
+const PLACEHOLDER_KEYS = ["chat.placeholder", "chat.placeholder2", "chat.placeholder3"];
+const PH_HOLD_MS = 3800;   // how long each prompt rests before it gives way
+const PH_FADE_MS = 400;    // must match the .ta-ghost opacity transition
+const PH_TYPE_MS = 45;     // per character, typing
+const PH_ERASE_MS = 22;    // per character, deleting
+
+/* TEMPORARY, while the two transitions are compared: "fade" crossfades between
+   prompts, "type" types and deletes them. Switch in the console with
+   localStorage.setItem("placeholderAnim", "type") and reload. Once one is
+   chosen, the loser and this switch both come out. The typeof guard is for the
+   smoke renderer, which runs in node where there is no localStorage. */
+const PLACEHOLDER_ANIM =
+  (typeof localStorage !== "undefined" && localStorage.getItem("placeholderAnim")) || "fade";
+
+/* Returns the text to paint and whether it should be showing. Driven by a
+   chain of timeouts rather than an interval: the two modes have very different
+   rhythms, and a half-typed prompt must never be interrupted by the next tick. */
+function useRotatingPlaceholder(active, mode, prompts) {
+  const key = prompts.join("|");
+  const [text, setText] = useState(prompts[0] || "");
+  const [visible, setVisible] = useState(true);
+
+  // A language switch lands on the first prompt in the new language instead of
+  // leaving the old one frozen on screen.
+  useEffect(() => {
+    setText(prompts[0] || "");
+    setVisible(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  useEffect(() => {
+    // Frozen, not reset: pausing on focus should leave the prompt where it is
+    // rather than snapping back to the first one.
+    if (!active || prompts.length < 2) return undefined;
+    if (typeof window !== "undefined" && window.matchMedia
+        && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+
+    let stopped = false;
+    let timer = null;
+    let release = null;
+    // Cleanup resolves the pending wait so the loop reaches its stopped check
+    // and unwinds, instead of being left suspended forever.
+    const wait = (ms) => new Promise((resolve) => {
+      release = resolve;
+      timer = setTimeout(resolve, ms);
+    });
+
+    (async () => {
+      // Resume from whatever is on screen, so a blur does not restart the cycle.
+      let i = prompts.indexOf(text);
+      if (i < 0) i = 0;
+      for (;;) {
+        if (mode === "type") {
+          setText(prompts[i]);
+          setVisible(true);
+          await wait(PH_HOLD_MS);
+          if (stopped) return;
+          const cur = prompts[i];
+          for (let c = cur.length; c >= 0; c--) {
+            setText(cur.slice(0, c));
+            await wait(PH_ERASE_MS);
+            if (stopped) return;
+          }
+          i = (i + 1) % prompts.length;
+          const next = prompts[i];
+          for (let c = 1; c <= next.length; c++) {
+            setText(next.slice(0, c));
+            await wait(PH_TYPE_MS);
+            if (stopped) return;
+          }
+        } else {
+          setText(prompts[i]);
+          setVisible(true);
+          await wait(PH_HOLD_MS);
+          if (stopped) return;
+          setVisible(false);
+          await wait(PH_FADE_MS);
+          if (stopped) return;
+          i = (i + 1) % prompts.length;
+        }
+      }
+    })();
+
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+      if (release) release();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, mode, key]);
+
+  return { text, visible };
+}
+
+function Composer({ fileRef, rotate }) {
   const t = useT();
   const chat = useChat();
   const { toast } = useToast();
   const [text, setText] = useState("");
+  const [focused, setFocused] = useState(false);
   const [recording, setRecording] = useState(false);
   const taRef = useRef(null);
   const recRef = useRef(null);
@@ -356,6 +454,12 @@ function Composer({ fileRef }) {
   // baseTextRef holds the finalized text so interim results don't clobber it.
   const shouldListenRef = useRef(false);
   const baseTextRef = useRef("");
+
+  // Rotation belongs to the empty new-chat screen, and stops the moment the
+  // field is actually in use.
+  const prompts = PLACEHOLDER_KEYS.map((k) => t(k));
+  const showGhost = !!rotate && !text;
+  const ph = useRotatingPlaceholder(showGhost && !focused, PLACEHOLDER_ANIM, prompts);
 
   function joinText(a, b) {
     const left = (a || "").trim();
@@ -490,10 +594,21 @@ function Composer({ fileRef }) {
           </div>
         )}
         <div className="composer-box">
-          <textarea ref={taRef} rows={1} placeholder={t("chat.placeholder")} aria-label={t("chat.messageAria")}
-            value={text}
-            onChange={(e) => { setText(e.target.value); autoGrow(e.target); }}
-            onKeyDown={onKeyDown} />
+          <div className="ta-wrap">
+            <textarea ref={taRef} rows={1} aria-label={t("chat.messageAria")}
+              placeholder={showGhost ? undefined : t("chat.placeholder")}
+              value={text}
+              onChange={(e) => { setText(e.target.value); autoGrow(e.target); }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              onKeyDown={onKeyDown} />
+            {/* aria-hidden: the textarea already names itself with aria-label,
+                and a prompt that changes under a screen reader is noise. */}
+            {showGhost && (
+              <span className={`ta-ghost ta-${PLACEHOLDER_ANIM} ${ph.visible ? "in" : ""}`}
+                aria-hidden="true">{ph.text}</span>
+            )}
+          </div>
           <div className="composer-row">
             <AddMenu onUpload={() => fileRef.current?.click()} />
             <ModelMenu />

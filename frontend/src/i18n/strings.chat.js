@@ -26,6 +26,8 @@ const en = {
   "chat.suggest.whatsInside": "What’s in this knowledge base?",
 
   "chat.placeholder": "Ask your knowledge base…",
+  "chat.placeholder2": "Summarise a document for me…",
+  "chat.placeholder3": "What do my documents say about…?",
   "chat.messageAria": "Message",
   "chat.hint":
     "Retrieva answers only from your indexed documents. Check anything important against the document itself.",
@@ -91,6 +93,8 @@ const fr = {
   "chat.suggest.whatsInside": "Que contient cette base de connaissances ?",
 
   "chat.placeholder": "Interrogez votre base de connaissances…",
+  "chat.placeholder2": "Résumez-moi un document…",
+  "chat.placeholder3": "Que disent mes documents à propos de…?",
   "chat.messageAria": "Message",
   "chat.hint":
     "Retrieva répond uniquement à partir de vos documents indexés. Vérifiez tout point important dans le document lui-même.",
@@ -156,6 +160,8 @@ const de = {
   "chat.suggest.whatsInside": "Was steckt in dieser Wissensbasis?",
 
   "chat.placeholder": "Fragen Sie Ihre Wissensbasis…",
+  "chat.placeholder2": "Fassen Sie ein Dokument für mich zusammen…",
+  "chat.placeholder3": "Was sagen meine Dokumente über…?",
   "chat.messageAria": "Nachricht",
   "chat.hint":
     "Retrieva antwortet nur aus Ihren indexierten Dokumenten. Prüfen Sie Wichtiges im Dokument selbst nach.",
@@ -221,6 +227,8 @@ const hi = {
   "chat.suggest.whatsInside": "इस नॉलेज बेस में क्या है?",
 
   "chat.placeholder": "अपने नॉलेज बेस से पूछें…",
+  "chat.placeholder2": "मेरे लिए एक दस्तावेज़ का सारांश दें…",
+  "chat.placeholder3": "मेरे दस्तावेज़ इस बारे में क्या कहते हैं…?",
   "chat.messageAria": "संदेश",
   "chat.hint":
     "Retrieva केवल आपके इंडेक्स किए गए दस्तावेज़ों से उत्तर देता है। कोई भी महत्वपूर्ण बात दस्तावेज़ में स्वयं जाँच लें।",
@@ -286,6 +294,8 @@ const id = {
   "chat.suggest.whatsInside": "Apa isi basis pengetahuan ini?",
 
   "chat.placeholder": "Tanyakan pada basis pengetahuan Anda…",
+  "chat.placeholder2": "Ringkas sebuah dokumen untuk saya…",
+  "chat.placeholder3": "Apa kata dokumen saya tentang…?",
   "chat.messageAria": "Pesan",
   "chat.hint":
     "Retrieva hanya menjawab dari dokumen Anda yang terindeks. Periksa hal penting langsung pada dokumennya.",
@@ -351,6 +361,8 @@ const it = {
   "chat.suggest.whatsInside": "Che cosa c’è in questa base di conoscenza?",
 
   "chat.placeholder": "Interroga la tua base di conoscenza…",
+  "chat.placeholder2": "Riassumimi un documento…",
+  "chat.placeholder3": "Cosa dicono i miei documenti su…?",
   "chat.messageAria": "Messaggio",
   "chat.hint":
     "Retrieva risponde solo dai tuoi documenti indicizzati. Verifica ogni punto importante sul documento stesso.",
@@ -416,6 +428,8 @@ const ja = {
   "chat.suggest.whatsInside": "このナレッジベースには何が入っていますか？",
 
   "chat.placeholder": "ナレッジベースに質問する…",
+  "chat.placeholder2": "ドキュメントを要約して…",
+  "chat.placeholder3": "資料には何と書かれている…？",
   "chat.messageAria": "メッセージ",
   "chat.hint":
     "Retrieva はインデックス済みのドキュメントだけから答えます。重要な点は原典でご確認ください。",
@@ -481,6 +495,8 @@ const ko = {
   "chat.suggest.whatsInside": "이 지식 베이스에는 무엇이 들어 있나요?",
 
   "chat.placeholder": "지식 베이스에 질문하기…",
+  "chat.placeholder2": "문서를 요약해 줘…",
+  "chat.placeholder3": "내 문서에는 뭐라고 나와 있어…?",
   "chat.messageAria": "메시지",
   "chat.hint":
     "Retrieva는 색인된 문서에서만 답합니다. 중요한 내용은 문서에서 직접 확인하세요.",
@@ -546,6 +562,8 @@ const pt = {
   "chat.suggest.whatsInside": "O que há nesta base de conhecimento?",
 
   "chat.placeholder": "Pergunte à sua base de conhecimento…",
+  "chat.placeholder2": "Resuma um documento para mim…",
+  "chat.placeholder3": "O que meus documentos dizem sobre…?",
   "chat.messageAria": "Mensagem",
   "chat.hint":
     "O Retrieva responde apenas a partir dos seus documentos indexados. Confira o que for importante no próprio documento.",
@@ -611,6 +629,8 @@ const es419 = {
   "chat.suggest.whatsInside": "¿Qué hay en esta base de conocimiento?",
 
   "chat.placeholder": "Pregúntale a tu base de conocimiento…",
+  "chat.placeholder2": "Resúme un documento para mí…",
+  "chat.placeholder3": "¿Qué dicen mis documentos sobre…?",
   "chat.messageAria": "Mensaje",
   "chat.hint":
     "Retrieva responde solo a partir de tus documentos indexados. Verifica lo importante en el documento mismo.",

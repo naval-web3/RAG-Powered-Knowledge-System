@@ -1104,6 +1104,25 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   max-height: 190px; min-height: 60px; outline: none; overflow-y: auto;
 }
 .composer-row { display: flex; align-items: center; gap: 4px; padding: 0 12px 12px; }
+/* The rotating placeholder is painted over the textarea rather than set as its
+   placeholder attribute: a native one cannot be crossfaded or typed into. It
+   has to line up exactly with the textarea's own padding and text metrics. */
+.ta-wrap { position: relative; }
+.ta-ghost {
+  position: absolute; left: 18px; top: 18px; right: 18px;
+  font-size: 15px; line-height: 1.5; color: var(--text-3);
+  pointer-events: none; white-space: nowrap; overflow: hidden;
+}
+.ta-ghost.ta-fade { opacity: 0; transition: opacity .4s var(--ease); }
+.ta-ghost.ta-fade.in { opacity: 1; }
+/* Typing carries its own motion, so the text is simply present; the caret is
+   what says it is still being written. */
+.ta-ghost.ta-type::after {
+  content: ""; display: inline-block; width: 1px; height: 1.05em;
+  margin-left: 1px; vertical-align: -2px; background: var(--text-3);
+  animation: ph-caret 1s steps(1) infinite;
+}
+@keyframes ph-caret { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
 /* No border and no plate: these read as labels you can click. A hover
    background is the only chrome they get. */
 .model-btn {
@@ -1196,6 +1215,8 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 @media (prefers-reduced-motion: reduce) {
   .private-toggle:hover .ghost-icon { animation: none; }
   .send-btn { animation: none; }
+  .ta-ghost.ta-fade { opacity: 1; transition: none; }
+  .ta-ghost.ta-type::after { animation: none; }
 }
 
 /* Private mode takes over the whole shell, like a browser's incognito window:
