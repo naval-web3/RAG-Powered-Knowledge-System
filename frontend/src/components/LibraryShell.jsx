@@ -48,7 +48,7 @@ export function PinButton({ pinned, onToggle, label }) {
       title={label}
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
     >
-      <Icon name={pinned ? "pin" : "pin-off"} className="icon-sm" />
+      <Icon name="pin" className="icon-sm" />
     </button>
   );
 }

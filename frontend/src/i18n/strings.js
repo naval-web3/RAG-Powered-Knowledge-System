@@ -35,7 +35,8 @@ const en = {
   "common.sortRecent": "Last updated",
   "common.sortName": "Name",
   "sidebar.seeAll": "See all",
-  "sidebar.nothingPinned": "Nothing pinned yet",
+  "sidebar.pinDocs": "Pin documents to keep them here",
+  "sidebar.pinProjects": "Pin projects to keep them here",
   "sidebar.noProjects": "No projects yet.",
 
   "theme.system": "System",
@@ -113,7 +114,8 @@ const fr = {
   "common.sortRecent": "Dernière mise à jour",
   "common.sortName": "Nom",
   "sidebar.seeAll": "Tout voir",
-  "sidebar.nothingPinned": "Rien d’épinglé pour l’instant",
+  "sidebar.pinDocs": "Épinglez des documents pour les garder ici",
+  "sidebar.pinProjects": "Épinglez des projets pour les garder ici",
   "sidebar.noProjects": "Aucun projet pour l’instant.",
 
   "theme.system": "Système",
@@ -191,7 +193,8 @@ const de = {
   "common.sortRecent": "Zuletzt aktualisiert",
   "common.sortName": "Name",
   "sidebar.seeAll": "Alle anzeigen",
-  "sidebar.nothingPinned": "Noch nichts angeheftet",
+  "sidebar.pinDocs": "Dokumente anheften, um sie hier zu behalten",
+  "sidebar.pinProjects": "Projekte anheften, um sie hier zu behalten",
   "sidebar.noProjects": "Noch keine Projekte.",
 
   "theme.system": "System",
@@ -269,7 +272,8 @@ const hi = {
   "common.sortRecent": "अंतिम अपडेट",
   "common.sortName": "नाम",
   "sidebar.seeAll": "सभी देखें",
-  "sidebar.nothingPinned": "अभी कुछ पिन नहीं किया गया",
+  "sidebar.pinDocs": "दस्तावेज़ यहाँ रखने के लिए पिन करें",
+  "sidebar.pinProjects": "प्रोजेक्ट यहाँ रखने के लिए पिन करें",
   "sidebar.noProjects": "अभी कोई प्रोजेक्ट नहीं।",
 
   "theme.system": "सिस्टम",
@@ -347,7 +351,8 @@ const id = {
   "common.sortRecent": "Terakhir diperbarui",
   "common.sortName": "Nama",
   "sidebar.seeAll": "Lihat semua",
-  "sidebar.nothingPinned": "Belum ada yang disematkan",
+  "sidebar.pinDocs": "Sematkan dokumen agar tetap di sini",
+  "sidebar.pinProjects": "Sematkan proyek agar tetap di sini",
   "sidebar.noProjects": "Belum ada proyek.",
 
   "theme.system": "Sistem",
@@ -425,7 +430,8 @@ const it = {
   "common.sortRecent": "Ultimo aggiornamento",
   "common.sortName": "Nome",
   "sidebar.seeAll": "Vedi tutto",
-  "sidebar.nothingPinned": "Nulla di fissato per ora",
+  "sidebar.pinDocs": "Fissa i documenti per tenerli qui",
+  "sidebar.pinProjects": "Fissa i progetti per tenerli qui",
   "sidebar.noProjects": "Ancora nessun progetto.",
 
   "theme.system": "Sistema",
@@ -503,7 +509,8 @@ const ja = {
   "common.sortRecent": "最終更新",
   "common.sortName": "名前",
   "sidebar.seeAll": "すべて表示",
-  "sidebar.nothingPinned": "まだ何もピン留めされていません",
+  "sidebar.pinDocs": "ドキュメントをピン留めするとここに残ります",
+  "sidebar.pinProjects": "プロジェクトをピン留めするとここに残ります",
   "sidebar.noProjects": "プロジェクトはまだありません。",
 
   "theme.system": "システム",
@@ -581,7 +588,8 @@ const ko = {
   "common.sortRecent": "마지막 업데이트",
   "common.sortName": "이름",
   "sidebar.seeAll": "전체 보기",
-  "sidebar.nothingPinned": "아직 고정된 항목이 없습니다",
+  "sidebar.pinDocs": "문서를 고정하면 여기에 표시됩니다",
+  "sidebar.pinProjects": "프로젝트를 고정하면 여기에 표시됩니다",
   "sidebar.noProjects": "아직 프로젝트가 없습니다.",
 
   "theme.system": "시스템",
@@ -659,7 +667,8 @@ const pt = {
   "common.sortRecent": "Última atualização",
   "common.sortName": "Nome",
   "sidebar.seeAll": "Ver tudo",
-  "sidebar.nothingPinned": "Nada fixado ainda",
+  "sidebar.pinDocs": "Fixe documentos para mantê-los aqui",
+  "sidebar.pinProjects": "Fixe projetos para mantê-los aqui",
   "sidebar.noProjects": "Ainda não há projetos.",
 
   "theme.system": "Sistema",
@@ -737,7 +746,8 @@ const es419 = {
   "common.sortRecent": "Última actualización",
   "common.sortName": "Nombre",
   "sidebar.seeAll": "Ver todo",
-  "sidebar.nothingPinned": "Nada fijado todavía",
+  "sidebar.pinDocs": "Fija documentos para mantenerlos aquí",
+  "sidebar.pinProjects": "Fija proyectos para mantenerlos aquí",
   "sidebar.noProjects": "Todavía no hay proyectos.",
 
   "theme.system": "Sistema",

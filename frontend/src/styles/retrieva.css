@@ -1151,8 +1151,16 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .sb-group-row .sb-see-all { opacity: 0; pointer-events: none; transition: opacity .13s; }
 .sb-group-row:hover .sb-see-all,
 .sb-group-row:focus-within .sb-see-all { opacity: 1; pointer-events: auto; }
-.sb-empty-link { color: var(--text-3); text-decoration: underline; text-underline-offset: 2px; }
-.sb-empty-link:hover { color: var(--text-2); }
+/* Stands in for the rows it will be replaced by, so it borrows their metrics
+   exactly: same padding, same gap, same type, same left edge. */
+.sb-pin-hint {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 4px 8px 10px; border-radius: var(--r-sm);
+  font-size: 13.5px; color: var(--text-3); text-align: left;
+  transition: background .13s, color .13s;
+}
+.sb-pin-hint:hover { background: var(--surface-2); color: var(--text-2); }
+.sb-pin-hint .icon-sm { flex: none; }
 
 /* ---------- Library pages: all documents, all projects ---------- */
 .lib-pad { max-width: 1040px; margin: 0 auto; }

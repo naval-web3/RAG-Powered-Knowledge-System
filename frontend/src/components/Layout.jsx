@@ -804,13 +804,14 @@ function Shell() {
               {/* Nothing uploaded and nothing pinned are different problems,
                   and only the second one has a page to point at. */}
               {visibleDocs.length === 0 && (
-                <div className="sb-empty sb-empty-sm">
-                  {chat.docs.length === 0 ? t("docs.empty") : (
-                    <button className="sb-empty-link" onClick={() => goto("/documents")}>
-                      {t("sidebar.nothingPinned")}
-                    </button>
-                  )}
-                </div>
+                chat.docs.length === 0 ? (
+                  <div className="sb-empty sb-empty-sm">{t("docs.empty")}</div>
+                ) : (
+                  <button className="sb-pin-hint" onClick={() => goto("/documents")}>
+                    <Icon name="pin" className="icon-sm" />
+                    <span>{t("sidebar.pinDocs")}</span>
+                  </button>
+                )
               )}
               {visibleDocs.map((d) => {
                 const busy = d.processing_status !== "done" && d.processing_status !== "failed";
@@ -915,13 +916,10 @@ function Shell() {
             </div>
           )}
           {visibleProjects.length === 0 && !creatingProject && (
-            <div className="sb-empty sb-empty-sm">
-              {chat.projects.length === 0 ? t("sidebar.projectHint") : (
-                <button className="sb-empty-link" onClick={() => goto("/projects")}>
-                  {t("sidebar.nothingPinned")}
-                </button>
-              )}
-            </div>
+            <button className="sb-pin-hint" onClick={() => goto("/projects")}>
+              <Icon name="pin" className="icon-sm" />
+              <span>{t("sidebar.pinProjects")}</span>
+            </button>
           )}
           {visibleProjects.map((p) => {
             const open = location.pathname === `/projects/${p.project_id}`;
