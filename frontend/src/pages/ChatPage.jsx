@@ -352,13 +352,16 @@ const PH_FADE_MS = 400;    // must match the .ta-ghost opacity transition
 const PH_TYPE_MS = 45;     // per character, typing
 const PH_ERASE_MS = 22;    // per character, deleting
 
-/* TEMPORARY, while the two transitions are compared: "fade" crossfades between
-   prompts, "type" types and deletes them. Switch in the console with
-   localStorage.setItem("placeholderAnim", "type") and reload. Once one is
-   chosen, the loser and this switch both come out. The typeof guard is for the
-   smoke renderer, which runs in node where there is no localStorage. */
+/* TEMPORARY, while the two transitions are compared. "type" deletes the current
+   prompt a character at a time and types the next one in behind a caret;
+   "fade" crossfades between them whole. Typing is the default while the user
+   judges it, since it is the harder of the two to miss. Back to the other with
+   localStorage.setItem("placeholderAnim", "fade") and a reload; clear it with
+   removeItem to follow the default again. Once one is chosen, the loser and
+   this switch both come out. The typeof guard is for the smoke renderer, which
+   runs in node where there is no localStorage. */
 const PLACEHOLDER_ANIM =
-  (typeof localStorage !== "undefined" && localStorage.getItem("placeholderAnim")) || "fade";
+  (typeof localStorage !== "undefined" && localStorage.getItem("placeholderAnim")) || "type";
 
 /* Returns the text to paint and whether it should be showing. Driven by a
    chain of timeouts rather than an interval: the two modes have very different
