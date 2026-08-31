@@ -546,24 +546,27 @@ function Shell() {
   // Escape closes an open menu. The P/U/R/D letters were removed: they were
   // undiscoverable and fired on chats the pointer had already left.
   useEffect(() => {
-    if (menuId === null) return undefined;
+    if (menuId === null && docMenuId === null) return undefined;
     const onKey = (e) => {
-      if (e.key === "Escape") setMenuId(null);
+      if (e.key !== "Escape") return;
+      setMenuId(null);
+      setDocMenuId(null);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [menuId]);
+  }, [menuId, docMenuId]);
 
   // Close popovers on outside click / route change.
   useEffect(() => {
     const close = (e) => {
       if (footRef.current && !footRef.current.contains(e.target)) setUserMenu(false);
-      /* A chat menu now renders into <body>, so its clicks no longer pass
+      /* A row menu now renders into <body>, so its clicks no longer pass
          through the row's stopPropagation on their way here. Anything inside
          an open menu is that menu's own business: its items close it
          themselves, and "Add to project" deliberately does not. */
       if (e.target instanceof Element && e.target.closest(".pop-menu")) return;
       setMenuId(null);
+      setDocMenuId(null);
     };
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
@@ -831,7 +834,7 @@ function Shell() {
                       <button className="btn-icon" aria-label={t("docs.options")}
                         ref={open ? docMenuBtnRef : null}
                         aria-expanded={open}
-                        onClick={() => setDocMenuId(open ? null : d.document_id)}>
+                        onClick={() => { setMenuId(null); setDocMenuId(open ? null : d.document_id); }}>
                         <Icon name="more-v" className="icon-sm" />
                       </button>
                       {open && (
@@ -972,7 +975,7 @@ function Shell() {
                       <button className="btn-icon" aria-label={t("menu.chatOptions")}
                         ref={open ? rowMenuBtnRef : null}
                         aria-expanded={open}
-                        onClick={() => setMenuId(open ? null : c.conversation_id)}>
+                        onClick={() => { setDocMenuId(null); setMenuId(open ? null : c.conversation_id); }}>
                         <Icon name="more-v" className="icon-sm" />
                       </button>
                       {open && (
@@ -1114,7 +1117,7 @@ function Shell() {
                   <button className="btn-icon conv-title-caret" aria-label={t("menu.chatOptions")}
                     ref={titleMenuBtnRef}
                     aria-expanded={menuId === TOPBAR_MENU}
-                    onClick={() => setMenuId(menuId === TOPBAR_MENU ? null : TOPBAR_MENU)}>
+                    onClick={() => { setDocMenuId(null); setMenuId(menuId === TOPBAR_MENU ? null : TOPBAR_MENU); }}>
                     <Icon name="chev-d" className="icon-sm" />
                   </button>
                   {menuId === TOPBAR_MENU && (
