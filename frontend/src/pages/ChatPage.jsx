@@ -627,16 +627,20 @@ function Composer({ fileRef, rotate }) {
                   <Icon name="stop" className="icon-sm" />
                 </button>
               </Tooltip>
-            ) : text.trim() ? (
-              /* Mounted with the first character rather than sitting there
-                 greyed out: an empty composer has nothing to send. */
-              <Tooltip label={t("chat.send")} placement="top">
-                <button className="send-btn" aria-label={t("chat.send")}
+            ) : (
+              /* Always mounted, but collapsed to nothing until there is
+                 something to send. The width it takes on is what pushes the
+                 mic left, so the button arriving and the mic moving over are
+                 one movement rather than two. Still disabled while empty, so
+                 it is neither clickable nor in the tab order. */
+              <Tooltip label={t("chat.send")} placement="top"
+                className={`send-wrap ${text.trim() ? "is-ready" : ""}`.trim()}>
+                <button className="send-btn" disabled={!text.trim()} aria-label={t("chat.send")}
                   onClick={submit}>
                   <Icon name="send" className="icon-sm" />
                 </button>
               </Tooltip>
-            ) : null}
+            )}
           </div>
         </div>
       </div>
