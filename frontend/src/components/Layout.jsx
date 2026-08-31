@@ -955,6 +955,15 @@ function Shell() {
             <span>{t("sidebar.chats")}</span>
             <Icon name={chatsOpen ? "chev-d" : "chev-r"} className="chev" />
           </button>
+          {/* Chats have no page of their own: the search dialog already lists
+              every one of them with dates and a filter, and it is where the
+              "view all" button under the list has always gone. */}
+          <Tooltip label={t("sidebar.seeAll")}>
+            <button className="btn-icon sb-see-all" aria-label={t("sidebar.seeAll")}
+              onClick={() => { setConvSearch(""); setSearchOpen(true); }}>
+              <Icon name="move-up-right" className="icon-sm" />
+            </button>
+          </Tooltip>
         </div>
 
         <div
