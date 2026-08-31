@@ -1610,7 +1610,10 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    margins let the background bleed into .sb-scroll's own padding, so nothing
    shows through the gutters on either side as rows pass beneath. */
 .sb-group-row {
-  display: flex; align-items: center; justify-content: space-between;
+  /* Not space-between: with a label and TWO buttons that spreads the free space
+     between all three, parking the arrow halfway across the row. The label
+     takes the slack instead, so the buttons stay together at the right edge. */
+  display: flex; align-items: center;
   position: sticky; top: 0; z-index: 2; background: var(--sidebar);
   margin-left: -12px; margin-right: -3px;
   padding: 2px 7px 2px 12px;
@@ -1618,8 +1621,10 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .sb-group-toggle {
   /* Not flex: 1. The button is only as wide as its label and chevron, so the
      chevron sits beside the word rather than being pushed to the far end of
-     the row by a plus button that may or may not be there. */
-  flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px;
+     the row by a plus button that may or may not be there. The auto margin is
+     what holds the row's buttons together against the right edge. */
+  flex: 0 1 auto; min-width: 0; margin-right: auto;
+  display: flex; align-items: center; gap: 6px;
   background: none; border: 0; cursor: pointer; text-align: left;
   font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
   color: var(--text-3); padding: 14px 11px 6px;
