@@ -525,7 +525,13 @@ body {
 
 /* ---------- Sidebar ---------- */
 #sidebar {
-  width: 282px; flex: none; display: flex; flex-direction: column;
+  /* The width lives in a variable because four rules need to agree on it: the
+     panel, the strip the topbar paints while collapsed, and the two off-screen
+     offsets. Dragging sets the variable on #app and they all follow.
+     position: relative is for the drag handle only -- .conv-item is already its
+     own containing block, so nothing else changes anchor. */
+  width: var(--sb-w, 282px); flex: none; display: flex; flex-direction: column;
+  position: relative;
   background: var(--sidebar); border-right: 1px solid var(--border);
   transition: margin-left .28s var(--ease), transform .28s var(--ease);
   z-index: 60;
@@ -554,7 +560,7 @@ body {
    bar's background but under its toggle and title. */
 #app.sb-collapsed .topbar::before {
   content: "";
-  position: absolute; left: 0; top: 0; bottom: 0; width: 282px;
+  position: absolute; left: 0; top: 0; bottom: 0; width: var(--sb-w, 282px);
   background: var(--sidebar);
   border-right: 1px solid var(--border);
   transform: translateX(-100%);
@@ -562,7 +568,7 @@ body {
   z-index: -1;
 }
 /* Peeking, the strip comes forward and covers whatever the panel's width
-   crosses -- the conversation title included, clipped at 282px so a longer one
+   crosses -- the conversation title included, clipped at the panel's width so a longer one
    keeps the part that reaches past the panel. The bar's own controls are lifted
    over it below, since they have to stay reachable while the panel is out. */
 #app.sb-peek .topbar::before {
@@ -1159,6 +1165,23 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 }
 .send-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
 .send-btn.stop { background: var(--text); }
+
+/* A hit area straddling the panel's edge, wider than it looks so it can be
+   grabbed without pixel-hunting. It paints nothing at rest: a permanent line
+   down the sidebar would be one more piece of furniture for a control most
+   people never touch. */
+.sb-resize {
+  position: absolute; top: 0; right: -3px; bottom: 0; width: 7px;
+  cursor: col-resize; z-index: 61;
+  background: transparent; transition: background .13s;
+}
+.sb-resize:hover, .sb-resize:focus-visible, body.is-resizing .sb-resize {
+  background: var(--accent-soft);
+}
+.sb-resize:focus-visible { outline: none; }
+/* While dragging, the cursor and the ban on selection belong to the whole
+   window: the pointer routinely leaves the 7px strip mid-drag. */
+body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-select: none !important; }
 
 /* The arrow to each section's own page. It is revealed on hover but never
    leaves the layout: a control that appears by changing display would resize
@@ -1805,11 +1828,11 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   .feature-grid, .steps { grid-template-columns: 1fr; }
   .settings-grid { grid-template-columns: 1fr; }
   .settings-nav { display: none; }
-  #sidebar { position: fixed; inset: 0 auto 0 0; margin-left: -282px; box-shadow: var(--shadow-lg); }
+  #sidebar { position: fixed; inset: 0 auto 0 0; margin-left: calc(var(--sb-w, 282px) * -1); box-shadow: var(--shadow-lg); }
   #app.sb-open #sidebar { margin-left: 0; }
   /* The narrow-screen drawer moves by margin, so the desktop transform must
      not stack on top of it. */
-  #app.sb-collapsed #sidebar { margin-left: -282px; transform: none; position: fixed; top: 0; }
+  #app.sb-collapsed #sidebar { margin-left: calc(var(--sb-w, 282px) * -1); transform: none; position: fixed; top: 0; }
   #btn-mobile-menu,
   .tip-wrap.only-narrow { display: inline-flex; }
   .land-nav .nav-links { display: none; }

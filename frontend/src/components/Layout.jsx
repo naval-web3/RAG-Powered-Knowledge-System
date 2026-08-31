@@ -329,6 +329,21 @@ export default function Layout() {
 }
 
 const COLLAPSE_KEY = "retrieva-sidebar-collapsed";
+const WIDTH_KEY = "retrieva-sidebar-width";
+const SB_DEFAULT_W = 282;
+// A title long enough to want half the window is a title that should be
+// truncated, not a licence to swallow the page.
+const SB_HARD_MAX = 560;
+
+/** The width the panel was left at, remembered per browser. */
+function readSidebarWidth() {
+  try {
+    const raw = parseInt(localStorage.getItem(WIDTH_KEY) || "", 10);
+    return Number.isFinite(raw) ? raw : SB_DEFAULT_W;
+  } catch {
+    return SB_DEFAULT_W;
+  }
+}
 
 /** Which sidebar sections the user has collapsed, remembered per browser. */
 function readCollapsed() {
@@ -357,6 +372,8 @@ function Shell() {
   const privateActive = chat.privateMode && onChat;
 
   const [collapsed, setCollapsed] = useState(false);
+  const [sbWidth, setSbWidth] = useState(readSidebarWidth);
+  const sidebarRef = useRef(null);
   const [peeking, setPeeking] = useState(false);
   const peekingRef = useRef(false);
   useEffect(() => {
@@ -581,6 +598,78 @@ function Shell() {
     setMobileOpen(false);
   }, [location.pathname]);
 
+  /* The panel should not go wider than its contents need. Rather than measuring
+     text and adding up the chrome around it, ask each title how much of itself
+     is being cut off: the widest overflow is exactly how much wider the panel
+     has to be for nothing to be clipped. Every row counts, not just chats --
+     documents and projects sit in the same panel, and a ceiling set by a short
+     chat title would leave a long filename truncated at full width. */
+  function maxSidebarWidth() {
+    const el = sidebarRef.current;
+    if (!el) return SB_HARD_MAX;
+    let worst = 0;
+    el.querySelectorAll(".conv-title").forEach((t) => {
+      worst = Math.max(worst, t.scrollWidth - t.clientWidth);
+    });
+    /* Never below the default, or an empty panel would be a one-way trip: with
+       no rows nothing is ever clipped, so the ceiling would equal whatever
+       width the panel happened to be at and narrowing it once would make it
+       impossible to widen again. */
+    const needed = Math.max(el.getBoundingClientRect().width + worst, SB_DEFAULT_W);
+    return Math.min(needed, SB_HARD_MAX, Math.round(window.innerWidth * 0.5));
+  }
+
+  /* Narrow enough is where the head stops working: the mark, the name, the
+     search button and the collapse button all have to stay reachable, so the
+     floor is whatever they occupy laid out side by side. */
+  function minSidebarWidth() {
+    const el = sidebarRef.current;
+    const head = el?.querySelector(".sb-head");
+    const brand = head?.querySelector(".brand");
+    const actions = head?.querySelector(".sb-head-actions");
+    if (!head || !brand || !actions) return 200;
+    const cs = getComputedStyle(head);
+    const pad = parseFloat(cs.paddingLeft || 0) + parseFloat(cs.paddingRight || 0);
+    return Math.ceil(brand.scrollWidth + actions.offsetWidth + pad + 12);
+  }
+
+  function applyWidth(px) {
+    setSbWidth(px);
+    try { localStorage.setItem(WIDTH_KEY, String(px)); } catch { /* private mode */ }
+  }
+
+  function startResize(e) {
+    if (collapsed) return;
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = sidebarRef.current.getBoundingClientRect().width;
+    // Both bounds are taken once, at the start: measuring mid-drag would move
+    // the ceiling as the rows it is measured from stop being clipped.
+    const min = minSidebarWidth();
+    const max = Math.max(min, maxSidebarWidth());
+    const onMove = (ev) => {
+      applyWidth(Math.round(Math.min(max, Math.max(min, startW + ev.clientX - startX))));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.classList.remove("is-resizing");
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    document.body.classList.add("is-resizing");
+  }
+
+  function resizeByKey(e) {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    const min = minSidebarWidth();
+    const max = Math.max(min, maxSidebarWidth());
+    const step = e.shiftKey ? 32 : 8;
+    const next = sbWidth + (e.key === "ArrowRight" ? step : -step);
+    applyWidth(Math.round(Math.min(max, Math.max(min, next))));
+  }
+
   function handleLogout() {
     logout();
     navigate("/welcome");
@@ -716,10 +805,10 @@ function Shell() {
     .join(" ");
 
   return (
-    <div id="app" className={appClass}>
+    <div id="app" className={appClass} style={{ "--sb-w": `${sbWidth}px` }}>
       {mobileOpen && <div id="sb-backdrop" onClick={() => setMobileOpen(false)} />}
 
-      <aside id="sidebar">
+      <aside id="sidebar" ref={sidebarRef}>
         <div className="sb-head">
           <a className="brand" href="#" onClick={(e) => { e.preventDefault(); startNewChat(); }}>
             <img className="brand-mark" src="/logo.png" alt="" width="32" height="32" />
@@ -1091,6 +1180,14 @@ function Shell() {
             <Icon name="more" className="icon-sm" style={{ color: "var(--text-3)" }} />
           </button>
         </div>
+        {/* Not rendered while collapsed: there is no edge to pull on when the
+            panel is parked off-screen. */}
+        {!collapsed && (
+          <div className="sb-resize" role="separator" aria-orientation="vertical"
+            tabIndex={0} aria-label={t("sidebar.resize")}
+            aria-valuenow={sbWidth} aria-valuemin={200} aria-valuemax={SB_HARD_MAX}
+            onMouseDown={startResize} onKeyDown={resizeByKey} />
+        )}
       </aside>
 
       <div id="main">
