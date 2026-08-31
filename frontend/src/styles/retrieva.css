@@ -1164,6 +1164,13 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
    leaves the layout: a control that appears by changing display would resize
    the row under the pointer, which is the bug the row menus already taught us. */
 .sb-group-row .sb-see-all { opacity: 0; pointer-events: none; transition: opacity .13s; }
+/* The row's buttons sit flush against each other, so the space between the
+   arrow and the plus is nothing but their own width: a 34px button centres a
+   15px glyph and leaves 9px of dead margin on each facing side. Narrowing them
+   to 26 here closes the gap without touching .btn-icon anywhere else, and the
+   height is left alone so the row does not change height. */
+.sb-group-row .btn-icon { width: 26px; }
+
 /* :focus-visible on the button, NOT :focus-within on the row. :focus-within
    matches plain focus, and clicking a button leaves focus on it, so the arrow
    stayed lit after the pointer had gone. :focus-visible ignores a mouse click
