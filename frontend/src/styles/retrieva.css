@@ -1136,14 +1136,9 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 }
 .ta-ghost.ta-fade { opacity: 0; transition: opacity .4s var(--ease); }
 .ta-ghost.ta-fade.in { opacity: 1; }
-/* Typing carries its own motion, so the text is simply present; the caret is
-   what says it is still being written. */
-.ta-ghost.ta-type::after {
-  content: ""; display: inline-block; width: 1px; height: 1.05em;
-  margin-left: 1px; vertical-align: -2px; background: var(--text-3);
-  animation: ph-caret 1s steps(1) infinite;
-}
-@keyframes ph-caret { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+/* Typing needs no caret: the text growing and shrinking is the motion, and a
+   bar blinking beside a prompt nobody typed reads as a cursor sitting in the
+   field, which is misleading when the box is in fact empty. */
 /* No border and no plate: these read as labels you can click. A hover
    background is the only chrome they get. */
 .model-btn {
@@ -1356,7 +1351,6 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
   .private-toggle:hover .ghost-eye { animation: none; }
   .send-btn { animation: none; }
   .ta-ghost.ta-fade { opacity: 1; transition: none; }
-  .ta-ghost.ta-type::after { animation: none; }
 }
 
 /* Private mode takes over the whole shell, like a browser's incognito window:
