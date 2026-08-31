@@ -1132,20 +1132,15 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   transition: background .13s, color .13s;
 }
 .model-btn:hover { background: var(--surface-2); color: var(--text); }
-/* The button grows into the row rather than appearing in it: the width it
-   takes on is what slides the mic left, so the two read as a single movement.
-   The negative margin cancels the row's 4px gap while it is collapsed, so an
-   empty composer reserves no space for a button that is not there. */
-.send-wrap {
-  overflow: hidden; flex: none; width: 36px; margin-left: 0;
-  transition: width .18s var(--ease), margin-left .18s var(--ease), opacity .18s var(--ease);
-}
-.send-wrap:not(.is-ready) { width: 0; margin-left: -4px; opacity: 0; pointer-events: none; }
+/* It arrives in the slot the mic just left, so it fades up in place rather
+   than sliding in from anywhere. */
+@keyframes send-in { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
 .send-btn {
   width: 36px; height: 36px; border-radius: 12px; flex: none;
   background: var(--accent); color: #FFF8F2;
   display: flex; align-items: center; justify-content: center;
   transition: background .15s, transform .12s var(--ease), opacity .15s;
+  animation: send-in .13s var(--ease);
 }
 .send-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
 .send-btn.stop { background: var(--text); }
@@ -1221,7 +1216,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 
 @media (prefers-reduced-motion: reduce) {
   .private-toggle:hover .ghost-icon { animation: none; }
-  .send-wrap { transition: none; }
+  .send-btn { animation: none; }
   .ta-ghost.ta-fade { opacity: 1; transition: none; }
   .ta-ghost.ta-type::after { animation: none; }
 }

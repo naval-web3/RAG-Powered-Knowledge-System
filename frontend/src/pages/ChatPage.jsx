@@ -614,12 +614,18 @@ function Composer({ fileRef, rotate }) {
             <ModelMenu />
             <ScopeMenu />
             <div className="grow" style={{ flex: 1 }} />
-            <Tooltip label={t("chat.dictate")} placement="top">
-              <button className={`btn-icon mic-btn ${recording ? "rec" : ""}`}
-                aria-label={t("chat.dictateAria")} onClick={toggleDictation}>
-                <Icon name="mic" className="icon-sm" />
-              </button>
-            </Tooltip>
+            {/* The mic gives its place up to the send button rather than
+                sitting beside it. The exception is dictation: while it is
+                running both are needed, one to stop listening and one to post
+                what was heard, so the mic stays put until it is switched off. */}
+            {(!text.trim() || recording) && (
+              <Tooltip label={t("chat.dictate")} placement="top">
+                <button className={`btn-icon mic-btn ${recording ? "rec" : ""}`}
+                  aria-label={t("chat.dictateAria")} onClick={toggleDictation}>
+                  <Icon name="mic" className="icon-sm" />
+                </button>
+              </Tooltip>
+            )}
             {chat.sending ? (
               <Tooltip label={t("chat.stop")} placement="top">
                 <button className="send-btn is-stop" aria-label={t("chat.stopGenerating")}
@@ -627,20 +633,14 @@ function Composer({ fileRef, rotate }) {
                   <Icon name="stop" className="icon-sm" />
                 </button>
               </Tooltip>
-            ) : (
-              /* Always mounted, but collapsed to nothing until there is
-                 something to send. The width it takes on is what pushes the
-                 mic left, so the button arriving and the mic moving over are
-                 one movement rather than two. Still disabled while empty, so
-                 it is neither clickable nor in the tab order. */
-              <Tooltip label={t("chat.send")} placement="top"
-                className={`send-wrap ${text.trim() ? "is-ready" : ""}`.trim()}>
-                <button className="send-btn" disabled={!text.trim()} aria-label={t("chat.send")}
+            ) : text.trim() ? (
+              <Tooltip label={t("chat.send")} placement="top">
+                <button className="send-btn" aria-label={t("chat.send")}
                   onClick={submit}>
                   <Icon name="send" className="icon-sm" />
                 </button>
               </Tooltip>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
