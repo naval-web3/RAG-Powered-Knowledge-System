@@ -624,11 +624,12 @@ function Composer({ fileRef, rotate }) {
             <ModelMenu />
             <ScopeMenu />
             <div className="grow" style={{ flex: 1 }} />
-            {/* The mic is there whenever the composer is idle, including with
-                text already in it: dictation is often how you add to something
-                you started typing. While it is listening the mic gives its
-                place to the two buttons that end it. */}
-            {!recording && (
+            {/* The mic holds the slot only while the box is empty. Accepting a
+                dictation leaves text behind, and the tick is only pressed after
+                the words have been read back, so at that point the thing wanted
+                in that corner is the send button, not another mic. While it is
+                listening the mic gives its place to the two buttons that end it. */}
+            {!recording && !text.trim() && (
               <Tooltip label={t("chat.dictate")} placement="top">
                 <button className="btn-icon mic-btn"
                   aria-label={t("chat.dictateAria")} onClick={toggleDictation}>

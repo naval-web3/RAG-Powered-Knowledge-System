@@ -1104,9 +1104,10 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   max-height: 190px; min-height: 60px; outline: none; overflow-y: auto;
 }
 .composer-row { display: flex; align-items: center; gap: 4px; padding: 0 12px 12px; }
-/* What has been heard is provisional until the tick takes it, so it is dimmed:
-   the box should not look like finished input you wrote yourself. */
-.composer-box textarea.is-dictating { color: var(--text-3); }
+/* What has been heard is provisional until the tick takes it: dimmed and
+   italic, so it never looks like finished input you wrote yourself. Accepting
+   drops the class and the words become ordinary text. */
+.composer-box textarea.is-dictating { color: var(--text-3); font-style: italic; }
 .composer-box textarea.is-dictating::placeholder { font-style: italic; }
 /* One control with two answers, so the pair is drawn as a single box divided
    down the middle rather than two loose buttons. */
