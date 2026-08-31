@@ -454,11 +454,14 @@ function Composer({ fileRef, rotate }) {
   // baseTextRef holds the finalized text so interim results don't clobber it.
   const shouldListenRef = useRef(false);
   const baseTextRef = useRef("");
+  // What was in the box before dictation started, so discarding puts it back
+  // rather than clearing whatever was already written.
+  const preDictRef = useRef("");
 
   // Rotation belongs to the empty new-chat screen, and stops the moment the
   // field is actually in use.
   const prompts = PLACEHOLDER_KEYS.map((k) => t(k));
-  const showGhost = !!rotate && !text;
+  const showGhost = !!rotate && !text && !recording;
   const ph = useRotatingPlaceholder(showGhost && !focused, PLACEHOLDER_ANIM, prompts);
 
   function joinText(a, b) {
@@ -538,6 +541,7 @@ function Composer({ fileRef, rotate }) {
       // Transient errors (e.g. "no-speech") are ignored; onend will restart.
     };
     recRef.current = rec;
+    preDictRef.current = text;
     baseTextRef.current = text ? text.trim() : "";
     shouldListenRef.current = true;
     try { rec.start(); } catch { /* start() can throw if called twice */ }
@@ -556,18 +560,22 @@ function Composer({ fileRef, rotate }) {
     else startDictation();
   }
 
-  // While dictating, a click/tap anywhere except the mic button stops it
-  // (like Windows dictation). The mic button toggles via its own handler.
-  useEffect(() => {
-    if (!recording) return;
-    function onPointerDown(e) {
-      if (e.target.closest && e.target.closest(".mic-btn")) return;
-      stopDictation();
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recording]);
+  /* Keep what was heard. The text is already in the box -- accepting only stops
+     the listening and lets it go from provisional to ordinary. */
+  function acceptDictation() {
+    stopDictation();
+  }
+
+  /* Throw it away and put back whatever was in the box beforehand. */
+  function discardDictation() {
+    stopDictation();
+    setText(preDictRef.current);
+  }
+
+  /* There is deliberately no stop-on-click-away. Dictation used to end on any
+     click outside the mic, which made sense while the mic was the only control;
+     now that accepting and discarding are two visible buttons, a stray click
+     silently ending a recording would lose words with no way to tell which. */
 
   // Stop recognition if the composer unmounts mid-dictation.
   useEffect(() => {
@@ -596,7 +604,9 @@ function Composer({ fileRef, rotate }) {
         <div className="composer-box">
           <div className="ta-wrap">
             <textarea ref={taRef} rows={1} aria-label={t("chat.messageAria")}
-              placeholder={showGhost ? undefined : t("chat.placeholder")}
+              className={recording ? "is-dictating" : undefined}
+              placeholder={recording ? t("chat.listening")
+                : showGhost ? undefined : t("chat.placeholder")}
               value={text}
               onChange={(e) => { setText(e.target.value); autoGrow(e.target); }}
               onFocus={() => setFocused(true)}
@@ -614,19 +624,34 @@ function Composer({ fileRef, rotate }) {
             <ModelMenu />
             <ScopeMenu />
             <div className="grow" style={{ flex: 1 }} />
-            {/* The mic gives its place up to the send button rather than
-                sitting beside it. The exception is dictation: while it is
-                running both are needed, one to stop listening and one to post
-                what was heard, so the mic stays put until it is switched off. */}
-            {(!text.trim() || recording) && (
+            {/* The mic is there whenever the composer is idle, including with
+                text already in it: dictation is often how you add to something
+                you started typing. While it is listening the mic gives its
+                place to the two buttons that end it. */}
+            {!recording && (
               <Tooltip label={t("chat.dictate")} placement="top">
-                <button className={`btn-icon mic-btn ${recording ? "rec" : ""}`}
+                <button className="btn-icon mic-btn"
                   aria-label={t("chat.dictateAria")} onClick={toggleDictation}>
                   <Icon name="mic" className="icon-sm" />
                 </button>
               </Tooltip>
             )}
-            {chat.sending ? (
+            {recording ? (
+              <div className="dict-actions">
+                <Tooltip label={t("chat.dictateDiscard")} placement="top">
+                  <button className="btn-icon" aria-label={t("chat.dictateDiscard")}
+                    onClick={discardDictation}>
+                    <Icon name="x" className="icon-sm" />
+                  </button>
+                </Tooltip>
+                <Tooltip label={t("chat.dictateAccept")} placement="top">
+                  <button className="btn-icon dict-ok" aria-label={t("chat.dictateAccept")}
+                    onClick={acceptDictation}>
+                    <Icon name="check" className="icon-sm" />
+                  </button>
+                </Tooltip>
+              </div>
+            ) : chat.sending ? (
               <Tooltip label={t("chat.stop")} placement="top">
                 <button className="send-btn is-stop" aria-label={t("chat.stopGenerating")}
                   onClick={chat.stop}>

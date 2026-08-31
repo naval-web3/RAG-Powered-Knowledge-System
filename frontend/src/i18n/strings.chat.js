@@ -49,6 +49,9 @@ const en = {
 
   "chat.dictate": "Dictate with your voice",
   "chat.dictateAria": "Dictate",
+  "chat.listening": "Listening…",
+  "chat.dictateAccept": "Use this",
+  "chat.dictateDiscard": "Discard",
   "chat.dictationUnsupported": "Voice input isn’t supported in this browser",
   "chat.micBlocked": "Microphone is blocked. Allow it in the browser to dictate",
   "chat.stop": "Stop",
@@ -116,6 +119,9 @@ const fr = {
 
   "chat.dictate": "Dicter à la voix",
   "chat.dictateAria": "Dicter",
+  "chat.listening": "Écoute…",
+  "chat.dictateAccept": "Utiliser",
+  "chat.dictateDiscard": "Abandonner",
   "chat.dictationUnsupported": "La saisie vocale n’est pas prise en charge par ce navigateur",
   "chat.micBlocked": "Le micro est bloqué. Autorisez-le dans le navigateur pour dicter",
   "chat.stop": "Arrêter",
@@ -183,6 +189,9 @@ const de = {
 
   "chat.dictate": "Per Stimme diktieren",
   "chat.dictateAria": "Diktieren",
+  "chat.listening": "Hört zu…",
+  "chat.dictateAccept": "Übernehmen",
+  "chat.dictateDiscard": "Verwerfen",
   "chat.dictationUnsupported": "Spracheingabe wird in diesem Browser nicht unterstützt",
   "chat.micBlocked": "Das Mikrofon ist blockiert. Erlauben Sie es im Browser zum Diktieren",
   "chat.stop": "Stopp",
@@ -250,6 +259,9 @@ const hi = {
 
   "chat.dictate": "आवाज़ से बोलकर लिखें",
   "chat.dictateAria": "बोलकर लिखें",
+  "chat.listening": "सुन रहे हैं…",
+  "chat.dictateAccept": "इसे रखें",
+  "chat.dictateDiscard": "छोड़ें",
   "chat.dictationUnsupported": "इस ब्राउज़र में आवाज़ से इनपुट समर्थित नहीं है",
   "chat.micBlocked": "माइक्रोफ़ोन बंद है। बोलकर लिखने के लिए ब्राउज़र में इसकी अनुमति दें",
   "chat.stop": "रोकें",
@@ -317,6 +329,9 @@ const id = {
 
   "chat.dictate": "Dikte dengan suara",
   "chat.dictateAria": "Dikte",
+  "chat.listening": "Mendengarkan…",
+  "chat.dictateAccept": "Gunakan ini",
+  "chat.dictateDiscard": "Buang",
   "chat.dictationUnsupported": "Masukan suara tidak didukung di peramban ini",
   "chat.micBlocked": "Mikrofon diblokir. Izinkan di peramban untuk berdikte",
   "chat.stop": "Berhenti",
@@ -384,6 +399,9 @@ const it = {
 
   "chat.dictate": "Detta con la voce",
   "chat.dictateAria": "Detta",
+  "chat.listening": "In ascolto…",
+  "chat.dictateAccept": "Usa questo",
+  "chat.dictateDiscard": "Scarta",
   "chat.dictationUnsupported": "L’input vocale non è supportato in questo browser",
   "chat.micBlocked": "Il microfono è bloccato. Consentilo nel browser per dettare",
   "chat.stop": "Ferma",
@@ -451,6 +469,9 @@ const ja = {
 
   "chat.dictate": "音声で入力する",
   "chat.dictateAria": "音声入力",
+  "chat.listening": "聞き取り中…",
+  "chat.dictateAccept": "確定",
+  "chat.dictateDiscard": "取り消す",
   "chat.dictationUnsupported": "このブラウザでは音声入力を利用できません",
   "chat.micBlocked": "マイクがブロックされています。ブラウザで許可してください",
   "chat.stop": "停止",
@@ -518,6 +539,9 @@ const ko = {
 
   "chat.dictate": "음성으로 입력",
   "chat.dictateAria": "음성 입력",
+  "chat.listening": "듣는 중…",
+  "chat.dictateAccept": "사용하기",
+  "chat.dictateDiscard": "취소",
   "chat.dictationUnsupported": "이 브라우저에서는 음성 입력을 지원하지 않습니다",
   "chat.micBlocked": "마이크가 차단되어 있습니다. 브라우저에서 허용해 주세요",
   "chat.stop": "중지",
@@ -585,6 +609,9 @@ const pt = {
 
   "chat.dictate": "Ditar com a voz",
   "chat.dictateAria": "Ditar",
+  "chat.listening": "Ouvindo…",
+  "chat.dictateAccept": "Usar isto",
+  "chat.dictateDiscard": "Descartar",
   "chat.dictationUnsupported": "A entrada por voz não é suportada neste navegador",
   "chat.micBlocked": "O microfone está bloqueado. Permita no navegador para ditar",
   "chat.stop": "Parar",
@@ -652,6 +679,9 @@ const es419 = {
 
   "chat.dictate": "Dictar con la voz",
   "chat.dictateAria": "Dictar",
+  "chat.listening": "Escuchando…",
+  "chat.dictateAccept": "Usar esto",
+  "chat.dictateDiscard": "Descartar",
   "chat.dictationUnsupported": "Este navegador no admite la entrada por voz",
   "chat.micBlocked": "El micrófono está bloqueado. Permítelo en el navegador para dictar",
   "chat.stop": "Detener",

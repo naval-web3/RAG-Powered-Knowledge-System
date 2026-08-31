@@ -1104,6 +1104,20 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   max-height: 190px; min-height: 60px; outline: none; overflow-y: auto;
 }
 .composer-row { display: flex; align-items: center; gap: 4px; padding: 0 12px 12px; }
+/* What has been heard is provisional until the tick takes it, so it is dimmed:
+   the box should not look like finished input you wrote yourself. */
+.composer-box textarea.is-dictating { color: var(--text-3); }
+.composer-box textarea.is-dictating::placeholder { font-style: italic; }
+/* One control with two answers, so the pair is drawn as a single box divided
+   down the middle rather than two loose buttons. */
+.dict-actions {
+  display: inline-flex; align-items: center; flex: none;
+  border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden; background: var(--surface);
+}
+.dict-actions > * + * { border-left: 1px solid var(--border); }
+.dict-actions .btn-icon { width: 34px; height: 34px; border-radius: 0; }
+.dict-actions .dict-ok:hover { color: var(--accent); }
 /* The rotating placeholder is painted over the textarea rather than set as its
    placeholder attribute: a native one cannot be crossfaded or typed into. It
    has to line up exactly with the textarea's own padding and text metrics. */
@@ -1277,7 +1291,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   76%     { transform: translate(0, -14px); }
   100%    { transform: translate(0, 0); }
 }
-.private-toggle:hover .ghost-eye { animation: ghost-look 1.1s var(--ease); }
+.private-toggle:hover .ghost-eye { animation: ghost-look 2.2s var(--ease); }
 
 /* Tooltip: a dark label under the control, after a short delay. */
 .tip-wrap { display: inline-flex; }
@@ -1397,13 +1411,6 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   color: inherit; opacity: .75; transition: opacity .15s, background .15s;
 }
 .private-bar-x:hover { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
-
-/* Voice dictation button (Web Speech API) */
-.mic-btn.rec { color: var(--red); background: var(--red-soft); animation: micPulse 1.5s ease-in-out infinite; }
-@keyframes micPulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 40%, transparent); }
-  55%      { box-shadow: 0 0 0 7px transparent; }
-}
 
 #app.private-chat .composer-box { border-style: dashed; border-color: var(--blue); }
 #app.private-chat .composer-box:focus-within { border-color: var(--blue); box-shadow: var(--shadow-md); }
