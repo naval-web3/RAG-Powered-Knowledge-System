@@ -639,8 +639,8 @@ function Composer({ fileRef, rotate }) {
             )}
             {recording ? (
               <div className="dict-actions">
-                <Tooltip label={t("chat.dictateDiscard")} placement="top">
-                  <button className="btn-icon" aria-label={t("chat.dictateDiscard")}
+                <Tooltip label={t("common.cancel")} placement="top">
+                  <button className="btn-icon" aria-label={t("common.cancel")}
                     onClick={discardDictation}>
                     <Icon name="x" className="icon-sm" />
                   </button>
