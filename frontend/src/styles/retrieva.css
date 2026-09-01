@@ -45,6 +45,11 @@ ul, ol { list-style: none; }
   --blue-soft:     #E3EBF3;
   --ring-strong:   rgba(28, 25, 18, .5);
   --user-bubble:   #EDE9DC;
+  /* A sheet of paper, and its edge. NOT --surface: a page and the sheets drawn
+     behind it are paper, and paper does not go dark when the interface does.
+     Following --surface put brown slabs behind a white PDF page in dark mode. */
+  --paper:         #FFFDFA;
+  --paper-edge:    #DDD6C8;
   --shadow-sm: 0 1px 2px rgba(33,30,24,.06), 0 1px 4px rgba(33,30,24,.05);
   --shadow-md: 0 4px 12px rgba(33,30,24,.08), 0 2px 4px rgba(33,30,24,.05);
   --shadow-lg: 0 16px 40px rgba(33,30,24,.16), 0 4px 12px rgba(33,30,24,.08);
@@ -92,6 +97,10 @@ ul, ol { list-style: none; }
   --blue-soft:     #232F3B;
   --ring-strong:   rgba(255, 255, 255, .72);
   --user-bubble:   #2F2B22;
+  /* Still paper, just not lit like a screen: bright enough to read as a sheet
+     against the dark card, dim enough not to glare beside the page itself. */
+  --paper:         #D8D3C7;
+  --paper-edge:    #B3ADA0;
   --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
   --shadow-md: 0 4px 12px rgba(0,0,0,.35);
   --shadow-lg: 0 16px 40px rgba(0,0,0,.5);
@@ -214,7 +223,40 @@ body {
 .label-row label { margin-bottom: 7px; }
 .label-link { font-size: 12.5px; color: var(--accent); text-decoration: none; font-weight: 600; }
 .label-link:hover { text-decoration: underline; }
-.checkbox-row input { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--accent); cursor: pointer; }
+/* ---------- Checkboxes ----------
+   Drawn, not tinted. accent-color recolours the platform's own box but leaves
+   its shape, its corner and its tick alone, so it stayed the one control in
+   the app that looked like the operating system. */
+input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; flex: none; margin: 0;
+  width: 17px; height: 17px; border-radius: 5px;
+  border: 1.5px solid var(--border-strong); background: var(--surface);
+  display: inline-grid; place-content: center; cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+input[type="checkbox"]:hover { border-color: var(--text-3); }
+input[type="checkbox"]:checked,
+input[type="checkbox"]:indeterminate { background: var(--accent); border-color: var(--accent); }
+input[type="checkbox"]:disabled { opacity: .45; cursor: not-allowed; }
+/* The tick is two borders on an empty box, turned 45 degrees -- the same one
+   the upload toast draws. It scales in so ticking has a moment to it. */
+input[type="checkbox"]::after {
+  content: ""; width: 8px; height: 4px; border-radius: 1px;
+  border-left: 2px solid #FFF8F2; border-bottom: 2px solid #FFF8F2;
+  transform: rotate(-45deg) translate(1px, -1px) scale(0);
+  transition: transform .13s var(--ease);
+}
+input[type="checkbox"]:checked::after { transform: rotate(-45deg) translate(1px, -1px) scale(1); }
+/* Partly ticked is a bar, not a tick: it says "some of these", which a tick
+   would overstate. */
+input[type="checkbox"]:indeterminate::after {
+  width: 9px; height: 0; border-left: 0; border-radius: 2px;
+  border-bottom: 2px solid #FFF8F2;
+  transform: none; transition: none;
+}
+@media (prefers-reduced-motion: reduce) { input[type="checkbox"]::after { transition: none; } }
+
+.checkbox-row input { margin-top: 2px; }
 
 /* Toggle switch */
 .switch { position: relative; width: 40px; height: 22px; flex: none; cursor: pointer; }
@@ -1269,12 +1311,16 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .sel-prefix { color: var(--text-3); }
 .lib-sort .sel-value { font-weight: 500; }
 .lib-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
-/* relative so the checkbox can sit in its corner, and the same selected
-   outline the document cards use -- one selection language for both grids. */
+/* relative, because the menu it holds is positioned against it. */
 .lib-card { position: relative; }
-.lib-card.on { border-color: var(--accent); }
-.lib-card .doc-pick { opacity: 0; }
-.lib-card:hover .doc-pick, .lib-card.picking .doc-pick, .lib-card .doc-pick:focus-within { opacity: 1; }
+/* A pinned project says so without being hovered -- it is the reason the card
+   is at the top of the list. It is a mark, not a button: the toggle lives in
+   the menu, so there is one place to act and one place to read. */
+.lib-pinned { display: inline-flex; flex: none; color: var(--accent); }
+/* The menu button keeps its plate while the menu is open, or the thing you
+   just pressed disappears the moment the pointer moves onto its own list. */
+.lib-menu { flex: none; }
+.lib-card .lib-act.on { opacity: 1; background: var(--surface-2); color: var(--text); }
 .lib-card {
   display: flex; flex-direction: column; gap: 10px; text-align: left;
   min-height: 132px; padding: 16px 16px 14px;
@@ -1284,15 +1330,19 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .lib-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
 .lib-card-top { display: flex; align-items: flex-start; gap: 8px; }
 .lib-card-name {
-  flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; color: var(--text);
+  min-width: 0; font-size: 14.5px; font-weight: 600; color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-/* Clamped, and anywhere-breaking: instructions are free text and may well
-   contain a URL with no spaces in it. */
+/* The pin sits against the end of the name, and the menu takes the far corner:
+   one of them describes the project, the other acts on it. */
+.lib-card-top .lib-menu { margin-left: auto; }
+/* Two lines, so every card is the same height whatever has been written in
+   it. Anywhere-breaking too: instructions are free text and may well contain
+   a URL with no spaces in it. */
 .lib-card-body {
   margin: 0; font-size: 13px; line-height: 1.55; color: var(--text-2);
   overflow: hidden; overflow-wrap: anywhere;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 .lib-card-foot {
   margin-top: auto; display: flex; align-items: baseline; gap: 10px;
@@ -1369,7 +1419,7 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
    not a way to pick six things. */
 .doc-pick { position: absolute; right: 9px; bottom: 9px; display: flex; opacity: 0; transition: opacity .13s; }
 .doc-card:hover .doc-pick, .doc-card.picking .doc-pick, .doc-pick:focus-within { opacity: 1; }
-.doc-pick input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
+.doc-pick input { width: 17px; height: 17px; }
 /* The card's own actions share the corner the checkbox does not use. */
 .doc-card-acts { position: absolute; top: 8px; right: 8px; display: flex; gap: 2px; }
 .doc-card .lib-act { opacity: 0; }
@@ -1404,7 +1454,7 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
   .sel-slot, .sel-bar { transition: none; }
 }
 .sel-all { display: flex; }
-.sel-all input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.sel-all input { width: 18px; height: 18px; }
 .sel-count { font-size: 13.5px; font-weight: 500; color: var(--text); }
 .sel-acts { display: flex; align-items: center; gap: 6px; margin-right: auto; }
 /* Only the irreversible one is coloured. Two neutral buttons side by side and
@@ -1804,7 +1854,10 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   font-size: 14px; line-height: 1.65;
 }
 .modal-head { display: flex; align-items: center; gap: 12px; padding: 20px 22px 0; }
-.modal-head h3 { font-size: 19px; font-weight: 600; flex: 1; }
+.modal-head h3 {
+  font-size: 19px; font-weight: 600; flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .modal-body { padding: 16px 22px 22px; overflow-y: auto; }
 .modal-body .m-text { font-size: 14px; color: var(--text-2); line-height: 1.6; }
 .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 0 22px 22px; }
@@ -2078,7 +2131,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 .pick-all:hover { background: var(--surface-2); color: var(--text); }
 .pick-all.is-off { opacity: .45; cursor: not-allowed; }
-.pick-all input, .picker-row input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex: none; }
+.pick-all input, .picker-row input { width: 16px; height: 16px; }
 
 .pick-list {
   flex: 1; min-height: 140px; overflow-y: auto;
@@ -2590,6 +2643,11 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 .doc-head h3 {
   flex: 1; min-width: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em;
+  /* A longer fade than the shared one. This title is a filename sitting beside
+     two icons, and 22px of fade left the last legible characters close enough
+     to the first icon to read as running into it. */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
 }
 .doc-bar {
   display: flex; align-items: center; gap: 6px; flex: none;
@@ -2643,7 +2701,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 .doc-stack::before, .doc-stack::after {
   content: ""; position: absolute; inset: 0;
-  border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface);
+  border: 1px solid var(--paper-edge); border-radius: 8px; background: var(--paper);
   transition: transform .18s var(--ease);
 }
 .doc-stack::before { transform: translate(9px, -7px) rotate(2deg); opacity: .45; }
@@ -2658,8 +2716,8 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .doc-page-img,
 .doc-page-blank {
   position: relative; display: block; width: 100%;
-  border: 1px solid var(--border-strong); border-radius: 8px;
-  background: var(--surface); box-shadow: var(--shadow-sm);
+  border: 1px solid var(--paper-edge); border-radius: 8px;
+  background: var(--paper); box-shadow: var(--shadow-sm);
 }
 .doc-page-img { height: auto; }
 /* Roughly A4 while the page is on its way, so the card does not resize under
