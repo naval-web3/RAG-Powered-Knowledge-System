@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
-import LibraryShell, { useLibrary, PinButton } from "../components/LibraryShell";
+import LibraryShell, {
+  useLibrary, PinButton, byDateDesc, byName,
+} from "../components/LibraryShell";
 import { useChat } from "../context/ChatContext";
 import { useT } from "../i18n";
 import { timeAgo } from "../utils";
@@ -16,11 +18,17 @@ export default function ProjectsPage() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
-  const { q, setQ, sort, setSort, shown } = useLibrary(
-    chat.projects,
-    (p) => p.name,
-    (p) => p.updated_at
+  /* A project has both dates and they answer different questions: which one
+     did I touch last, and which one did I start first. */
+  const sorts = useMemo(
+    () => [
+      { value: "recent", label: t("common.sortRecent"), nameOf: (p) => p.name, cmp: byDateDesc((p) => p.updated_at) },
+      { value: "created", label: t("common.sortCreated"), nameOf: (p) => p.name, cmp: byDateDesc((p) => p.created_at) },
+      { value: "name", label: t("common.sortAlpha"), nameOf: (p) => p.name, cmp: byName((p) => p.name) },
+    ],
+    [t]
   );
+  const { q, setQ, sort, setSort, shown } = useLibrary(chat.projects, sorts);
 
   async function create() {
     const clean = name.trim();
@@ -36,7 +44,8 @@ export default function ProjectsPage() {
   return (
     <LibraryShell
       title={t("sidebar.projects")}
-      q={q} setQ={setQ} sort={sort} setSort={setSort}
+      q={q} setQ={setQ} sort={sort} setSort={setSort} sorts={sorts}
+      searchLabel={t("sidebar.searchProjects")}
       action={
         <button className="btn btn-primary"
           onClick={() => { setCreating(true); setName(""); }}>

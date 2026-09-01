@@ -25,7 +25,7 @@ const MAX_H = 320;
 // a row and a half beside it.
 const MIN_H = 120;
 
-export default function Select({ value, options, onChange, ariaLabel, disabled = false }) {
+export default function Select({ value, options, onChange, ariaLabel, prefix, disabled = false }) {
   const btnRef = useRef(null);
   const menuRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -165,6 +165,9 @@ export default function Select({ value, options, onChange, ariaLabel, disabled =
         onClick={() => setOpen((o) => !o)}
         onKeyDown={onKeyDown}
       >
+        {/* A label that belongs to the control rather than sitting beside
+            it: "Sort by" is the first half of the sentence the value ends. */}
+        {prefix && <span className="sel-prefix">{prefix}</span>}
         <span className="sel-value">{current?.label ?? ""}</span>
         <Icon name="chev-d" className="icon-sm sel-chev" />
       </button>

@@ -1228,18 +1228,46 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .lib-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
 .lib-head .page-title { margin: 0; flex: 1; }
 .lib-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* Closed, the search is one square button with an outline -- the same box the
+   field will become, so opening it reads as the same control growing rather
+   than as a different one appearing. */
+.lib-search-btn {
+  width: 32px; height: 32px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface); color: var(--text-2);
+  transition: border-color .13s, color .13s, background .13s;
+}
+.lib-search-btn:hover { border-color: var(--border-strong); color: var(--text); background: var(--surface-2); }
+
 .lib-search {
   display: inline-flex; align-items: center; gap: 8px;
-  min-height: 32px; padding: 5px 12px; border-radius: 999px;
+  min-height: 32px; padding: 4px 4px 4px 11px; border-radius: var(--r-sm);
   border: 1px solid var(--border); background: var(--surface); color: var(--text-3);
   transition: border-color .13s;
+  animation: searchOpen .16s var(--ease);
 }
+@keyframes searchOpen { from { opacity: 0; width: 32px; } to { opacity: 1; } }
 .lib-search:focus-within { border-color: var(--border-strong); }
 .lib-search input {
-  border: 0; background: transparent; outline: none; width: 150px;
+  border: 0; background: transparent; outline: none; width: 168px;
   font-size: 13.5px; line-height: 20px; color: var(--text);
 }
-.lib-sort { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--text-3); }
+/* Inside the field, not beside it: it clears this box, not the page. */
+.lib-search-x {
+  width: 24px; height: 24px; flex: none; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-3); transition: background .12s, color .12s;
+}
+.lib-search-x:hover { background: var(--surface-2); color: var(--text); }
+
+.lib-sort { display: inline-flex; align-items: center; }
+/* A plate, so the sort reads as one control holding a value rather than a
+   loose label with a menu next to it. */
+.lib-sort .sel-trigger { background: var(--surface-2); padding-inline: 11px; }
+.lib-sort .sel-trigger:hover { background: var(--row-hover); }
+.sel-prefix { color: var(--text-3); }
+.lib-sort .sel-value { font-weight: 500; }
 .lib-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 .lib-card {
   display: flex; flex-direction: column; gap: 10px; text-align: left;

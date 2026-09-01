@@ -1,10 +1,12 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import client from "../api/client";
 import ConfirmModal from "../components/ConfirmModal";
 import { DocCard, SelectionBar, useSelection } from "../components/DocSelect";
 import Icon from "../components/Icon";
-import LibraryShell, { useLibrary, PinButton, CardAction } from "../components/LibraryShell";
+import LibraryShell, {
+  useLibrary, PinButton, CardAction, byDateDesc, byName,
+} from "../components/LibraryShell";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
@@ -20,11 +22,17 @@ export default function DocumentsPage() {
   const navigate = useNavigate();
   const uploadRef = useRef(null);
   const [confirming, setConfirming] = useState(false);
-  const { q, setQ, sort, setSort, shown } = useLibrary(
-    chat.docs,
-    (d) => d.title,
-    (d) => d.upload_date
+  /* A document carries one date -- the day it arrived -- so it is offered
+     once, under its own name. "Last updated" beside "date added" would be two
+     labels for the same column. */
+  const sorts = useMemo(
+    () => [
+      { value: "added", label: t("docs.sortAdded"), nameOf: (d) => d.title, cmp: byDateDesc((d) => d.upload_date) },
+      { value: "name", label: t("common.sortAlpha"), nameOf: (d) => d.title, cmp: byName((d) => d.title) },
+    ],
+    [t]
   );
+  const { q, setQ, sort, setSort, shown } = useLibrary(chat.docs, sorts);
   const sel = useSelection(shown, (d) => d.document_id);
 
   /* One call per document: there is no bulk endpoint, and inventing one for
@@ -46,7 +54,8 @@ export default function DocumentsPage() {
   return (
     <LibraryShell
       title={t("docs.section")}
-      q={q} setQ={setQ} sort={sort} setSort={setSort}
+      q={q} setQ={setQ} sort={sort} setSort={setSort} sorts={sorts}
+      searchLabel={t("docs.searchDocs")}
       action={
         <>
           <button className="btn btn-primary" disabled={chat.uploading}
