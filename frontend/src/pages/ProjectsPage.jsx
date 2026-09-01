@@ -1,12 +1,18 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ConfirmModal from "../components/ConfirmModal";
+import { SelectionBar, useSelection } from "../components/DocSelect";
 import Icon from "../components/Icon";
 import LibraryShell, {
   useLibrary, PinButton, byDateDesc, byName,
 } from "../components/LibraryShell";
 import { useChat } from "../context/ChatContext";
+import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
 import { timeAgo } from "../utils";
+
+/* Module scope so the selection is not handed a new function every render. */
+const projectId = (p) => p.project_id;
 
 /**
  * Every project. The sidebar keeps the pinned few; this is the rest of them,
@@ -15,6 +21,7 @@ import { timeAgo } from "../utils";
 export default function ProjectsPage() {
   const t = useT();
   const chat = useChat();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
@@ -53,6 +60,28 @@ export default function ProjectsPage() {
     [t, lastTouched]
   );
   const { q, setQ, sort, setSort, shown } = useLibrary(chat.projects, sorts);
+  const sel = useSelection(shown, projectId);
+  const [confirming, setConfirming] = useState(false);
+
+  /* One call each: deleting a project is a small write and there is no bulk
+     endpoint. What it takes with it is only the project -- the chats go back
+     to the main list and the documents stay in the library -- which is why
+     this asks once rather than per project. */
+  async function removeSelected() {
+    const ids = [...sel.picked];
+    setConfirming(false);
+    try {
+      await Promise.all(ids.map((id) => chat.deleteProject(id)));
+      sel.clear();
+      toast(
+        ids.length === 1 ? t("projects.deleted") : t("projects.deletedMany", { n: ids.length }),
+        "ok",
+        t("projects.deleteManyText")
+      );
+    } catch (err) {
+      toast(t("projects.deleteFailed"), "err", err?.response?.data?.detail || "");
+    }
+  }
 
   async function create() {
     const clean = name.trim();
@@ -93,9 +122,17 @@ export default function ProjectsPage() {
           {q.trim() ? t("sidebar.nothingMatches", { q: q.trim() }) : t("sidebar.noProjects")}
         </div>
       ) : (
+        <>
+          <SelectionBar open={sel.some} count={sel.count} all={sel.all}
+            onToggleAll={sel.toggleAll} onClear={sel.clear}>
+            <button className="btn btn-sm sel-danger" onClick={() => setConfirming(true)}>
+              <Icon name="trash" className="icon-sm" /> {t("common.delete")}
+            </button>
+          </SelectionBar>
         <div className="lib-grid">
           {shown.map((p) => (
-            <button key={p.project_id} className="lib-card"
+            <button key={p.project_id}
+              className={`lib-card ${sel.picked.has(p.project_id) ? "on" : ""} ${sel.some ? "picking" : ""}`}
               onClick={() => navigate(`/projects/${p.project_id}`)}>
               <div className="lib-card-top">
                 <span className="lib-card-name">{p.name}</span>
@@ -113,9 +150,25 @@ export default function ProjectsPage() {
                     its settings were written. */}
                 <span className="lib-date">{timeAgo(lastTouched(p))}</span>
               </div>
+              <label className="doc-pick" onClick={(e) => e.stopPropagation()}>
+                <input type="checkbox" aria-label={p.name}
+                  checked={sel.picked.has(p.project_id)}
+                  onChange={() => sel.toggle(p.project_id)} />
+              </label>
             </button>
           ))}
         </div>
+        </>
+      )}
+
+      {confirming && (
+        <ConfirmModal
+          title={t("projects.deleteManyTitle", { n: sel.count })}
+          text={t("projects.deleteManyText")}
+          okLabel={t("common.delete")}
+          onCancel={() => setConfirming(false)}
+          onConfirm={removeSelected}
+        />
       )}
     </LibraryShell>
   );

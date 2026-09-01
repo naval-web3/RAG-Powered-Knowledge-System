@@ -1269,6 +1269,12 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .sel-prefix { color: var(--text-3); }
 .lib-sort .sel-value { font-weight: 500; }
 .lib-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+/* relative so the checkbox can sit in its corner, and the same selected
+   outline the document cards use -- one selection language for both grids. */
+.lib-card { position: relative; }
+.lib-card.on { border-color: var(--accent); }
+.lib-card .doc-pick { opacity: 0; }
+.lib-card:hover .doc-pick, .lib-card.picking .doc-pick, .lib-card .doc-pick:focus-within { opacity: 1; }
 .lib-card {
   display: flex; flex-direction: column; gap: 10px; text-align: left;
   min-height: 132px; padding: 16px 16px 14px;
