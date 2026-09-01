@@ -217,6 +217,13 @@ class Project(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), index=True
     )
+    # When the project was last OPENED, which updated_at cannot answer: renaming
+    # and pinning deliberately restate that column so they do not reorder the
+    # list, and reading a project writes nothing at all. Nullable because every
+    # project that existed before this column has never been opened under it.
+    last_opened_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     owner: Mapped["User"] = relationship()
     links: Mapped[list["ProjectDocument"]] = relationship(

@@ -29,8 +29,8 @@ export default function ProjectsPage() {
      instructions -- says nothing about when it was last USED. Chatting inside
      a project deliberately does not touch the project row, so a project worked
      in all morning still reported the day its documents were chosen.
-     The last interaction is the later of the two: the project's own timestamp,
-     or the newest chat filed under it. */
+     The last interaction is the latest of three: when the project itself was
+     written, when it was last opened, and the newest chat filed under it. */
   const lastChatIn = useMemo(() => {
     const m = new Map();
     for (const c of chat.conversations) {
@@ -43,8 +43,8 @@ export default function ProjectsPage() {
 
   const lastTouched = useCallback(
     (p) => {
-      const chatted = lastChatIn.get(p.project_id);
-      return chatted && new Date(chatted) > new Date(p.updated_at) ? chatted : p.updated_at;
+      const times = [p.updated_at, p.last_opened_at, lastChatIn.get(p.project_id)].filter(Boolean);
+      return times.reduce((a, b) => (new Date(b) > new Date(a) ? b : a));
     },
     [lastChatIn]
   );

@@ -9,7 +9,7 @@ unrelated invoice that happens to live in the same account.
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import update
+from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -116,6 +116,33 @@ def update_project(
         )
         db.commit()
         db.refresh(project)
+    return _out(db, project)
+
+
+@router.post("/{project_id}/open", response_model=ProjectOut)
+def touch_project(
+    project_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ProjectOut:
+    """Record that the project was opened.
+
+    Opening one is the commonest thing anybody does to a project and the only
+    one that used to leave no trace, so a project worked in every day still
+    reported whenever its documents were last chosen.
+
+    updated_at is restated for the same reason the other writes here restate
+    it: that column answers "when did this project change", and reading a
+    project does not change it.
+    """
+    project = _owned(db, project_id, current_user)
+    db.execute(
+        update(Project)
+        .where(Project.project_id == project_id)
+        .values(updated_at=project.updated_at, last_opened_at=func.now())
+    )
+    db.commit()
+    db.refresh(project)
     return _out(db, project)
 
 

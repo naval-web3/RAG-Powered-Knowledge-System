@@ -83,6 +83,9 @@ def on_startup() -> None:
         conn.execute(
             text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS pinned BOOLEAN NOT NULL DEFAULT false")
         )
+        conn.execute(
+            text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS last_opened_at TIMESTAMPTZ")
+        )
         # projects / project_documents are new tables, so create_all makes them;
         # conversations already exists, so its new column needs adding by hand.
         conn.execute(

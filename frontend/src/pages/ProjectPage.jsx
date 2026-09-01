@@ -56,6 +56,14 @@ export default function ProjectPage() {
   const [reading, setReading] = useState(false);
   const [confirmWipe, setConfirmWipe] = useState(false);
 
+  /* Above the early return for the same reason the selection is: hooks are
+     counted in order, and a project that has not loaded yet would take the
+     branch below on the first render and call one more hook on the second. */
+  const touch = chat.touchProject;
+  useEffect(() => {
+    if (projectId) touch(projectId);
+  }, [projectId, touch]);
+
   /* Above the early return, and guarded, because it is a hook: React counts
      them in order and a project that has not loaded yet would take the branch
      below on the first render and then call one MORE hook on the second. */

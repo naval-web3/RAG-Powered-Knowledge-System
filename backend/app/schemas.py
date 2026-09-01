@@ -332,6 +332,7 @@ class ProjectOut(BaseModel):
     doc_scope: str
     created_at: datetime
     updated_at: datetime
+    last_opened_at: datetime | None = None
     pinned: bool = False
     document_ids: list[uuid.UUID] = []
     conversation_count: int = 0

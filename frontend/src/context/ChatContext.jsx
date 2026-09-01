@@ -142,6 +142,21 @@ export function ChatProvider({ children }) {
     [loadProjects]
   );
 
+  /* Opening a project is an interaction, and it was the only common one that
+     left no trace. Failure is swallowed on purpose: nobody should be
+     interrupted by a toast because a bookkeeping write did not land. */
+  const touchProject = useCallback(
+    async (id) => {
+      try {
+        await client.post(`/api/projects/${id}/open`);
+        await loadProjects();
+      } catch {
+        /* non-fatal */
+      }
+    },
+    [loadProjects]
+  );
+
   const setProjectDocuments = useCallback(
     async (id, docScope, documentIds) => {
       const { data } = await client.put(`/api/projects/${id}/documents`, {
@@ -640,6 +655,7 @@ export function ChatProvider({ children }) {
     updateProject,
     deleteProject,
     setProjectDocuments,
+    touchProject,
     messages,
     sending,
     loadingConv,
