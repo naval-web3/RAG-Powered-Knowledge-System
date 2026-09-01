@@ -1281,6 +1281,79 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .lib-act:hover { background: var(--surface-2); color: var(--text); }
 .lib-pin.on { color: var(--accent); }
 .lib-empty { padding: 40px 0; text-align: center; color: var(--text-3); font-size: 13.5px; }
+
+/* ---------- Document cards, and choosing several of them ---------- */
+.doc-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+/* Inside a project the column is 380px, so two per row is the most that fits
+   without the names becoming three words each. */
+.ctx-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+
+.doc-card {
+  position: relative; border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--surface); transition: border-color .13s, box-shadow .13s;
+}
+.doc-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+.doc-card.on { border-color: var(--accent); }
+.doc-card-face {
+  display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left;
+  padding: 12px 12px 10px; background: none; border: 0; cursor: pointer; color: inherit;
+}
+.doc-card-name {
+  font-size: 13.5px; font-weight: 600; color: var(--text); line-height: 1.35;
+  overflow: hidden; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.doc-card-size { font-family: var(--mono); font-size: 11px; color: var(--text-3); }
+/* The first page, or the room it would have taken. Keeping the box either way
+   is what stops a mixed grid from looking ragged. */
+.doc-thumb {
+  display: block; margin: 10px 0 8px; height: 96px; border-radius: var(--r-sm);
+  overflow: hidden; background: var(--surface-2);
+}
+.doc-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.doc-thumb.is-blank { background: none; height: 34px; margin: 4px 0 0; }
+.doc-kind {
+  align-self: flex-start; font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: .06em; padding: 3px 6px; border-radius: 5px;
+  background: var(--surface-2); color: var(--text-3);
+}
+
+/* The remove sits half outside the corner it belongs to, as in the reference:
+   inside, it would cover the first word of the name. */
+.doc-x {
+  position: absolute; top: -9px; right: -9px; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 1px solid var(--border);
+  background: var(--popover); color: var(--text-2);
+  opacity: 0; transition: opacity .13s, color .13s, border-color .13s;
+}
+.doc-card:hover .doc-x, .doc-x:focus-visible { opacity: 1; }
+.doc-x:hover { color: var(--red); border-color: var(--red); }
+
+/* Hidden until the card is hovered -- and then shown on EVERY card once a
+   selection exists, because hunting for a hover target on each card in turn is
+   not a way to pick six things. */
+.doc-pick { position: absolute; right: 9px; bottom: 9px; display: flex; opacity: 0; transition: opacity .13s; }
+.doc-card:hover .doc-pick, .doc-card.picking .doc-pick, .doc-pick:focus-within { opacity: 1; }
+.doc-pick input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
+/* The card's own actions share the corner the checkbox does not use. */
+.doc-card-acts { position: absolute; top: 8px; right: 8px; display: flex; gap: 2px; }
+.doc-card .lib-act { opacity: 0; }
+.doc-card:hover .lib-act, .doc-card .lib-act:focus-visible, .doc-card .lib-pin.on { opacity: 1; }
+
+.sel-bar {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+  animation: selIn .16s var(--ease);
+}
+@keyframes selIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.sel-all { display: flex; }
+.sel-all input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.sel-count { font-size: 13.5px; font-weight: 500; color: var(--text); }
+.sel-acts { display: flex; align-items: center; gap: 6px; margin-right: auto; }
+/* Only the irreversible one is coloured. Two neutral buttons side by side and
+   one of them permanent is how the wrong one gets pressed. */
+.sel-danger { color: var(--red); }
+.sel-danger:hover { background: var(--red-fill); color: #FFF; }
 .lib-new {
   width: 100%; margin-bottom: 14px; padding: 12px 14px;
   border: 1px solid var(--accent); border-radius: var(--r-lg);

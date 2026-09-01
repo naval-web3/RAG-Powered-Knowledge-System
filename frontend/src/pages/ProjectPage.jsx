@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Composer from "../components/Composer";
 import ContextDialog from "../components/ContextDialog";
+import { DocCard, SelectionBar, useSelection } from "../components/DocSelect";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
 import Tooltip from "../components/Tooltip";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
-import { fmtBytes, timeAgo } from "../utils";
+import client from "../api/client";
+import { timeAgo } from "../utils";
 
 /* Whatever actually went wrong, in the toast's second line. A bare "couldn't
    do that" is unactionable, and the server already sends a reason. */
@@ -20,6 +22,10 @@ const why = (err) =>
    limit, not an enforced one -- so the bar is guidance and says out loud what
    it is counting. */
 const CHUNK_BUDGET = 2000;
+
+/* Module scope so its identity never changes: passing a fresh arrow on every
+   render would make the selection recompute its id list every time. */
+const docId = (d) => d.document_id;
 
 /**
  * Inside one project: ask it something, see what has been asked before, and
@@ -48,6 +54,15 @@ export default function ProjectPage() {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [reading, setReading] = useState(false);
+  const [confirmWipe, setConfirmWipe] = useState(false);
+
+  /* Above the early return, and guarded, because it is a hook: React counts
+     them in order and a project that has not loaded yet would take the branch
+     below on the first render and then call one MORE hook on the second. */
+  const attached = project
+    ? chat.docs.filter((d) => project.document_ids.includes(d.document_id))
+    : [];
+  const sel = useSelection(attached, docId);
 
   // A project the user just deleted, or one that never existed.
   if (!project) {
@@ -64,7 +79,6 @@ export default function ProjectPage() {
     );
   }
 
-  const attached = chat.docs.filter((d) => project.document_ids.includes(d.document_id));
   const chats = chat.conversations.filter((c) => c.project_id === projectId);
   const usingAll = project.doc_scope === "all";
 
@@ -77,6 +91,41 @@ export default function ProjectPage() {
   const chunks = inScope.reduce((n, d) => n + (d.chunk_count || 0), 0);
   const pct = Math.min(100, Math.round((chunks / CHUNK_BUDGET) * 100));
   const capLevel = chunks >= CHUNK_BUDGET ? "over" : chunks >= CHUNK_BUDGET * 0.9 ? "near" : "";
+
+  /* Two verbs, because in a project they are genuinely different acts. Taking
+     a document out of a project leaves it in the library and in every other
+     project; deleting it takes the file and its vectors with it. */
+  async function detachSelected() {
+    const drop = sel.picked;
+    const next = project.document_ids.filter((id) => !drop.has(id));
+    const n = drop.size;
+    try {
+      await chat.setProjectDocuments(projectId, "selected", next);
+      sel.clear();
+      toast(
+        n === 1 ? "Removed from this project" : `${n} removed from this project`,
+        "ok",
+        n === 1 ? "It is still in your library." : "They are still in your library."
+      );
+    } catch (err) {
+      toast("Couldn't remove those documents", "err", why(err));
+    }
+  }
+
+  async function deleteSelected() {
+    const ids = [...sel.picked];
+    setConfirmWipe(false);
+    try {
+      await Promise.all(ids.map((id) => client.delete(`/api/documents/${id}`)));
+      sel.clear();
+      chat.loadDocs();
+      chat.loadProjects();
+      toast(ids.length === 1 ? "Document deleted" : `${ids.length} documents deleted`, "ok");
+    } catch (err) {
+      chat.loadDocs();
+      toast("Couldn't delete those documents", "err", why(err));
+    }
+  }
 
   async function saveInstructions(instructions) {
     try {
@@ -297,28 +346,36 @@ export default function ProjectPage() {
                   <span>Add PDFs, documents, or other text to reference in this project.</span>
                 </button>
               ) : (
-                <div className="ctx-list">
-                  {attached.map((d) => (
-                    <div key={d.document_id} className="ctx-row">
-                      <span className={`file-ic ${d.file_type}`}>{d.file_type}</span>
-                      <div className="ctx-meta">
-                        <div className="ctx-title">{d.title}</div>
-                        <div className="ctx-sub">
-                          {fmtBytes(d.file_size)}
-                          {d.processing_status === "done"
-                            ? ` · ${d.chunk_count} chunks`
-                            : ` · ${d.processing_status}`}
-                        </div>
-                      </div>
-                      <Tooltip label="Remove from project" placement="left">
-                        <button className="btn-icon" aria-label="Remove from project"
-                          onClick={() => detach(d.document_id)}>
-                          <Icon name="x" className="icon-sm" />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  {sel.some && (
+                    <SelectionBar count={sel.count} all={sel.all}
+                      onToggleAll={sel.toggleAll} onClear={sel.clear}>
+                      {/* Remove first and delete second, in that order and with
+                          only one of them coloured: they sit a few pixels apart
+                          and one of them cannot be undone. */}
+                      <button className="btn btn-sm" onClick={detachSelected}>
+                        Remove
+                      </button>
+                      <button className="btn btn-sm sel-danger" onClick={() => setConfirmWipe(true)}>
+                        <Icon name="trash" className="icon-sm" /> Delete
+                      </button>
+                    </SelectionBar>
+                  )}
+                  <div className="doc-grid ctx-grid">
+                    {attached.map((d) => (
+                      <DocCard
+                        key={d.document_id}
+                        doc={d}
+                        selecting={sel.some}
+                        selected={sel.picked.has(d.document_id)}
+                        onToggle={sel.toggle}
+                        onOpen={() => chat.setOpenDoc(d)}
+                        onRemove={() => detach(d.document_id)}
+                        removeLabel="Remove from project"
+                      />
+                    ))}
+                  </div>
+                </>
               )}
 
               {chat.uploadProgress && (
@@ -376,6 +433,16 @@ export default function ProjectPage() {
               toast("Couldn't update the document selection", "err", why(err));
             }
           }}
+        />
+      )}
+
+      {confirmWipe && (
+        <ConfirmModal
+          title={`Delete ${sel.count} document${sel.count === 1 ? "" : "s"}?`}
+          text="This removes the files and everything indexed from them, from this project and from your library. It cannot be undone."
+          okLabel="Delete"
+          onCancel={() => setConfirmWipe(false)}
+          onConfirm={deleteSelected}
         />
       )}
 

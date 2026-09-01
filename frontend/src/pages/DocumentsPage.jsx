@@ -1,10 +1,13 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import client from "../api/client";
+import ConfirmModal from "../components/ConfirmModal";
+import { DocCard, SelectionBar, useSelection } from "../components/DocSelect";
 import Icon from "../components/Icon";
 import LibraryShell, { useLibrary, PinButton, CardAction } from "../components/LibraryShell";
 import { useChat } from "../context/ChatContext";
+import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
-import { fmtBytes, timeAgo, fileExt } from "../utils";
 
 /**
  * Every document in the library. The sidebar shows only the pinned few, so this
@@ -13,13 +16,32 @@ import { fmtBytes, timeAgo, fileExt } from "../utils";
 export default function DocumentsPage() {
   const t = useT();
   const chat = useChat();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const uploadRef = useRef(null);
+  const [confirming, setConfirming] = useState(false);
   const { q, setQ, sort, setSort, shown } = useLibrary(
     chat.docs,
     (d) => d.title,
     (d) => d.upload_date
   );
+  const sel = useSelection(shown, (d) => d.document_id);
+
+  /* One call per document: there is no bulk endpoint, and inventing one for
+     this would move a decision the API has not made into the client. */
+  async function removeSelected() {
+    const ids = [...sel.picked];
+    setConfirming(false);
+    try {
+      await Promise.all(ids.map((id) => client.delete(`/api/documents/${id}`)));
+      sel.clear();
+      chat.loadDocs();
+      toast(ids.length === 1 ? t("docs.deleted") : t("docs.deletedMany", { n: ids.length }), "ok");
+    } catch (err) {
+      chat.loadDocs();
+      toast(t("docs.deleteFailed"), "err", err?.response?.data?.detail || "");
+    }
+  }
 
   return (
     <LibraryShell
@@ -46,43 +68,56 @@ export default function DocumentsPage() {
           {q.trim() ? t("sidebar.nothingMatches", { q: q.trim() }) : t("docs.empty")}
         </div>
       ) : (
-        <div className="lib-grid">
-          {shown.map((d) => (
-            <button key={d.document_id} className="lib-card" onClick={() => chat.setOpenDoc(d)}>
-              <div className="lib-card-top">
-                <span className="lib-card-name">{d.title}</span>
-                {/* Only once there is something to retrieve. Scoping a chat to
-                    a document that failed to index would narrow the search to
-                    nothing and answer accordingly. Same action and same
-                    wording as the row menu's -- one idea, one name. */}
-                {d.processing_status === "done" && (
-                  <CardAction
-                    icon="target"
-                    label={t("docs.scopeChat")}
-                    onClick={() => { chat.scopeToDocument(d); navigate("/"); }}
-                  />
-                )}
-                <PinButton
-                  pinned={!!d.pinned}
-                  label={d.pinned ? t("common.unpin") : t("common.pin")}
-                  onToggle={() => chat.pinDocument(d.document_id, !d.pinned)}
-                />
-              </div>
-              <div className="lib-card-foot">
-                {/* The facts a document is actually chosen by: what kind it is,
-                    how big, and how much of it made it into the index. */}
-                <span className="lib-meta">
-                  {fileExt(d.file_type, d.original_filename).toUpperCase()}
-                  {" · "}{fmtBytes(d.file_size)}
+        <>
+          {sel.some && (
+            <SelectionBar count={sel.count} all={sel.all}
+              onToggleAll={sel.toggleAll} onClear={sel.clear}>
+              <button className="btn btn-sm sel-danger" onClick={() => setConfirming(true)}>
+                <Icon name="trash" className="icon-sm" /> {t("common.delete")}
+              </button>
+            </SelectionBar>
+          )}
+          <div className="doc-grid">
+            {shown.map((d) => (
+              <DocCard
+                key={d.document_id}
+                doc={d}
+                selecting={sel.some}
+                selected={sel.picked.has(d.document_id)}
+                onToggle={sel.toggle}
+                onOpen={() => chat.setOpenDoc(d)}
+              >
+                <div className="doc-card-acts">
+                  {/* Only once there is something to retrieve. Scoping a chat
+                      to a document that failed to index would narrow the search
+                      to nothing and answer accordingly. */}
                   {d.processing_status === "done" && (
-                    <>{" · "}{t("chat.chunks", { n: d.chunk_count })}</>
+                    <CardAction
+                      icon="target"
+                      label={t("docs.scopeChat")}
+                      onClick={() => { chat.scopeToDocument(d); navigate("/"); }}
+                    />
                   )}
-                </span>
-                <span className="lib-date">{timeAgo(d.upload_date)}</span>
-              </div>
-            </button>
-          ))}
-        </div>
+                  <PinButton
+                    pinned={!!d.pinned}
+                    label={d.pinned ? t("common.unpin") : t("common.pin")}
+                    onToggle={() => chat.pinDocument(d.document_id, !d.pinned)}
+                  />
+                </div>
+              </DocCard>
+            ))}
+          </div>
+        </>
+      )}
+
+      {confirming && (
+        <ConfirmModal
+          title={t("docs.deleteManyTitle", { n: sel.count })}
+          text={t("docs.deleteManyText")}
+          okLabel={t("common.delete")}
+          onCancel={() => setConfirming(false)}
+          onConfirm={removeSelected}
+        />
       )}
     </LibraryShell>
   );
