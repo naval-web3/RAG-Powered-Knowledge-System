@@ -1,18 +1,15 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
-import { SelectionBar, useSelection } from "../components/DocSelect";
 import Icon from "../components/Icon";
 import LibraryShell, {
-  useLibrary, PinButton, byDateDesc, byName,
+  useLibrary, byDateDesc, byName,
 } from "../components/LibraryShell";
+import Tooltip from "../components/Tooltip";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
 import { timeAgo } from "../utils";
-
-/* Module scope so the selection is not handed a new function every render. */
-const projectId = (p) => p.project_id;
 
 /**
  * Every project. The sidebar keeps the pinned few; this is the rest of them,
@@ -25,12 +22,14 @@ export default function ProjectsPage() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+
   /* When the project itself was last written -- renamed, re-scoped, given new
      instructions -- says nothing about when it was last USED. Chatting inside
-     a project deliberately does not touch the project row, so a project worked
-     in all morning still reported the day its documents were chosen.
-     The last interaction is the latest of three: when the project itself was
-     written, when it was last opened, and the newest chat filed under it. */
+     a project deliberately does not touch the project row, and opening one is
+     recorded separately, so the last interaction is the latest of three: when
+     the project was written, when it was opened, and the newest chat in it. */
   const lastChatIn = useMemo(() => {
     const m = new Map();
     for (const c of chat.conversations) {
@@ -60,28 +59,6 @@ export default function ProjectsPage() {
     [t, lastTouched]
   );
   const { q, setQ, sort, setSort, shown } = useLibrary(chat.projects, sorts);
-  const sel = useSelection(shown, projectId);
-  const [confirming, setConfirming] = useState(false);
-
-  /* One call each: deleting a project is a small write and there is no bulk
-     endpoint. What it takes with it is only the project -- the chats go back
-     to the main list and the documents stay in the library -- which is why
-     this asks once rather than per project. */
-  async function removeSelected() {
-    const ids = [...sel.picked];
-    setConfirming(false);
-    try {
-      await Promise.all(ids.map((id) => chat.deleteProject(id)));
-      sel.clear();
-      toast(
-        ids.length === 1 ? t("projects.deleted") : t("projects.deletedMany", { n: ids.length }),
-        "ok",
-        t("projects.deleteManyText")
-      );
-    } catch (err) {
-      toast(t("projects.deleteFailed"), "err", err?.response?.data?.detail || "");
-    }
-  }
 
   async function create() {
     const clean = name.trim();
@@ -92,6 +69,17 @@ export default function ProjectsPage() {
     // Straight into the project that was just made: creating one is always the
     // start of working in it.
     if (project) navigate(`/projects/${project.project_id}`);
+  }
+
+  async function removeProject() {
+    const p = deleting;
+    setDeleting(null);
+    try {
+      await chat.deleteProject(p.project_id);
+      toast(t("projects.deleted"), "ok", t("projects.deleteText"));
+    } catch (err) {
+      toast(t("projects.deleteFailed"), "err", err?.response?.data?.detail || "");
+    }
   }
 
   return (
@@ -122,24 +110,24 @@ export default function ProjectsPage() {
           {q.trim() ? t("sidebar.nothingMatches", { q: q.trim() }) : t("sidebar.noProjects")}
         </div>
       ) : (
-        <>
-          <SelectionBar open={sel.some} count={sel.count} all={sel.all}
-            onToggleAll={sel.toggleAll} onClear={sel.clear}>
-            <button className="btn btn-sm sel-danger" onClick={() => setConfirming(true)}>
-              <Icon name="trash" className="icon-sm" /> {t("common.delete")}
-            </button>
-          </SelectionBar>
         <div className="lib-grid">
           {shown.map((p) => (
-            <button key={p.project_id}
-              className={`lib-card ${sel.picked.has(p.project_id) ? "on" : ""} ${sel.some ? "picking" : ""}`}
+            <button key={p.project_id} className="lib-card"
               onClick={() => navigate(`/projects/${p.project_id}`)}>
               <div className="lib-card-top">
                 <span className="lib-card-name">{p.name}</span>
-                <PinButton
-                  pinned={!!p.pinned}
-                  label={p.pinned ? t("common.unpin") : t("common.pin")}
-                  onToggle={() => chat.updateProject(p.project_id, { pinned: !p.pinned })}
+                {/* Pinned is worth seeing without hovering; it is why the
+                    project is at the top of the list. The menu is not. */}
+                {p.pinned && (
+                  <span className="lib-pinned" aria-label={t("common.unpin")}>
+                    <Icon name="pin" className="icon-sm" />
+                  </span>
+                )}
+                <CardMenu
+                  project={p}
+                  onPin={() => chat.updateProject(p.project_id, { pinned: !p.pinned })}
+                  onEdit={() => setEditing(p)}
+                  onDelete={() => setDeleting(p)}
                 />
               </div>
               {/* The standing instructions are what one project is actually
@@ -150,26 +138,126 @@ export default function ProjectsPage() {
                     its settings were written. */}
                 <span className="lib-date">{timeAgo(lastTouched(p))}</span>
               </div>
-              <label className="doc-pick" onClick={(e) => e.stopPropagation()}>
-                <input type="checkbox" aria-label={p.name}
-                  checked={sel.picked.has(p.project_id)}
-                  onChange={() => sel.toggle(p.project_id)} />
-              </label>
             </button>
           ))}
         </div>
-        </>
       )}
 
-      {confirming && (
+      {editing && (
+        <EditDetails
+          project={editing}
+          onClose={() => setEditing(null)}
+          onSave={async (clean) => {
+            const p = editing;
+            setEditing(null);
+            try {
+              await chat.updateProject(p.project_id, { name: clean });
+            } catch (err) {
+              toast(t("projects.deleteFailed"), "err", err?.response?.data?.detail || "");
+            }
+          }}
+        />
+      )}
+
+      {deleting && (
         <ConfirmModal
-          title={t("projects.deleteManyTitle", { n: sel.count })}
-          text={t("projects.deleteManyText")}
+          title={t("projects.deleteTitle")}
+          text={t("projects.deleteText")}
           okLabel={t("common.delete")}
-          onCancel={() => setConfirming(false)}
-          onConfirm={removeSelected}
+          onCancel={() => setDeleting(null)}
+          onConfirm={removeProject}
         />
       )}
     </LibraryShell>
+  );
+}
+
+/**
+ * The ⋮ in the corner of a project card.
+ *
+ * Everything you can do to a project without opening it, in one place, quiet
+ * until the card is under the pointer. Each item stops the click reaching the
+ * card underneath: choosing "Delete" from a menu is not asking to open the
+ * thing you are deleting.
+ */
+function CardMenu({ project, onPin, onEdit, onDelete }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const pick = (fn) => (e) => {
+    e.stopPropagation();
+    setOpen(false);
+    fn();
+  };
+
+  return (
+    <span className="menu-anchor lib-menu" ref={ref} onClick={(e) => e.stopPropagation()}>
+      <Tooltip label={t("projects.options")} placement="top">
+        <button className={`lib-act ${open ? "on" : ""}`} aria-haspopup="true"
+          aria-expanded={open} aria-label={t("projects.options")}
+          onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}>
+          <Icon name="more-v" className="icon-sm" />
+        </button>
+      </Tooltip>
+      {open && (
+        <div className="pop-menu pm-drop">
+          <button className="pm-item" onClick={pick(onPin)}>
+            <Icon name={project.pinned ? "pin-off" : "pin"} className="icon-sm" />
+            {project.pinned ? t("common.unpin") : t("common.pin")}
+          </button>
+          <button className="pm-item" onClick={pick(onEdit)}>
+            <Icon name="pencil" className="icon-sm" /> {t("projects.editDetails")}
+          </button>
+          <div className="pm-sep" />
+          <button className="pm-item danger" onClick={pick(onDelete)}>
+            <Icon name="trash" className="icon-sm" /> {t("common.delete")}
+          </button>
+        </div>
+      )}
+    </span>
+  );
+}
+
+/** The one thing a project is described by from this page: its name. */
+function EditDetails({ project, onClose, onSave }) {
+  const t = useT();
+  const [name, setName] = useState(project.name);
+  const clean = name.trim();
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" role="dialog" aria-modal="true"
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+        onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>{t("projects.editDetails")}</h3>
+          <button className="btn-icon" aria-label={t("common.close")} onClick={onClose}>
+            <Icon name="x" className="icon-sm" />
+          </button>
+        </div>
+        <div className="modal-body">
+          <div className="field">
+            <label htmlFor="proj-rename">{t("sidebar.projectName")}</label>
+            <input id="proj-rename" className="input" autoFocus value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && clean) onSave(clean); }} />
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" onClick={onClose}>{t("common.cancel")}</button>
+          <button className="btn btn-primary" disabled={!clean} onClick={() => onSave(clean)}>
+            {t("common.save")}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
