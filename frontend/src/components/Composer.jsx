@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "./Icon";
 import Tooltip from "./Tooltip";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
+import { groupModels, isSlow, locate, selOf } from "../models";
 
 /**
  * The prompt box, and the three menus that live on its bottom row.
@@ -306,9 +307,13 @@ export default function Composer({
           </div>
           <div className="composer-row">
             <AddMenu onUpload={() => fileRef.current?.click()} />
-            <ModelMenu />
             {scope && <ScopeMenu />}
             <div className="grow" style={{ flex: 1 }} />
+            {/* Next to the mic, at the far end. What model answers is a
+                property of the reply you are about to get, not of the message
+                you are writing -- so it keeps company with the controls that
+                send, rather than with the ones that attach. */}
+            <ModelMenu />
             {/* The mic holds the slot only while the box is empty. Accepting a
                 dictation leaves text behind, and the tick is only pressed after
                 the words have been read back, so at that point the thing wanted
@@ -357,18 +362,6 @@ export default function Composer({
       </div>
     </div>
   );
-}
-
-const SLOW_MODEL_PARAM_B = 5;
-function isSlowLocalModel(model) {
-  const tag = model.includes(":") ? model.split(":").pop() : model;
-  const m = tag.match(/(\d+(?:\.\d+)?)\s*b/i);
-  return m ? parseFloat(m[1]) >= SLOW_MODEL_PARAM_B : false;
-}
-
-/** Short speed/accuracy hint shown under each local model. */
-function modelHint(t, model) {
-  return isSlowLocalModel(model) ? t("chat.modelSlow") : t("chat.modelFast");
 }
 
 /* A plus reads as "add something", not as "open a file dialog", so it opens a
@@ -422,59 +415,138 @@ function AddMenu({ onUpload }) {
   );
 }
 
+/* Beyond this many families the list stops being a list and starts being a
+   catalogue, so the rest go behind "More models". */
+const MAIN_FAMILIES = 3;
+
+/**
+ * Which model answers, and at what size.
+ *
+ * One row per family rather than one per tag: a machine with llama3.2:3b and
+ * llama3.1:8b on it has one Llama, offered at two sizes, not two Llamas. The
+ * sizes live behind "Size", which is this app's honest version of the effort
+ * control a hosted model would have -- there is no reasoning dial on a local
+ * model, but there is a real choice between a fast small one and a slow big
+ * one, and that is the choice being offered.
+ *
+ * The panel swaps rather than flying out sideways: it opens from a control at
+ * the right edge of the composer, and a submenu opening further right would
+ * have nowhere to go.
+ */
 function ModelMenu() {
   const t = useT();
   const chat = useChat();
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState("root");
   const ref = useRef(null);
-  const current = chat.sel.split("|")[1] || "model";
+
+  const groups = useMemo(() => groupModels(chat.models), [chat.models]);
+  const { group, level } = locate(groups, chat.sel);
 
   function toggleOpen() {
     const next = !open;
     setOpen(next);
-    if (next) chat.loadModels?.(); // refresh list (picks up newly-pulled models)
+    setView("root");
+    if (next) chat.loadModels?.(); // picks up anything newly pulled
   }
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     window.addEventListener("mousedown", onDown);
     return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  const Item = ({ value, name, sub, slow }) => (
-    <button className={`drop-item ${value === chat.sel ? "selected" : ""}`}
-      onClick={() => { chat.setSel(value); setOpen(false); }}>
+  /* Switching family keeps the size you were on if the new one offers it, so
+     moving between families does not silently change how long answers take. */
+  function pickFamily(g) {
+    const same = level && g.levels.find((l) => l.levelLabel === level.levelLabel);
+    chat.setSel(selOf(same || g.levels[0]));
+    setOpen(false);
+  }
+
+  function whereItRuns(g) {
+    if (g.provider === "ollama") return t("chat.ollamaLocal");
+    return chat.models.openai_enabled ? t("chat.openaiCloud") : t("chat.addApiKey");
+  }
+
+  const Family = ({ g }) => (
+    <button className={`drop-item ${group?.key === g.key ? "selected" : ""}`}
+      onClick={() => pickFamily(g)}>
       <span>
-        <span className="d-name">{name}{slow && <span className="badge badge-amber" style={{ marginLeft: 6 }}>{t("chat.slow")}</span>}</span>
-        <span className="d-sub">{sub}</span>
+        <span className="d-name">{g.label}</span>
+        <span className="d-sub">{whereItRuns(g)}</span>
       </span>
       <Icon name="check" className="icon-sm check" />
     </button>
   );
 
+  const primary = groups.slice(0, MAIN_FAMILIES);
+  const rest = groups.slice(MAIN_FAMILIES);
+  const hasSizes = (group?.levels.length || 0) > 1;
+
   return (
     <div className="menu-anchor" ref={ref}>
-      <button className="model-btn" aria-haspopup="true" onClick={toggleOpen}>
-        <span>{current}</span>
+      <button className="model-btn" aria-haspopup="true" aria-expanded={open}
+        onClick={toggleOpen}>
+        <span>{group ? group.label : chat.sel.split("|")[1] || "model"}</span>
+        {/* Only when there is one to show. A family with a single model has no
+            size worth naming, and an empty chip is a control that lies. */}
+        {level?.size && <span className="model-level">{level.size}</span>}
       </button>
+
       {open && (
-        <div className="drop-menu">
-          {chat.models.ollama.length > 0 && (
+        <div className="drop-menu drop-right">
+          {view === "root" && (
             <>
-              <div className="drop-label">{t("chat.ollamaLocal")}</div>
-              {chat.models.ollama.map((m) => (
-                <Item key={m} value={`ollama|${m}`} name={m} sub={modelHint(t, m)} slow={isSlowLocalModel(m)} />
+              {primary.map((g) => <Family key={g.key} g={g} />)}
+              {(hasSizes || rest.length > 0) && <div className="drop-sep" />}
+              {hasSizes && (
+                <button className="drop-item drop-nav" onClick={() => setView("size")}>
+                  <span className="d-name">{t("chat.modelSize")}</span>
+                  <span className="drop-value">{level?.levelLabel}</span>
+                  <Icon name="chev-r" className="icon-sm" />
+                </button>
+              )}
+              {rest.length > 0 && (
+                <button className="drop-item drop-nav" onClick={() => setView("more")}>
+                  <span className="d-name">{t("chat.moreModels")}</span>
+                  <Icon name="chev-r" className="icon-sm" />
+                </button>
+              )}
+            </>
+          )}
+
+          {view === "size" && (
+            <>
+              <button className="drop-back" onClick={() => setView("root")}>
+                <Icon name="chev-r" className="icon-sm flip" /> {t("chat.modelSize")}
+              </button>
+              {group?.levels.map((l) => (
+                <button key={l.id}
+                  className={`drop-item ${selOf(l) === chat.sel ? "selected" : ""}`}
+                  onClick={() => { chat.setSel(selOf(l)); setOpen(false); }}>
+                  <span>
+                    <span className="d-name">
+                      {l.levelLabel}
+                      {isSlow(l) && <span className="badge badge-amber" style={{ marginLeft: 6 }}>{t("chat.slow")}</span>}
+                    </span>
+                    {/* The real tag, because a level called "8B" should still
+                        be traceable to the thing Ollama actually runs. */}
+                    <span className="d-sub">{l.id} · {isSlow(l) ? t("chat.modelSlow") : t("chat.modelFast")}</span>
+                  </span>
+                  <Icon name="check" className="icon-sm check" />
+                </button>
               ))}
             </>
           )}
-          {chat.models.openai.length > 0 && (
+
+          {view === "more" && (
             <>
-              <div className="drop-label">{t("chat.openaiCloud")}</div>
-              {chat.models.openai.map((m) => (
-                <Item key={m} value={`openai|${m}`} name={m}
-                  sub={chat.models.openai_enabled ? t("chat.cloudInference") : t("chat.addApiKey")} />
-              ))}
+              <button className="drop-back" onClick={() => setView("root")}>
+                <Icon name="chev-r" className="icon-sm flip" /> {t("chat.moreModels")}
+              </button>
+              {rest.map((g) => <Family key={g.key} g={g} />)}
             </>
           )}
         </div>

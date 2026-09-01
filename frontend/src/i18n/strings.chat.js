@@ -80,6 +80,8 @@ const en = {
   "chat.cloudInference": "cloud inference",
   "chat.addApiKey": "add API key",
   "chat.slow": "slow",
+  "chat.modelSize": "Size",
+  "chat.moreModels": "More models",
 };
 
 const fr = {
@@ -149,6 +151,8 @@ const fr = {
   "chat.cloudInference": "inférence dans le cloud",
   "chat.addApiKey": "ajouter une clé API",
   "chat.slow": "lent",
+  "chat.modelSize": "Taille",
+  "chat.moreModels": "Plus de modèles",
 };
 
 const de = {
@@ -218,6 +222,8 @@ const de = {
   "chat.cloudInference": "Inferenz in der Cloud",
   "chat.addApiKey": "API-Schlüssel hinterlegen",
   "chat.slow": "langsam",
+  "chat.modelSize": "Größe",
+  "chat.moreModels": "Weitere Modelle",
 };
 
 const hi = {
@@ -287,6 +293,8 @@ const hi = {
   "chat.cloudInference": "क्लाउड पर इन्फ़रेंस",
   "chat.addApiKey": "API कुंजी जोड़ें",
   "chat.slow": "धीमा",
+  "chat.modelSize": "आकार",
+  "chat.moreModels": "और मॉडल",
 };
 
 const id = {
@@ -356,6 +364,8 @@ const id = {
   "chat.cloudInference": "inferensi di awan",
   "chat.addApiKey": "tambahkan kunci API",
   "chat.slow": "lambat",
+  "chat.modelSize": "Ukuran",
+  "chat.moreModels": "Model lainnya",
 };
 
 const it = {
@@ -425,6 +435,8 @@ const it = {
   "chat.cloudInference": "inferenza nel cloud",
   "chat.addApiKey": "aggiungi una chiave API",
   "chat.slow": "lento",
+  "chat.modelSize": "Dimensione",
+  "chat.moreModels": "Altri modelli",
 };
 
 const ja = {
@@ -494,6 +506,8 @@ const ja = {
   "chat.cloudInference": "クラウドで推論",
   "chat.addApiKey": "API キーを追加",
   "chat.slow": "低速",
+  "chat.modelSize": "サイズ",
+  "chat.moreModels": "その他のモデル",
 };
 
 const ko = {
@@ -563,6 +577,8 @@ const ko = {
   "chat.cloudInference": "클라우드 추론",
   "chat.addApiKey": "API 키 추가",
   "chat.slow": "느림",
+  "chat.modelSize": "크기",
+  "chat.moreModels": "다른 모델",
 };
 
 const pt = {
@@ -632,6 +648,8 @@ const pt = {
   "chat.cloudInference": "inferência na nuvem",
   "chat.addApiKey": "adicionar chave de API",
   "chat.slow": "lento",
+  "chat.modelSize": "Tamanho",
+  "chat.moreModels": "Mais modelos",
 };
 
 const es419 = {
@@ -701,6 +719,8 @@ const es419 = {
   "chat.cloudInference": "inferencia en la nube",
   "chat.addApiKey": "agregar clave de API",
   "chat.slow": "lento",
+  "chat.modelSize": "Tamaño",
+  "chat.moreModels": "Más modelos",
 };
 
 const esES = {

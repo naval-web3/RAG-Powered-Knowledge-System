@@ -544,6 +544,10 @@ body {
      own containing block, so nothing else changes anchor. */
   width: var(--sb-w, 282px); flex: none; display: flex; flex-direction: column;
   position: relative;
+  /* Nothing in here is text you read -- it is a list of places to go, and a
+     click that drags a pixel should not leave half a chat title highlighted.
+     The rename fields are the exception: those you really are editing. */
+  user-select: none; -webkit-user-select: none;
   background: var(--sidebar); border-right: 1px solid var(--border);
   transition: margin-left .28s var(--ease), transform .28s var(--ease);
   z-index: 60;
@@ -671,6 +675,7 @@ body {
 /* Sits at the end of the row, quiet enough that the titles still lead. */
 .search-hit-when { flex: none; font-size: 12.5px; color: var(--text-3); }
 .search-empty { padding: 22px 12px; text-align: center; color: var(--text-3); font-size: 14px; }
+#sidebar input, #sidebar textarea { user-select: text; -webkit-user-select: text; }
 .sb-section { padding: 0 12px; }
 /* No outline: it is the first thing in the panel and does not need a box to
    be found. A tint on hover is enough to show it is live. */
@@ -1269,7 +1274,10 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
   color: var(--text-3); opacity: 0;
   transition: opacity .13s, background .13s, color .13s;
 }
+/* The buttons are wrapped in a tooltip now, so the reveal has to reach
+   through that wrapper as well as target the buttons directly. */
 .lib-card:hover .lib-act, .lib-act:focus-visible, .lib-pin.on { opacity: 1; }
+.lib-card-top .tip-wrap { flex: none; display: inline-flex; }
 .lib-act:hover { background: var(--surface-2); color: var(--text); }
 .lib-pin.on { color: var(--accent); }
 .lib-empty { padding: 40px 0; text-align: center; color: var(--text-3); font-size: 13.5px; }
@@ -1498,6 +1506,31 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .drop-item.selected .check { visibility: visible; }
 /* Two short rows: the model list's 250px would leave a lot of empty menu. */
 .add-menu { min-width: 232px; }
+
+/* Opened from a control at the RIGHT edge of the composer, so it hangs from
+   that edge. left:0 would push it off the window. */
+.drop-menu.drop-right { left: auto; right: 0; }
+.drop-sep { height: 1px; background: var(--border); margin: 5px 6px; }
+/* A row that leads somewhere rather than choosing something: the value it
+   currently holds, then the arrow. */
+.drop-nav { justify-content: flex-start; }
+.drop-nav .d-name { flex: 1; }
+.drop-nav .drop-value { font-size: 12.5px; color: var(--text-3); }
+.drop-nav .icon-sm:last-child { color: var(--text-3); }
+.drop-back {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 10px 9px; margin-bottom: 2px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-3); text-align: left; border-bottom: 1px solid var(--border);
+}
+.drop-back:hover { color: var(--text-2); }
+/* One chevron symbol, pointed the other way, rather than a second sprite. */
+.drop-back .flip { transform: rotate(180deg); }
+
+/* The size beside the family name: same row, quieter, so "Llama 8B" reads as
+   one label with a qualifier rather than as two separate buttons. */
+.model-level { color: var(--text-3); }
+.model-btn:hover .model-level { color: var(--text-2); }
 
 
 .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }

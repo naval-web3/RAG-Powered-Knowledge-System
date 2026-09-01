@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Icon from "./Icon";
+import Tooltip from "./Tooltip";
 import Select from "./Select";
 import { useT } from "../i18n";
 
@@ -45,29 +46,31 @@ export function useLibrary(items, nameOf, dateOf) {
  */
 export function PinButton({ pinned, onToggle, label }) {
   return (
-    <button
-      className={`lib-act lib-pin ${pinned ? "on" : ""}`}
-      aria-label={label}
-      aria-pressed={pinned}
-      title={label}
-      onClick={(e) => { e.stopPropagation(); onToggle(); }}
-    >
-      <Icon name="pin" className="icon-sm" />
-    </button>
+    <Tooltip label={label} placement="top">
+      <button
+        className={`lib-act lib-pin ${pinned ? "on" : ""}`}
+        aria-label={label}
+        aria-pressed={pinned}
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      >
+        <Icon name="pin" className="icon-sm" />
+      </button>
+    </Tooltip>
   );
 }
 
 /** Anything else a card offers: same corner, same reveal. */
 export function CardAction({ icon, label, onClick }) {
   return (
-    <button
-      className="lib-act"
-      aria-label={label}
-      title={label}
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-    >
-      <Icon name={icon} className="icon-sm" />
-    </button>
+    <Tooltip label={label} placement="top">
+      <button
+        className="lib-act"
+        aria-label={label}
+        onClick={(e) => { e.stopPropagation(); onClick(); }}
+      >
+        <Icon name={icon} className="icon-sm" />
+      </button>
+    </Tooltip>
   );
 }
 
