@@ -123,10 +123,16 @@ body {
 }
 
 /* ---------- Buttons ---------- */
+/* One size, measured off the reference's own computed styles: 32px tall, text
+   at 14/20, 8px between siblings. The padding is 5px rather than 6 because the
+   border is inside the box -- 5 + 20 + 5 + 2 is the 32 the reference reports.
+   Everything that is a .btn is this size unless it says otherwise, and only two
+   things do: the landing hero, which is the largest thing on its page, and the
+   toolbars, which are the smallest. */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 10px 18px; border-radius: var(--r-md);
-  font-size: 14px; font-weight: 600; letter-spacing: .01em;
+  min-height: 32px; padding: 5px 14px; border-radius: var(--r-sm);
+  font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: .01em;
   border: 1px solid transparent; white-space: nowrap;
   transition: background .15s var(--ease), border-color .15s var(--ease), transform .1s var(--ease), box-shadow .15s var(--ease);
 }
@@ -165,12 +171,14 @@ body {
 .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
 .btn-danger { background: var(--red); color: #FFF; }
 .btn-danger:hover { filter: brightness(.92); }
-.btn-lg { padding: 13px 26px; font-size: 15px; border-radius: 14px; }
-.btn-sm { padding: 6px 12px; font-size: 13px; border-radius: var(--r-sm); }
-.btn-block { width: 100%; }
+/* The two deliberate exceptions. Sizes, not new shapes: the radius steps with
+   the height so the corner stays the same proportion of the button. */
+.btn-lg { min-height: 44px; padding: 11px 24px; font-size: 15px; line-height: 20px; border-radius: var(--r-md); }
+.btn-sm { min-height: 28px; padding: 3px 11px; font-size: 13px; line-height: 20px; }
+.btn-block { width: 100%; min-height: 40px; }
 .btn:disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
 .btn-icon {
-  width: 34px; height: 34px; padding: 0; border-radius: var(--r-sm);
+  width: 32px; height: 32px; padding: 0; border-radius: var(--r-sm);
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-2); transition: background .15s, color .15s;
 }
@@ -442,11 +450,11 @@ body {
    same preference Settings uses, so the two stay in step. */
 .theme-switch {
   display: inline-flex; align-items: center; gap: 3px;
-  padding: 3px; border-radius: 999px;
+  padding: 3px; border-radius: var(--r-md);
   background: color-mix(in srgb, var(--text) 7%, transparent);
 }
 .theme-switch button {
-  width: 34px; height: 28px; border-radius: 999px;
+  width: 34px; height: 28px; border-radius: 7px;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-3);
   transition: background .18s var(--ease), color .18s var(--ease);
@@ -1127,7 +1135,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   overflow: hidden; background: var(--surface);
 }
 .dict-actions > * + * { border-left: 1px solid var(--border); }
-.dict-actions .btn-icon { width: 34px; height: 34px; border-radius: 0; }
+.dict-actions .btn-icon { width: 32px; height: 32px; border-radius: 0; }
 .dict-actions .dict-ok:hover { color: var(--accent); }
 /* The rotating placeholder is painted over the textarea rather than set as its
    placeholder attribute: a native one cannot be crossfaded or typed into. It
@@ -1154,7 +1162,7 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
    than sliding in from anywhere. */
 @keyframes send-in { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
 .send-btn {
-  width: 36px; height: 36px; border-radius: 12px; flex: none;
+  width: 32px; height: 32px; border-radius: var(--r-sm); flex: none;
   background: var(--accent); color: #FFF8F2;
   display: flex; align-items: center; justify-content: center;
   transition: background .15s, transform .12s var(--ease), opacity .15s;
@@ -1217,14 +1225,14 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .lib-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .lib-search {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 7px 12px; border-radius: 999px;
+  min-height: 32px; padding: 5px 12px; border-radius: 999px;
   border: 1px solid var(--border); background: var(--surface); color: var(--text-3);
   transition: border-color .13s;
 }
 .lib-search:focus-within { border-color: var(--border-strong); }
 .lib-search input {
   border: 0; background: transparent; outline: none; width: 150px;
-  font-size: 13.5px; color: var(--text);
+  font-size: 13.5px; line-height: 20px; color: var(--text);
 }
 .lib-sort { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--text-3); }
 .lib-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
@@ -1596,7 +1604,8 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .danger-row:first-of-type { border-top: 0; padding-top: 0; }
 .danger-row .d-t { font-size: 14px; font-weight: 600; }
 .danger-row .d-s { font-size: 12.5px; color: var(--text-2); margin-top: 2px; }
-.save-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+/* gap and margin are the reference's too: 8 between the buttons, 16 above them. */
+.save-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 /* ============================================================
    MODALS, TOASTS, ONBOARDING
@@ -1634,7 +1643,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .modal-head h3 { font-size: 19px; font-weight: 600; flex: 1; }
 .modal-body { padding: 16px 22px 22px; overflow-y: auto; }
 .modal-body .m-text { font-size: 14px; color: var(--text-2); line-height: 1.6; }
-.modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 0 22px 22px; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 0 22px 22px; }
 
 /* Onboarding modal */
 .onb-art {
@@ -1886,14 +1895,14 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .pick-tools { display: flex; align-items: center; gap: 10px; padding: 16px 22px 12px; flex: none; }
 .pick-search {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px; color: var(--text-3);
+  min-height: 32px; padding: 5px 12px; color: var(--text-3);
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm);
   transition: border-color .13s, color .13s;
 }
 .pick-search:focus-within { border-color: var(--border-strong); color: var(--text-2); }
 .pick-search input {
   flex: 1; min-width: 0; border: 0; background: none; outline: none;
-  font-size: 13.5px; color: var(--text);
+  font-size: 13.5px; line-height: 20px; color: var(--text);
 }
 /* At the end of the search row, not above the list: it acts on whatever the
    search has left showing, so it belongs to the search rather than the results. */
@@ -2128,8 +2137,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    colour it already had, and the destructive ones stay red without a rule
    each. */
 .set-scroll .btn {
-  padding: 6px 13px; font-size: 12.5px; border-radius: 999px;
-  border: 1px solid currentColor; background: none; box-shadow: none;
+  border-color: currentColor; background: none; box-shadow: none;
   color: var(--text-2);
 }
 .set-scroll .btn:hover { color: var(--text); background: var(--surface-2); }
@@ -2492,8 +2500,8 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    what says "this is the thing you are operating". */
 .sel-trigger {
   display: inline-flex; align-items: center; gap: 6px;
-  max-width: 260px; padding: 7px 10px; border: 0; border-radius: var(--r-sm);
-  background: none; color: var(--text); font-size: 13.5px; cursor: pointer;
+  max-width: 260px; min-height: 32px; padding: 6px 10px; border: 0; border-radius: var(--r-sm);
+  background: none; color: var(--text); font-size: 13.5px; line-height: 20px; cursor: pointer;
   transition: background .14s var(--ease), color .14s var(--ease);
 }
 .sel-trigger:hover { background: var(--row-hover); }

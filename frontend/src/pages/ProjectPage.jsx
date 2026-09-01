@@ -164,7 +164,7 @@ export default function ProjectPage() {
                 <Icon name="pin" className="icon-sm" />
               </button>
             </Tooltip>
-            <button className="btn btn-outline btn-sm" onClick={share}>Share</button>
+            <button className="btn btn-outline" onClick={share}>Share</button>
             <ProjectMenu
               onEdit={() => setEditing(true)}
               onDelete={() => setConfirmDelete(true)}
