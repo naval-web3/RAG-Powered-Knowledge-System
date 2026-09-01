@@ -159,6 +159,11 @@ export function ChatProvider({ children }) {
       setActiveProject(typeof projectId === "string" ? projectId : null);
       setActiveId(null);
       setMessages([]);
+      /* A scoped document belongs to the conversation it was chosen for, not
+         to the session. Carrying it into the next chat silently narrows a
+         search the user thinks is over everything -- and the pill saying so
+         sits above a composer they have already looked away from. */
+      setScopeDocId(null);
       // Counts fresh starts. Zero means this is still the screen the session
       // opened on, which is what decides how warmly it greets you.
       setFreshStarts((n) => n + 1);
@@ -177,6 +182,9 @@ export function ChatProvider({ children }) {
         setActiveId(id);
         setActiveProject(data.project_id || null);
         setMessages(data.messages || []);
+        // Same reason as newChat, and only once the switch has actually
+        // happened: a failed open leaves you where you were, scope included.
+        setScopeDocId(null);
       } catch {
         toast("Couldn't open that conversation", "err");
       } finally {
