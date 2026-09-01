@@ -95,10 +95,26 @@ function LibrarySearch({ q, setQ, placeholder }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const inputRef = useRef(null);
+  const boxRef = useRef(null);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  /* Clicking away closes it, and closing it means the same thing however it
+     happens: the cross, Escape and a click outside all leave the list showing
+     everything again. A search that shut but kept filtering would be a page
+     hiding rows with nothing on screen to say why.
+     mousedown rather than click, so it closes on the press that begins a
+     click elsewhere rather than waiting for the release. */
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) close();
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  });
 
   function close() {
     setQ("");
@@ -117,7 +133,7 @@ function LibrarySearch({ q, setQ, placeholder }) {
   }
 
   return (
-    <label className="lib-search">
+    <label className="lib-search" ref={boxRef}>
       <Icon name="search" className="icon-sm" />
       <input
         ref={inputRef}
