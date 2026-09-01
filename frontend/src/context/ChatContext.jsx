@@ -125,8 +125,8 @@ export function ChatProvider({ children }) {
   }, [loadConversations, loadDocs, loadModels, loadProjects]);
 
   const createProject = useCallback(
-    async (name) => {
-      const { data } = await client.post("/api/projects", { name });
+    async (name, instructions) => {
+      const { data } = await client.post("/api/projects", { name, instructions });
       await loadProjects();
       return data;
     },

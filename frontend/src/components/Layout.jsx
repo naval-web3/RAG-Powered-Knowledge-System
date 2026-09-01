@@ -13,6 +13,7 @@ import ConfirmModal from "./ConfirmModal";
 import DocumentDialog from "./DocumentDialog";
 import Ghost from "./Ghost";
 import Icon from "./Icon";
+import NewProjectDialog from "./NewProjectDialog";
 import Keys from "./Keys";
 import LanguageDialog from "./LanguageDialog";
 import SettingsDialog from "./SettingsDialog";
@@ -476,8 +477,9 @@ function Shell() {
   const TOPBAR_MENU = "topbar";
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
-  const [creatingProject, setCreatingProject] = useState(false);
-  const [projName, setProjName] = useState("");
+  /* One dialog for both ways in. `conv` is set only when the project is being
+     started from a chat's menu, and is the chat it gets filed into after. */
+  const [newProject, setNewProject] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState(readCollapsed);
   const [themePref, setThemePref] = useState(getThemePref);
   const footRef = useRef(null);
@@ -557,13 +559,12 @@ function Shell() {
     chat.moveConversation(conv.conversation_id, projectId);
   }
 
-  /* Create the project and file the chat into it in one go: the flyout is
-     reached from a chat, so a new project made there is always meant to hold
-     the chat that opened it. */
-  async function createAndMove(conv, name) {
+  /* The flyout is reached from a chat, so a project started there is always
+     meant to hold the chat that opened it. The name typed into the flyout's
+     search box is carried into the dialog rather than thrown away. */
+  function createFromChat(conv, name) {
     setMenuId(null);
-    const project = await chat.createProject(name);
-    if (project) chat.moveConversation(conv.conversation_id, project.project_id);
+    setNewProject({ conv, name });
   }
 
   // Escape closes an open menu. The P/U/R/D letters were removed: they were
@@ -708,14 +709,19 @@ function Shell() {
     if (!onChat) navigate("/");
     setMobileOpen(false);
   }
-  async function submitNewProject() {
-    const clean = projName.trim();
-    setCreatingProject(false);
-    setProjName("");
-    if (!clean) return;
-    const project = await chat.createProject(clean);
-    navigate(`/projects/${project.project_id}`);
-    setMobileOpen(false);
+  async function submitNewProject(clean, about) {
+    const pending = newProject;
+    setNewProject(null);
+    const project = await chat.createProject(clean, about);
+    if (!project) return;
+    /* Started from a chat: file it, and stay where you are. Started from the
+       sidebar: go and work in it, which is why it was made. */
+    if (pending?.conv) {
+      chat.moveConversation(pending.conv.conversation_id, project.project_id);
+    } else {
+      navigate(`/projects/${project.project_id}`);
+      setMobileOpen(false);
+    }
   }
 
   const query = convSearch.trim().toLowerCase();
@@ -980,10 +986,9 @@ function Shell() {
             <Tooltip label={t("sidebar.newProject")}>
               <button className="btn-icon" aria-label={t("sidebar.newProject")}
                 onClick={() => {
-                  // Creating one while the section is shut would hide the input.
+                  // Open the section too: the project is about to appear in it.
                   setCollapsedGroups((p) => ({ ...p, projects: false }));
-                  setCreatingProject(true);
-                  setProjName("");
+                  setNewProject({ conv: null, name: "" });
                 }}>
                 <Icon name="plus" className="icon-sm" />
               </button>
@@ -991,21 +996,7 @@ function Shell() {
           </div>
           {projectsOpen && (
           <>
-          {creatingProject && (
-            <div className="conv-item">
-              <Icon name="book" className="icon-sm" />
-              <input className="conv-title rename" autoFocus placeholder={t("sidebar.projectName")}
-                value={projName}
-                onChange={(e) => setProjName(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") submitNewProject();
-                  if (e.key === "Escape") { setCreatingProject(false); setProjName(""); }
-                }}
-                onBlur={submitNewProject} />
-            </div>
-          )}
-          {visibleProjects.length === 0 && !creatingProject && (
+          {visibleProjects.length === 0 && (
             <div className="sb-pin-hint">
               <Icon name="pin" className="icon-sm" />
               <span>{t("sidebar.pinProjects")}</span>
@@ -1113,7 +1104,7 @@ function Shell() {
                       {open && (
                         <PortalMenu anchorRef={rowMenuBtnRef} align="right" className="conv-menu">
                           <ChatMenuItems conv={c} projects={chat.projects}
-                            onAction={menuAction} onMove={moveConv} onCreate={createAndMove} />
+                            onAction={menuAction} onMove={moveConv} onCreate={createFromChat} />
                         </PortalMenu>
                       )}
                     </div>
@@ -1263,7 +1254,7 @@ function Shell() {
                   {menuId === TOPBAR_MENU && (
                     <PortalMenu anchorRef={titleMenuBtnRef} align="left" className="conv-menu title-menu">
                       <ChatMenuItems conv={activeConversation} projects={chat.projects}
-                        onAction={menuAction} onMove={moveConv} onCreate={createAndMove} />
+                        onAction={menuAction} onMove={moveConv} onCreate={createFromChat} />
                     </PortalMenu>
                   )}
                 </div>
@@ -1329,6 +1320,13 @@ function Shell() {
         </div>
       )}
 
+      {newProject && (
+        <NewProjectDialog
+          initialName={newProject.name}
+          onClose={() => setNewProject(null)}
+          onCreate={submitNewProject}
+        />
+      )}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {langOpen && <LanguageDialog onClose={() => setLangOpen(false)} />}
       {openDoc && <DocumentDialog doc={openDoc} onClose={() => setOpenDoc(null)} />}

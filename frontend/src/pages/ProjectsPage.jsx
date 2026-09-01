@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
+import NewProjectDialog from "../components/NewProjectDialog";
 import LibraryShell, {
   useLibrary, byDateDesc, byName,
 } from "../components/LibraryShell";
@@ -21,7 +22,6 @@ export default function ProjectsPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
-  const [name, setName] = useState("");
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
 
@@ -60,12 +60,9 @@ export default function ProjectsPage() {
   );
   const { q, setQ, sort, setSort, shown } = useLibrary(chat.projects, sorts);
 
-  async function create() {
-    const clean = name.trim();
+  async function create(clean, about) {
     setCreating(false);
-    setName("");
-    if (!clean) return;
-    const project = await chat.createProject(clean);
+    const project = await chat.createProject(clean, about);
     // Straight into the project that was just made: creating one is always the
     // start of working in it.
     if (project) navigate(`/projects/${project.project_id}`);
@@ -88,21 +85,13 @@ export default function ProjectsPage() {
       q={q} setQ={setQ} sort={sort} setSort={setSort} sorts={sorts}
       searchLabel={t("sidebar.searchProjects")}
       action={
-        <button className="btn btn-primary"
-          onClick={() => { setCreating(true); setName(""); }}>
+        <button className="btn btn-primary" onClick={() => setCreating(true)}>
           <Icon name="plus" className="icon-sm" /> {t("sidebar.newProject")}
         </button>
       }
     >
       {creating && (
-        <input className="lib-new" autoFocus value={name}
-          placeholder={t("sidebar.projectName")} aria-label={t("sidebar.projectName")}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") create();
-            if (e.key === "Escape") { setCreating(false); setName(""); }
-          }}
-          onBlur={create} />
+        <NewProjectDialog onClose={() => setCreating(false)} onCreate={create} />
       )}
 
       {shown.length === 0 ? (
