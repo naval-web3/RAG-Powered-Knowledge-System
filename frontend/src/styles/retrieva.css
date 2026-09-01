@@ -2065,6 +2065,9 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    a one-line toast. Shrink it here so the row is as tall as its text. */
 .toast .btn-icon { width: 24px; height: 24px; flex: none; color: var(--text-3); }
 .toast .btn-icon:hover { color: var(--text); background: none; }
+/* Deliberately NOT top-aligned: the toast is align-items:center, so the
+   dismiss centres itself against whatever is there -- one line or two --
+   without a rule per case. Cornering it was tried and looked worse. */
 .toast .t-text {
   display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -2084,7 +2087,10 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    further up this file, and a toast wearing it inherited `height: 5px` and
    collapsed to a fifth of its size with the text hanging out of it. */
 .toast.is-live { width: 340px; max-width: calc(100vw - 44px); }
-.toast.is-live .t-msg { min-width: 0; }
+/* The text column takes the slack. A shrink-wrapped toast has none, so this
+   never mattered until the width was pinned -- and then the leftover space
+   fell after the dismiss instead, parking it against the words. */
+.toast.is-live .t-msg { flex: 1; min-width: 0; }
 .toast.is-live .t-sub {
   height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-family: var(--mono); font-size: 11px;
