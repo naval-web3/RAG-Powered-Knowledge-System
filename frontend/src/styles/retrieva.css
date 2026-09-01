@@ -1227,16 +1227,14 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   cursor: col-resize; z-index: 61;
   background: transparent; transition: background .13s;
 }
-/* A tint on hover, so the strip can be found before it is grabbed. */
-.sb-resize:hover, .sb-resize:focus-visible {
-  background: var(--accent-soft);
-}
-/* Nothing at all while dragging. The panel moving under the pointer is the
-   feedback; a band left lit down the whole edge reads as something selected
-   rather than as something being dragged. It also outlasts the pointer, which
-   routinely leaves the 7px strip mid-drag. */
-body.is-resizing .sb-resize { background: transparent; }
-.sb-resize:focus-visible { outline: none; }
+/* The strip never paints. The col-resize cursor is the affordance -- it is
+   what every other resizable edge uses -- and any fill here runs the whole
+   height of the panel, which reads as a selected column rather than as a
+   handle. Keyboard focus keeps a ring instead, from :focus-visible below. */
+.sb-resize, .sb-resize:hover, body.is-resizing .sb-resize { background: transparent; }
+/* Reachable by keyboard, so it still has to say when it is focused -- but
+   with a ring, which is bounded, rather than a full-height fill. */
+.sb-resize:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 /* While dragging, the cursor and the ban on selection belong to the whole
    window: the pointer routinely leaves the 7px strip mid-drag. */
 body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-select: none !important; }
