@@ -728,10 +728,20 @@ function Shell() {
 
   /* The sidebar no longer filters -- searching happens in the dialog, so the
      tree stays put while you look something up. */
-  const filtered = useMemo(
-    () => chat.conversations.filter((c) => !c.project_id),
-    [chat.conversations]
-  );
+  /* Filing a chat into a project normally takes it out of this list -- it has
+     somewhere better to live. A PINNED chat is the exception: pinning is what
+     says "keep this here", and a project is not a reason to overrule that. So
+     a pinned chat stays in both places until it is unpinned, which is the only
+     thing that should ever take it out of the sidebar.
+     Pinned are lifted to the top as a stable second pass, for a reason beyond
+     tidiness: the list below is capped at the fifteen most recent, and a
+     pinned chat that fell off the end would have been removed by the cap
+     rather than by the user. */
+  const filtered = useMemo(() => {
+    const out = chat.conversations.filter((c) => !c.project_id || c.pinned);
+    out.sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
+    return out;
+  }, [chat.conversations]);
 
   /* The list resizes as a query narrows it. height:auto cannot animate, so the
      natural height is measured and written out; the CSS transition then has two
