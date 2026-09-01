@@ -1369,11 +1369,34 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .doc-card .lib-act { opacity: 0; }
 .doc-card:hover .lib-act, .doc-card .lib-act:focus-visible, .doc-card .lib-pin.on { opacity: 1; }
 
-.sel-bar {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
-  animation: selIn .16s var(--ease);
+/* The bar arrives by growing its own row rather than by being inserted into
+   one. A grid row can be animated from 0fr to 1fr, which is the only way to
+   transition to a height nobody has measured -- and it means the cards below
+   are pushed down over the same fifth of a second the bar takes to appear,
+   instead of jumping the moment it mounts. That jump was the part that did
+   not feel smooth; the bar's own fade was never the problem. */
+.sel-slot {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows .22s var(--ease);
 }
-@keyframes selIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.sel-slot.open { grid-template-rows: 1fr; }
+/* min-height:0 is what lets a grid item shrink below its content -- without it
+   the row collapses and the content does not. Visibility is dropped only once
+   the row has finished closing, which is also what takes the buttons out of
+   the tab order while they are hidden. */
+.sel-clip {
+  overflow: hidden; min-height: 0;
+  visibility: hidden; transition: visibility 0s .22s;
+}
+.sel-slot.open .sel-clip { visibility: visible; transition-delay: 0s; }
+.sel-bar {
+  display: flex; align-items: center; gap: 12px; padding-bottom: 12px;
+  opacity: 0; transition: opacity .18s var(--ease) .04s;
+}
+.sel-slot.open .sel-bar { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .sel-slot, .sel-bar { transition: none; }
+}
 .sel-all { display: flex; }
 .sel-all input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
 .sel-count { font-size: 13.5px; font-weight: 500; color: var(--text); }

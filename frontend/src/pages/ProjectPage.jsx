@@ -347,20 +347,18 @@ export default function ProjectPage() {
                 </button>
               ) : (
                 <>
-                  {sel.some && (
-                    <SelectionBar count={sel.count} all={sel.all}
-                      onToggleAll={sel.toggleAll} onClear={sel.clear}>
-                      {/* Remove first and delete second, in that order and with
-                          only one of them coloured: they sit a few pixels apart
-                          and one of them cannot be undone. */}
-                      <button className="btn btn-sm" onClick={detachSelected}>
-                        Remove
-                      </button>
-                      <button className="btn btn-sm sel-danger" onClick={() => setConfirmWipe(true)}>
-                        <Icon name="trash" className="icon-sm" /> Delete
-                      </button>
-                    </SelectionBar>
-                  )}
+                  <SelectionBar open={sel.some} count={sel.count} all={sel.all}
+                    onToggleAll={sel.toggleAll} onClear={sel.clear}>
+                    {/* Remove first and delete second, in that order and with
+                        only one of them coloured: they sit a few pixels apart
+                        and one of them cannot be undone. */}
+                    <button className="btn btn-sm" onClick={detachSelected}>
+                      Remove
+                    </button>
+                    <button className="btn btn-sm sel-danger" onClick={() => setConfirmWipe(true)}>
+                      <Icon name="trash" className="icon-sm" /> Delete
+                    </button>
+                  </SelectionBar>
                   <div className="doc-grid ctx-grid">
                     {attached.map((d) => (
                       <DocCard

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import client from "../api/client";
 import Icon from "./Icon";
 import Tooltip from "./Tooltip";
@@ -58,10 +58,24 @@ export function useSelection(items, idOf) {
   return { picked, toggle, clear, toggleAll, all, some, count: picked.size };
 }
 
-/** The bar that takes the place of the grid's top edge while choosing. */
-export function SelectionBar({ count, all, onToggleAll, onClear, children }) {
+/**
+ * The bar that takes the place of the grid's top edge while choosing.
+ *
+ * It is always mounted and opens by growing its own row from nothing, so the
+ * grid below is pushed down over the same fifth of a second the bar takes to
+ * arrive. Mounting it on demand animated the bar and snapped everything under
+ * it, which is the half that was actually being noticed.
+ */
+export function SelectionBar({ open, count, all, onToggleAll, onClear, children }) {
   const t = useT();
+  /* The last real number, held for the length of the close. Reading `count`
+     straight would flash "0 selected" all the way down. */
+  const shown = useRef(count);
+  if (count > 0) shown.current = count;
+
   return (
+    <div className={`sel-slot ${open ? "open" : ""}`} aria-hidden={!open}>
+      <div className="sel-clip">
     <div className="sel-bar">
       <label className="sel-all">
         <input
@@ -74,13 +88,15 @@ export function SelectionBar({ count, all, onToggleAll, onClear, children }) {
           onChange={onToggleAll}
         />
       </label>
-      <span className="sel-count">{t("docs.selected", { n: count })}</span>
+      <span className="sel-count">{t("docs.selected", { n: shown.current })}</span>
       <div className="sel-acts">{children}</div>
       <Tooltip label={t("common.close")} placement="top">
         <button className="btn-icon" aria-label={t("common.close")} onClick={onClear}>
           <Icon name="x" className="icon-sm" />
         </button>
       </Tooltip>
+        </div>
+      </div>
     </div>
   );
 }

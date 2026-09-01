@@ -78,14 +78,12 @@ export default function DocumentsPage() {
         </div>
       ) : (
         <>
-          {sel.some && (
-            <SelectionBar count={sel.count} all={sel.all}
-              onToggleAll={sel.toggleAll} onClear={sel.clear}>
-              <button className="btn btn-sm sel-danger" onClick={() => setConfirming(true)}>
-                <Icon name="trash" className="icon-sm" /> {t("common.delete")}
-              </button>
-            </SelectionBar>
-          )}
+          <SelectionBar open={sel.some} count={sel.count} all={sel.all}
+            onToggleAll={sel.toggleAll} onClear={sel.clear}>
+            <button className="btn btn-sm sel-danger" onClick={() => setConfirming(true)}>
+              <Icon name="trash" className="icon-sm" /> {t("common.delete")}
+            </button>
+          </SelectionBar>
           <div className="doc-grid">
             {shown.map((d) => (
               <DocCard
