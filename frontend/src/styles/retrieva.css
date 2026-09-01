@@ -1227,9 +1227,15 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
   cursor: col-resize; z-index: 61;
   background: transparent; transition: background .13s;
 }
-.sb-resize:hover, .sb-resize:focus-visible, body.is-resizing .sb-resize {
+/* A tint on hover, so the strip can be found before it is grabbed. */
+.sb-resize:hover, .sb-resize:focus-visible {
   background: var(--accent-soft);
 }
+/* Nothing at all while dragging. The panel moving under the pointer is the
+   feedback; a band left lit down the whole edge reads as something selected
+   rather than as something being dragged. It also outlasts the pointer, which
+   routinely leaves the 7px strip mid-drag. */
+body.is-resizing .sb-resize { background: transparent; }
 .sb-resize:focus-visible { outline: none; }
 /* While dragging, the cursor and the ban on selection belong to the whole
    window: the pointer routinely leaves the 7px strip mid-drag. */
