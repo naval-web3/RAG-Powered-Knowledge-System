@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import client from "../api/client";
 import { useLocale } from "../i18n";
 import { useToast } from "./ToastContext";
+import { fmtBytes } from "../utils";
 
 const ChatContext = createContext(null);
 
@@ -532,7 +533,16 @@ export function ChatProvider({ children }) {
          measured, nothing is estimated -- and it is set low because sending
          the file is the quick part and reading it is not. */
       const UPLOAD_SHARE = 10;
-      const tid = progressToast(t("upload.uploading", { name: file.name }));
+      /* The second line is always filled. It is reserved so the card cannot
+         change height between phases, and a reserved line with nothing in it
+         leaves the words floating in a box built for two. There is always
+         something true to put there: the bytes while they are going up, then
+         whatever the pipeline is looking at, and the file's own name in the
+         moment between the two when the server has not said anything yet. */
+      const tid = progressToast(
+        t("upload.uploading", { name: file.name }),
+        `0 B / ${fmtBytes(file.size)}`
+      );
 
       const form = new FormData();
       form.append("file", file);
@@ -544,7 +554,10 @@ export function ChatProvider({ children }) {
             if (!e.total) return;
             const pct = Math.round((e.loaded / e.total) * 100);
             setUploadProgress({ name: file.name, pct });
-            updateToast(tid, { ring: { pct: (pct * UPLOAD_SHARE) / 100 } });
+            updateToast(tid, {
+              sub: `${fmtBytes(e.loaded)} / ${fmtBytes(e.total)}`,
+              ring: { pct: (pct * UPLOAD_SHARE) / 100 },
+            });
           },
         });
         // The bytes are in; the server pipeline takes over from here.
@@ -559,8 +572,9 @@ export function ChatProvider({ children }) {
           updateToast(tid, {
             msg: t(STAGE_LABEL[stage] || "upload.processing"),
             /* Whatever the pipeline is actually looking at -- a page number, a
-               batch of chunks. It says more than a percentage repeated back. */
-            sub: d.stage_detail || "",
+               batch of chunks. It says more than a percentage repeated back,
+               and before it says anything the file's own name does. */
+            sub: d.stage_detail || file.name,
             ring: { pct: UPLOAD_SHARE + ((d.progress || 0) * (100 - UPLOAD_SHARE)) / 100 },
           });
           // eslint-disable-next-line no-await-in-loop
