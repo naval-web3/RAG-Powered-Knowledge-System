@@ -51,6 +51,10 @@ ul, ol { list-style: none; }
   --shadow-panel: 4px 0 12px rgba(33,30,24,.10);
   --sans:  'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono:  'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  /* Not fetched: this lands on whatever the machine already has, which on
+     Windows is Georgia. Used for the project title and offered as a
+     reading face for answers. */
+  --serif: 'Iowan Old Style', 'Charter', Charter, 'Bitstream Charter', Georgia, 'Times New Roman', serif;
   --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 22px;
   --ease: cubic-bezier(.25,.6,.3,1);
   /* Side gutter for the landing page. Proportional rather than a fixed
@@ -1003,7 +1007,7 @@ body {
    the user's own bubbles. Everything else stays on Inter. */
 :root { --chat-font: var(--sans); }
 [data-chat-font="serif"] {
-  --chat-font: 'Iowan Old Style', 'Charter', Charter, 'Bitstream Charter', Georgia, serif;
+  --chat-font: var(--serif);
 }
 [data-chat-font="mono"] { --chat-font: var(--mono); }
 .ai-content, .msg-user .bubble, .msg-user .bubble-edit { font-family: var(--chat-font); }
@@ -1676,40 +1680,109 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .conv-item.conv-sub { padding-left: 30px; font-size: 12.5px; opacity: .85; }
 .conv-item.conv-sub .conv-title { font-size: 12.5px; }
 
-.proj-crumb { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-3); margin-bottom: 6px; }
+/* ---------- Inside one project ---------- */
+/* Wider than the library pages. This is two columns, and at 1120px the
+   composer would end up narrower here than the one on the chat page it is
+   the same component as. */
+.proj-pad { max-width: 1240px; }
+
+.proj-crumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-3); margin-bottom: 12px; }
+.proj-crumb .link-btn { font-size: inherit; }
+.crumb-here { color: var(--text-2); }
 .link-btn { background: none; border: 0; padding: 0; color: var(--text-3); cursor: pointer; font-size: 12.5px; }
 .link-btn:hover { color: var(--accent); text-decoration: underline; }
-.proj-title-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.proj-title-actions { display: flex; gap: 4px; }
-.proj-name-input { font-size: 22px; font-weight: 700; max-width: 460px; }
-.proj-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; margin-top: 20px; align-items: start; }
-.proj-main, .proj-side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-.panel-body { display: flex; flex-direction: column; gap: 10px; }
 
-.proj-composer { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; }
-.proj-composer textarea {
-  width: 100%; border: 0; background: none; resize: none; outline: none;
-  font: inherit; font-size: 14px; color: var(--text-1);
+.proj-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 32px; }
+/* The one serif in the app. A project is a named thing you return to rather
+   than a screen you pass through, and the title is doing the work a cover
+   does -- so it is set, not labelled. */
+.proj-title {
+  font-family: var(--serif); font-size: 32px; font-weight: 400;
+  line-height: 1.15; letter-spacing: -.01em; min-width: 0; overflow-wrap: anywhere;
 }
-.proj-composer-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.proj-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+.proj-pin.on { color: var(--accent); }
 
-.proj-instr { width: 100%; resize: vertical; font-size: 13px; line-height: 1.55; }
-.proj-instr-read { font-size: 13px; line-height: 1.6; color: var(--text-2); white-space: pre-wrap; }
+.proj-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 32px; align-items: start; }
+.proj-main { min-width: 0; }
 
-.proj-chat-row {
-  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-  background: none; border: 0; padding: 9px 10px; border-radius: var(--r-sm); cursor: pointer; color: inherit;
+/* The shared composer, in normal flow: no gradient to lift it off a scrolling
+   thread, and no measure cap, because here its column already sets the width. */
+.composer-zone.inline { padding: 0; background: none; }
+.composer-zone.inline .composer { max-width: none; }
+/* A touch taller than the docked one. There it sits under a thread that
+   already fills the screen; here it is the first thing on an empty page and
+   has to look like the place to start. */
+.composer-zone.inline .composer-box textarea { min-height: 74px; }
+
+.proj-recents-label { font-size: 13.5px; font-weight: 400; color: var(--text-3); margin: 30px 0 2px; }
+.proj-recents-empty { font-size: 13.5px; line-height: 1.6; color: var(--text-3); padding: 14px 0; }
+.proj-recents { display: flex; flex-direction: column; }
+/* Pulled out past the column edge so the hover fill has room to breathe
+   without the titles moving when it appears. */
+.proj-recent {
+  display: flex; align-items: center; gap: 16px; text-align: left;
+  width: calc(100% + 24px); margin-inline: -12px; padding: 14px 12px;
+  background: none; border: 0; border-bottom: 1px solid var(--border);
+  color: inherit; cursor: pointer; transition: background .12s;
 }
-.proj-chat-row:hover { background: var(--surface-2); }
-.pc-title { flex: 1; min-width: 0; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pc-when { font-family: var(--mono); font-size: 11px; color: var(--text-3); flex: none; }
+.proj-recent:hover { background: var(--row-hover); }
+.pr-title { flex: 1; min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-when { flex: none; font-size: 13.5px; color: var(--text-3); }
 
+/* One card, divided -- not three loose panels. The three things it holds are
+   all answers to "what does this project know", and reading as one object is
+   what keeps the eye on the composer instead. */
+.proj-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.proj-sec { padding: 18px 20px; }
+.proj-sec + .proj-sec { border-top: 1px solid var(--border); }
+.proj-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; }
+.proj-sec-head h3 { font-size: 15px; font-weight: 600; }
+.proj-sec-text { font-size: 13.5px; line-height: 1.6; color: var(--text-2); margin-top: 6px; white-space: pre-wrap; }
+.proj-sec-text.muted { color: var(--text-3); }
+/* Clamped so the card keeps its shape however much has been written. The whole
+   paragraph is one click away, and nothing else in the section wants a click. */
+.proj-sec-text.clampable {
+  cursor: pointer; display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; overflow: hidden;
+}
+.proj-sec-text.clampable.open { display: block; }
+.proj-instr { width: 100%; resize: vertical; font-size: 13px; line-height: 1.55; margin-top: 8px; }
+
+.ctx-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 .ctx-row { display: flex; align-items: center; gap: 10px; }
 .ctx-meta { flex: 1; min-width: 0; }
 .ctx-title { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ctx-sub { font-family: var(--mono); font-size: 11px; color: var(--text-3); }
-.ctx-actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
-.ctx-actions .btn { flex: 1; min-width: 120px; }
+/* The empty state is the button: an inset panel with nothing in it is asking
+   to be filled, so pressing anywhere on it opens the picker. */
+.ctx-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  width: 100%; margin-top: 12px; padding: 26px 24px 30px;
+  background: var(--surface-2); border: 0; border-radius: var(--r-md);
+  color: var(--text-3); font-size: 13.5px; line-height: 1.55; text-align: center;
+  cursor: pointer; transition: background .13s, color .13s;
+}
+.ctx-empty:hover { background: var(--row-hover); color: var(--text-2); }
+.ctx-empty span { max-width: 30ch; }
+.ctx-art { width: 210px; height: auto; }
+.ctx-art.dark { display: none; }
+[data-theme="dark"] .ctx-art.light { display: none; }
+[data-theme="dark"] .ctx-art.dark { display: block; }
+
+/* The sidebar's menu, dropped from a control at the top of a page instead of
+   raised from one at its foot. */
+.pop-menu.pm-drop {
+  top: calc(100% + 6px); bottom: auto; left: auto; right: 0;
+  width: max-content; min-width: 180px;
+}
+
+@media (max-width: 940px) {
+  .proj-grid { grid-template-columns: minmax(0, 1fr); }
+}
 
 .save-row.spread { justify-content: space-between; align-items: center; }
 .scope-choice { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
