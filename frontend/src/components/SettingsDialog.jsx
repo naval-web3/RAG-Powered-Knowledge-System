@@ -51,14 +51,51 @@ function when(iso) {
 }
 
 /** A labelled row: title and optional description on the left, control right. */
-function Row({ title, sub, children, stacked = false }) {
+function Row({ title, sub, info, children, stacked = false }) {
   return (
     <div className={`set-row ${stacked ? "stacked" : ""}`}>
       <div className="set-row-text">
-        <div className="set-row-title">{title}</div>
+        <div className="set-row-title">
+          {title}
+          {/* Detail that is worth having but not worth reading every time. As a
+              paragraph it set the height of the row and shoved the field out of
+              line with the one above it. */}
+          {info && (
+            <Tooltip label={info} placement="top">
+              <span className="set-info" tabIndex={0} role="note" aria-label={info}>
+                <Icon name="info" className="icon-sm" />
+              </span>
+            </Tooltip>
+          )}
+        </div>
         {sub && <div className="set-row-sub">{sub}</div>}
       </div>
       {children && <div className="set-row-ctl">{children}</div>}
+    </div>
+  );
+}
+
+/**
+ * A password box that can show what is in it.
+ *
+ * The eye lives INSIDE the field. Outside, it sat in the row's flex line and
+ * took width from the input, so the two password boxes ended up different
+ * lengths and out of line with each other. Each field keeps its own state:
+ * revealing the one you are typing should not expose the one above it.
+ */
+function PasswordField({ value, onChange, autoComplete }) {
+  const t = useT();
+  const [show, setShow] = useState(false);
+  const label = show ? t("settings.hide") : t("settings.show");
+  return (
+    <div className="set-input-wrap has-eye">
+      <input className="set-input" type={show ? "text" : "password"}
+        autoComplete={autoComplete} value={value} onChange={onChange} />
+      <Tooltip label={label} placement="left">
+        <button className="set-eye" aria-label={label} onClick={() => setShow((v) => !v)}>
+          <Icon name={show ? "eye-off" : "eye"} className="icon-sm" />
+        </button>
+      </Tooltip>
     </div>
   );
 }
@@ -137,7 +174,6 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
   const [usageAt, setUsageAt] = useState(null);
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
-  const [showKey, setShowKey] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -440,22 +476,12 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
 
                 <h3 className="set-h">{t("settings.password")}</h3>
                 <Row title={t("settings.currentPassword")}>
-                  <input className="set-input" type="password" autoComplete="current-password"
-                    value={oldPass} onChange={(e) => setOldPass(e.target.value)} />
+                  <PasswordField value={oldPass} autoComplete="current-password"
+                    onChange={(e) => setOldPass(e.target.value)} />
                 </Row>
-                <Row title={t("settings.newPassword")} sub={t("settings.newPasswordSub")}>
-                  <div className="set-input-wrap">
-                    <input className="set-input" type={showKey ? "text" : "password"} autoComplete="new-password"
-                      value={newPass} onChange={(e) => setNewPass(e.target.value)} />
-                    <Tooltip label={showKey ? t("settings.hide") : t("settings.show")}
-                      placement="left">
-                      <button className="btn-icon"
-                        aria-label={showKey ? t("settings.hide") : t("settings.show")}
-                        onClick={() => setShowKey((v) => !v)}>
-                        <Icon name={showKey ? "eye-off" : "eye"} className="icon-sm" />
-                      </button>
-                    </Tooltip>
-                  </div>
+                <Row title={t("settings.newPassword")} info={t("settings.newPasswordSub")}>
+                  <PasswordField value={newPass} autoComplete="new-password"
+                    onChange={(e) => setNewPass(e.target.value)} />
                 </Row>
                 <div className="set-actions">
                   <button className="btn btn-primary" onClick={changePassword}

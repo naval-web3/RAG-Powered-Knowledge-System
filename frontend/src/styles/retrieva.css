@@ -2436,7 +2436,11 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 .set-row.stacked { flex-direction: column; align-items: stretch; gap: 10px; }
 .set-row-text { flex: 1; min-width: 0; }
-.set-row-title { font-size: 14px; color: var(--text); }
+.set-row-title { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text); }
+/* Carries the detail the row used to spell out. cursor:help says it is worth
+   pointing at rather than clicking. */
+.set-info { display: inline-flex; color: var(--text-3); cursor: help; }
+.set-info:hover { color: var(--text-2); }
 .set-row-sub { font-size: 12.5px; line-height: 1.5; color: var(--text-3); margin-top: 3px; }
 .set-row-ctl { flex: none; display: flex; align-items: center; gap: 8px; }
 .set-row.stacked .set-row-ctl { flex: 1; display: block; }
@@ -2488,6 +2492,21 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .set-input:disabled { color: var(--text-3); }
 .set-input-sm { width: 110px; }
 .set-input-wrap { display: flex; align-items: center; gap: 4px; }
+/* The eye sits over the field's own right edge, so the box keeps the full
+   240px every other field has and the two line up. Tooltip wraps its child in
+   a span, so the span is what gets positioned, not the button. */
+.set-input-wrap.has-eye { position: relative; gap: 0; }
+.set-input-wrap.has-eye .set-input { padding-right: 36px; }
+.set-input-wrap.has-eye .tip-wrap {
+  position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+  display: inline-flex;
+}
+.set-eye {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 6px;
+  color: var(--text-3); transition: color .12s, background .12s;
+}
+.set-eye:hover { color: var(--text); background: var(--surface-2); }
 .set-textarea {
   width: 100%; padding: 11px 13px; resize: vertical; min-height: 96px;
   border: 1px solid var(--border); border-radius: var(--r-md);
