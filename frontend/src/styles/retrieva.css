@@ -1316,7 +1316,14 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 /* A pinned project says so without being hovered -- it is the reason the card
    is at the top of the list. It is a mark, not a button: the toggle lives in
    the menu, so there is one place to act and one place to read. */
-.lib-pinned { display: inline-flex; flex: none; color: var(--accent); }
+/* The row is top-aligned because the menu button is taller than the name, so
+   the pin has to be told which line it belongs to. Given the name's own font
+   size and line-height, its box is exactly one line of the name -- centring
+   the icon inside that puts it on the text's centre rather than the row's. */
+.lib-pinned {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  font-size: 14.5px; height: 1.55em; color: var(--accent);
+}
 /* The menu button keeps its plate while the menu is open, or the thing you
    just pressed disappears the moment the pointer moves onto its own list. */
 .lib-menu { flex: none; }
