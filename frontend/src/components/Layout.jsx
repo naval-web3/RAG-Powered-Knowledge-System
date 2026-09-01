@@ -10,10 +10,12 @@ import { languageOf } from "../i18n/languages";
 import { getThemePref, setTheme } from "../theme";
 import { initialsOf } from "../utils";
 import ConfirmModal from "./ConfirmModal";
+import PortalMenu from "./PortalMenu";
 import DocumentDialog from "./DocumentDialog";
 import Ghost from "./Ghost";
 import Icon from "./Icon";
 import NewProjectDialog from "./NewProjectDialog";
+import { ProjectMenu, EditProjectDialog } from "./ProjectMenu";
 import Keys from "./Keys";
 import LanguageDialog from "./LanguageDialog";
 import SettingsDialog from "./SettingsDialog";
@@ -57,74 +59,6 @@ function recencyKey(dateish) {
   if (day >= new Date(now.getFullYear(), 0, 1)) return "recency.thisYear";
   if (day >= new Date(now.getFullYear() - 1, 0, 1)) return "recency.pastYear";
   return "recency.older";
-}
-
-/**
- * A popover rendered into <body> and positioned from its anchor's box.
- *
- * The row menu used to live inside .sb-scroll, which clips what overflows it
- * and fades its own last 22px -- so a menu opened on one of the bottom rows
- * came out cut in half and greyed. Out here nothing crops it, at the cost of
- * having to place it by hand.
- */
-function PortalMenu({ anchorRef, align = "right", className = "", children }) {
-  const boxRef = useRef(null);
-  const [pos, setPos] = useState(null);
-
-  /* No dependency array on purpose: children change identity on every render
-     of the owner, and the anchor moves whenever anything scrolls or resizes.
-     Re-measuring each time is cheap; what matters is that identical numbers
-     do not schedule another render, or this would never settle. */
-  useLayoutEffect(() => {
-    const place = () => {
-      const anchor = anchorRef.current;
-      const box = boxRef.current;
-      if (!anchor || !box) return;
-      const r = anchor.getBoundingClientRect();
-      const h = box.offsetHeight;
-      const below = window.innerHeight - r.bottom;
-      // Flip up only when there is genuinely more room up there, so a menu
-      // near the bottom does not jump above a button with space to spare.
-      const up = below < h + 12 && r.top > below;
-      const next = {
-        top: up ? Math.max(8, r.top - h - 4) : r.bottom + 4,
-        left: align === "left" ? Math.max(8, r.left) : null,
-        right: align === "left" ? null : Math.max(8, window.innerWidth - r.right),
-      };
-      setPos((prev) =>
-        prev && prev.top === next.top && prev.left === next.left && prev.right === next.right
-          ? prev
-          : next
-      );
-    };
-    place();
-    window.addEventListener("resize", place);
-    // Capture phase: a scroll inside the sidebar carries the anchor with it
-    // and never reaches window on its own.
-    window.addEventListener("scroll", place, true);
-    return () => {
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
-    };
-  });
-
-  return createPortal(
-    <div
-      ref={boxRef}
-      className={`pop-menu is-portal ${className}`}
-      style={{
-        top: pos ? pos.top : 0,
-        left: pos && pos.left != null ? pos.left : undefined,
-        right: pos && pos.right != null ? pos.right : undefined,
-        // Hidden for the first pass only: the height has to be measured before
-        // it can be decided whether the menu hangs down or up.
-        visibility: pos ? "visible" : "hidden",
-      }}
-    >
-      {children}
-    </div>,
-    document.body
-  );
 }
 
 /**
@@ -480,6 +414,8 @@ function Shell() {
   /* One dialog for both ways in. `conv` is set only when the project is being
      started from a chat's menu, and is the chat it gets filed into after. */
   const [newProject, setNewProject] = useState(null);
+  const [editProject, setEditProject] = useState(null);
+  const [deleteProject, setDeleteProject] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState(readCollapsed);
   const [themePref, setThemePref] = useState(getThemePref);
   const footRef = useRef(null);
@@ -1021,6 +957,13 @@ function Shell() {
                   onClick={() => goto(`/projects/${p.project_id}`)}>
                   <Icon name="book" className="icon-sm" />
                   <span className="conv-title">{p.name}</span>
+                  <ProjectMenu
+                    project={p}
+                    placement="right"
+                    onPin={() => chat.updateProject(p.project_id, { pinned: !p.pinned })}
+                    onEdit={() => setEditProject(p)}
+                    onDelete={() => setDeleteProject(p)}
+                  />
                 </div>
                 {own.slice(0, 8).map((c) => (
                   <div key={c.conversation_id}
@@ -1328,6 +1271,35 @@ function Shell() {
             </div>
           </div>
         </div>
+      )}
+
+      {editProject && (
+        <EditProjectDialog
+          project={editProject}
+          onClose={() => setEditProject(null)}
+          onSave={async (clean) => {
+            const proj = editProject;
+            setEditProject(null);
+            await chat.updateProject(proj.project_id, { name: clean });
+          }}
+        />
+      )}
+
+      {deleteProject && (
+        <ConfirmModal
+          title={t("projects.deleteTitle")}
+          text={t("projects.deleteText")}
+          okLabel={t("common.delete")}
+          onCancel={() => setDeleteProject(null)}
+          onConfirm={async () => {
+            const proj = deleteProject;
+            setDeleteProject(null);
+            await chat.deleteProject(proj.project_id);
+            /* Standing on the page of a project that has just gone would show
+               "Project not found"; the chat is where deleting one leaves you. */
+            if (location.pathname === `/projects/${proj.project_id}`) navigate("/");
+          }}
+        />
       )}
 
       {newProject && (

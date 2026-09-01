@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
 import NewProjectDialog from "../components/NewProjectDialog";
+import { ProjectMenu, EditProjectDialog } from "../components/ProjectMenu";
 import LibraryShell, {
   useLibrary, byDateDesc, byName,
 } from "../components/LibraryShell";
@@ -112,7 +113,7 @@ export default function ProjectsPage() {
                     <Icon name="pin" className="icon-sm" />
                   </span>
                 )}
-                <CardMenu
+                <ProjectMenu
                   project={p}
                   onPin={() => chat.updateProject(p.project_id, { pinned: !p.pinned })}
                   onEdit={() => setEditing(p)}
@@ -133,7 +134,7 @@ export default function ProjectsPage() {
       )}
 
       {editing && (
-        <EditDetails
+        <EditProjectDialog
           project={editing}
           onClose={() => setEditing(null)}
           onSave={async (clean) => {
@@ -158,95 +159,5 @@ export default function ProjectsPage() {
         />
       )}
     </LibraryShell>
-  );
-}
-
-/**
- * The ⋮ in the corner of a project card.
- *
- * Everything you can do to a project without opening it, in one place, quiet
- * until the card is under the pointer. Each item stops the click reaching the
- * card underneath: choosing "Delete" from a menu is not asking to open the
- * thing you are deleting.
- */
-function CardMenu({ project, onPin, onEdit, onDelete }) {
-  const t = useT();
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    window.addEventListener("mousedown", onDown);
-    return () => window.removeEventListener("mousedown", onDown);
-  }, [open]);
-
-  const pick = (fn) => (e) => {
-    e.stopPropagation();
-    setOpen(false);
-    fn();
-  };
-
-  return (
-    <span className="menu-anchor lib-menu" ref={ref} onClick={(e) => e.stopPropagation()}>
-      <Tooltip label={t("projects.options")} placement="top">
-        <button className={`lib-act ${open ? "on" : ""}`} aria-haspopup="true"
-          aria-expanded={open} aria-label={t("projects.options")}
-          onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}>
-          <Icon name="more-v" className="icon-sm" />
-        </button>
-      </Tooltip>
-      {open && (
-        <div className="pop-menu pm-drop">
-          <button className="pm-item" onClick={pick(onPin)}>
-            <Icon name={project.pinned ? "pin-off" : "pin"} className="icon-sm" />
-            {project.pinned ? t("common.unpin") : t("common.pin")}
-          </button>
-          <button className="pm-item" onClick={pick(onEdit)}>
-            <Icon name="pencil" className="icon-sm" /> {t("projects.editDetails")}
-          </button>
-          <div className="pm-sep" />
-          <button className="pm-item danger" onClick={pick(onDelete)}>
-            <Icon name="trash" className="icon-sm" /> {t("common.delete")}
-          </button>
-        </div>
-      )}
-    </span>
-  );
-}
-
-/** The one thing a project is described by from this page: its name. */
-function EditDetails({ project, onClose, onSave }) {
-  const t = useT();
-  const [name, setName] = useState(project.name);
-  const clean = name.trim();
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" role="dialog" aria-modal="true"
-        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
-        onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{t("projects.editDetails")}</h3>
-          <button className="btn-icon" aria-label={t("common.close")} onClick={onClose}>
-            <Icon name="x" className="icon-sm" />
-          </button>
-        </div>
-        <div className="modal-body">
-          <div className="field">
-            <label htmlFor="proj-rename">{t("sidebar.projectName")}</label>
-            <input id="proj-rename" className="input" autoFocus value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && clean) onSave(clean); }} />
-          </div>
-        </div>
-        <div className="modal-foot">
-          <button className="btn btn-ghost" onClick={onClose}>{t("common.cancel")}</button>
-          <button className="btn btn-primary" disabled={!clean} onClick={() => onSave(clean)}>
-            {t("common.save")}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }

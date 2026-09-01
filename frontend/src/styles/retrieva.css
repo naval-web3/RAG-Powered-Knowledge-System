@@ -1324,10 +1324,34 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
   display: inline-flex; align-items: center; justify-content: center; flex: none;
   font-size: 14.5px; height: 1.55em; color: var(--accent);
 }
-/* The menu button keeps its plate while the menu is open, or the thing you
-   just pressed disappears the moment the pointer moves onto its own list. */
-.lib-menu { flex: none; }
-.lib-card .lib-act.on { opacity: 1; background: var(--surface-2); color: var(--text); }
+/* The shared project menu. It borrows whatever button metrics the thing
+   holding it uses -- a card's corner control, or a sidebar row's -- and only
+   the reveal rule differs. It keeps its plate while open, or the control you
+   just pressed vanishes the moment the pointer moves onto its own list. */
+/* Descendant, not child: the button is wrapped in the tooltip's own span, so
+   `.proj-menu > button` matches nothing and the control sat visible at rest. */
+.proj-menu { flex: none; display: inline-flex; }
+.proj-menu .tip-wrap { display: inline-flex; }
+.proj-menu button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 8px;
+  color: var(--text-3); opacity: 0;
+  transition: opacity .13s, background .13s, color .13s;
+}
+.lib-card:hover .proj-menu button,
+.conv-item:hover .proj-menu button,
+.proj-menu button:focus-visible,
+.proj-menu button.on { opacity: 1; }
+.proj-menu button:hover, .proj-menu button.on {
+  background: var(--surface-2); color: var(--text);
+}
+/* The list lives in <body> now, so it is out of reach of the rules above --
+   which is what stops it inheriting the trigger's 22px box. */
+.pop-menu.proj-pop { min-width: 180px; width: max-content; }
+/* A sidebar row is shorter than a card's corner, and its own icon buttons are
+   narrowed for the same reason -- two flush controls have only their padding
+   between them. */
+.conv-item .proj-menu button { width: 22px; height: 22px; border-radius: 6px; }
 .lib-card {
   display: flex; flex-direction: column; gap: 10px; text-align: left;
   min-height: 132px; padding: 16px 16px 14px;
