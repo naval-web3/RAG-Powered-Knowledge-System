@@ -8,6 +8,13 @@ import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { fmtBytes, timeAgo } from "../utils";
 
+/* A project is a working set, not an archive: past a couple of thousand
+   chunks a retrieval of five starts competing with itself and answers get
+   vaguer. Nothing in the backend rejects the 2001st chunk -- this is a design
+   limit, not an enforced one -- so the bar is guidance and says out loud what
+   it is counting. */
+const CHUNK_BUDGET = 2000;
+
 /**
  * Inside one project: ask it something, see what has been asked before, and
  * keep the two things that make it a project rather than a folder -- the
@@ -27,7 +34,6 @@ export default function ProjectPage() {
 
   const project = chat.projects.find((p) => p.project_id === projectId) || null;
 
-  const [instructions, setInstructions] = useState("");
   const [editingInstr, setEditingInstr] = useState(false);
   // The instructions are clamped to two lines at rest, as they are the longest
   // thing on the card and the least often re-read.
@@ -35,10 +41,10 @@ export default function ProjectPage() {
   const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  useEffect(() => {
-    if (project) setInstructions(project.instructions || "");
-  }, [project?.project_id, project?.instructions]);
+  // The context search is opened by its own button rather than sitting there
+  // always: a search box over three rows is furniture.
+  const [searching, setSearching] = useState(false);
+  const [ctxQ, setCtxQ] = useState("");
 
   // A project the user just deleted, or one that never existed.
   if (!project) {
@@ -59,7 +65,22 @@ export default function ProjectPage() {
   const chats = chat.conversations.filter((c) => c.project_id === projectId);
   const usingAll = project.doc_scope === "all";
 
-  async function saveInstructions() {
+  /* A project set to the whole library really can reach every indexed document,
+     so that is what its capacity counts. Chunks, not files: a 400-page report
+     and a one-page note are not the same amount of project. */
+  const inScope = usingAll
+    ? chat.docs.filter((d) => d.processing_status === "done")
+    : attached;
+  const chunks = inScope.reduce((n, d) => n + (d.chunk_count || 0), 0);
+  const pct = Math.min(100, Math.round((chunks / CHUNK_BUDGET) * 100));
+  const capLevel = chunks >= CHUNK_BUDGET ? "over" : chunks >= CHUNK_BUDGET * 0.9 ? "near" : "";
+
+  const needle = ctxQ.trim().toLowerCase();
+  const listed = needle
+    ? attached.filter((d) => d.title.toLowerCase().includes(needle))
+    : attached;
+
+  async function saveInstructions(instructions) {
     try {
       await chat.updateProject(projectId, { instructions });
       setEditingInstr(false);
@@ -197,39 +218,20 @@ export default function ProjectPage() {
             <section className="proj-sec">
               <div className="proj-sec-head">
                 <h3>Instructions</h3>
-                {!editingInstr && (
-                  <Tooltip label="Edit instructions" placement="left">
-                    <button className="btn-icon" aria-label="Edit instructions"
-                      onClick={() => setEditingInstr(true)}>
-                      <Icon name="pencil" className="icon-sm" />
-                    </button>
-                  </Tooltip>
-                )}
+                <Tooltip label="Set project instructions" placement="left">
+                  <button className="btn-icon" aria-label="Set project instructions"
+                    onClick={() => setEditingInstr(true)}>
+                    <Icon name="pencil" className="icon-sm" />
+                  </button>
+                </Tooltip>
               </div>
-              {editingInstr ? (
-                <>
-                  <textarea
-                    className="input proj-instr"
-                    rows={7}
-                    autoFocus
-                    placeholder="You are my HR policy assistant. Answer in short bullet points and always quote the clause number."
-                    value={instructions}
-                    onChange={(e) => setInstructions(e.target.value)}
-                  />
-                  <div className="save-row">
-                    <button className="btn btn-ghost" onClick={() => {
-                      setInstructions(project.instructions || "");
-                      setEditingInstr(false);
-                    }}>
-                      Cancel
-                    </button>
-                    <button className="btn btn-primary" onClick={saveInstructions}>Save</button>
-                  </div>
-                </>
-              ) : project.instructions ? (
+              {project.instructions ? (
                 /* Clamped at rest and opened by a click, rather than by a
                    second control: the text itself is the only thing there is
-                   to press, and nothing else on the card wants that click. */
+                   to press, and nothing else on the card wants that click.
+                   Editing is a dialog now -- standing instructions run to
+                   paragraphs, and a seven-row box wedged into a sidebar card
+                   is the wrong shape to write them in. */
                 <p className={`proj-sec-text clampable ${instrOpen ? "open" : ""}`}
                   role="button"
                   tabIndex={0}
@@ -244,21 +246,57 @@ export default function ProjectPage() {
                   {project.instructions}
                 </p>
               ) : (
-                <p className="proj-sec-text muted">
+                <button className="proj-sec-add" onClick={() => setEditingInstr(true)}>
                   Tell the model what role to take here and how to answer.
-                </p>
+                </button>
               )}
             </section>
 
             <section className="proj-sec">
+              {/* Not space-between: with a heading and TWO controls that parks
+                  the first one mid-row. The heading takes the slack instead. */}
               <div className="proj-sec-head">
                 <h3>Context</h3>
+                {!usingAll && attached.length > 0 && (
+                  <Tooltip label="Search context" placement="top">
+                    <button className={`btn-icon ${searching ? "on" : ""}`}
+                      aria-label="Search context" aria-pressed={searching}
+                      onClick={() => { setSearching((s) => !s); setCtxQ(""); }}>
+                      <Icon name="search" className="icon-sm" />
+                    </button>
+                  </Tooltip>
+                )}
                 <ContextMenu
                   onChoose={() => setPicking(true)}
                   onUpload={() => fileRef.current?.click()}
                   busy={chat.uploading}
                 />
               </div>
+
+              {/* Nothing to measure yet reads better as no bar at all than as an
+                  empty one, which looks like a project that has gone wrong. */}
+              {chunks > 0 && (
+                <div className={`cap ${capLevel}`}>
+                  <div className="cap-track">
+                    <span style={{ width: `${Math.max(pct, 1)}%` }} />
+                  </div>
+                  <div className="cap-label">{pct}% of project capacity used</div>
+                  <div className="cap-count">
+                    {chunks.toLocaleString()} of {CHUNK_BUDGET.toLocaleString()} chunks
+                    {usingAll ? " · your whole library" : ""}
+                  </div>
+                </div>
+              )}
+
+              {searching && (
+                <div className="ctx-search">
+                  <input autoFocus value={ctxQ} onChange={(e) => setCtxQ(e.target.value)}
+                    placeholder="Search these documents…" aria-label="Search context"
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") { setSearching(false); setCtxQ(""); }
+                    }} />
+                </div>
+              )}
 
               {usingAll ? (
                 <p className="proj-sec-text muted">
@@ -275,9 +313,11 @@ export default function ProjectPage() {
                     alt="" width="210" height="112" />
                   <span>Add PDFs, documents, or other text to reference in this project.</span>
                 </button>
+              ) : listed.length === 0 ? (
+                <p className="proj-sec-text muted">No document here matches “{ctxQ.trim()}”.</p>
               ) : (
                 <div className="ctx-list">
-                  {attached.map((d) => (
+                  {listed.map((d) => (
                     <div key={d.document_id} className="ctx-row">
                       <span className={`file-ic ${d.file_type}`}>{d.file_type}</span>
                       <div className="ctx-meta">
@@ -313,6 +353,14 @@ export default function ProjectPage() {
           </aside>
         </div>
       </div>
+
+      {editingInstr && (
+        <InstructionsModal
+          project={project}
+          onClose={() => setEditingInstr(false)}
+          onSave={saveInstructions}
+        />
+      )}
 
       {editing && (
         <EditDetails
@@ -425,15 +473,17 @@ function ContextMenu({ onChoose, onUpload, busy }) {
   );
 }
 
-/** Name and standing instructions, the two things that describe a project. */
+/* Instructions deliberately do NOT appear here as well. They have their own
+   dialog, and two routes to one field means two drafts of it open at once. */
 function EditDetails({ project, onClose, onSave }) {
   const [name, setName] = useState(project.name);
-  const [instructions, setInstructions] = useState(project.instructions || "");
   const clean = name.trim();
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" role="dialog" aria-modal="true"
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+        onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>Project details</h3>
           <button className="btn-icon" aria-label="Close" onClick={onClose}>
@@ -445,21 +495,61 @@ function EditDetails({ project, onClose, onSave }) {
             <label htmlFor="proj-name">Name</label>
             <input id="proj-name" className="input" autoFocus value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && clean) onSave({ name: clean, instructions }); }} />
+              onKeyDown={(e) => { if (e.key === "Enter" && clean) onSave({ name: clean }); }} />
           </div>
-          <div className="field">
-            <label htmlFor="proj-instructions">Instructions</label>
-            <textarea id="proj-instructions" className="input proj-instr" rows={6} value={instructions}
-              placeholder="You are my HR policy assistant. Answer in short bullet points and always quote the clause number."
-              onChange={(e) => setInstructions(e.target.value)} />
-          </div>
-          <div className="save-row">
-            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" disabled={!clean}
-              onClick={() => onSave({ name: clean, instructions })}>
-              Save
-            </button>
-          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" disabled={!clean}
+            onClick={() => onSave({ name: clean })}>
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Standing instructions, full width and full height.
+ *
+ * These are the longest thing anyone writes in this app and the one most worth
+ * re-reading before saving, which is why they get a dialog of their own rather
+ * than a box in the corner of a card.
+ */
+function InstructionsModal({ project, onClose, onSave }) {
+  const [text, setText] = useState(project.instructions || "");
+  const dirty = text !== (project.instructions || "");
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal instr-modal" role="dialog" aria-modal="true"
+        aria-labelledby="instr-title"
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+        onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3 id="instr-title">Set project instructions</h3>
+        </div>
+        <div className="modal-body">
+          {/* Both halves of this are true of the engine: the project's
+              instructions and the ones on your own account are put into the
+              same prompt, and what they are applied to is whatever the
+              retrieval pulls out of the documents in Context. */}
+          <p className="m-text instr-sub">
+            Standing instructions for every chat in <b>{project.name}</b> — the role to
+            take, and how to answer. They work alongside your own instructions in
+            Settings, and apply to whatever this project retrieves from the documents
+            in Context.
+          </p>
+          <textarea className="input instr-box" autoFocus value={text}
+            placeholder="You are my HR policy assistant. Answer in short bullet points and always quote the clause number."
+            onChange={(e) => setText(e.target.value)} />
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" disabled={!dirty} onClick={() => onSave(text)}>
+            Save instructions
+          </button>
         </div>
       </div>
     </div>

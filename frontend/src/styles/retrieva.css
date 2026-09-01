@@ -1619,6 +1619,15 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    overshoot in the curve gives it the pop. */
 @keyframes modalIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
 .modal-lg { max-width: 620px; }
+/* Wider and taller than any other dialog here, because it is the only one you
+   write a page into rather than fill a field in. */
+.modal.instr-modal { max-width: 720px; }
+.instr-sub { margin-bottom: 14px; }
+.instr-sub b { color: var(--text); font-weight: 600; }
+.instr-box {
+  width: 100%; resize: vertical; min-height: 340px;
+  font-size: 14px; line-height: 1.65;
+}
 .modal-head { display: flex; align-items: center; gap: 12px; padding: 20px 22px 0; }
 .modal-head h3 { font-size: 19px; font-weight: 600; flex: 1; }
 .modal-body { padding: 16px 22px 22px; overflow-y: auto; }
@@ -1739,8 +1748,14 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 .proj-sec { padding: 18px 20px; }
 .proj-sec + .proj-sec { border-top: 1px solid var(--border); }
-.proj-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; }
-.proj-sec-head h3 { font-size: 15px; font-weight: 600; }
+/* NOT space-between: a heading plus two buttons would leave the first button
+   stranded in the middle of the row. The heading takes the slack, and the
+   buttons sit flush at the end -- so they are narrowed, because the only gap
+   between two adjacent icon buttons is their own padding. */
+.proj-sec-head { display: flex; align-items: center; gap: 2px; min-height: 28px; }
+.proj-sec-head h3 { font-size: 15px; font-weight: 600; margin-right: auto; }
+.proj-sec-head .btn-icon { width: 28px; height: 28px; }
+.proj-sec-head .btn-icon.on { background: var(--surface-2); color: var(--text); }
 .proj-sec-text { font-size: 13.5px; line-height: 1.6; color: var(--text-2); margin-top: 6px; white-space: pre-wrap; }
 .proj-sec-text.muted { color: var(--text-3); }
 /* Clamped so the card keeps its shape however much has been written. The whole
@@ -1750,7 +1765,43 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   -webkit-line-clamp: 2; overflow: hidden;
 }
 .proj-sec-text.clampable.open { display: block; }
-.proj-instr { width: 100%; resize: vertical; font-size: 13px; line-height: 1.55; margin-top: 8px; }
+/* The empty state is the way in, the same as the Context panel below it. */
+.proj-sec-add {
+  display: block; width: 100%; text-align: left; margin-top: 6px;
+  padding: 10px 12px; margin-inline: -12px; width: calc(100% + 24px);
+  background: none; border: 0; border-radius: var(--r-sm);
+  font-size: 13.5px; line-height: 1.6; color: var(--text-3);
+  cursor: pointer; transition: background .13s, color .13s;
+}
+.proj-sec-add:hover { background: var(--surface-2); color: var(--text-2); }
+
+/* How much project this project is. Chunks rather than files, against a budget
+   the app declares rather than one the backend enforces -- so the count is
+   spelled out under the label instead of leaving a bare percentage to be
+   trusted. */
+.cap { margin: 12px 0 2px; }
+.cap-track {
+  height: 6px; border-radius: 99px; background: var(--surface-2);
+  border: 1px solid var(--border); overflow: hidden;
+}
+.cap-track span {
+  display: block; height: 100%; border-radius: 99px;
+  background: var(--blue); transition: width .35s var(--ease), background .2s;
+}
+.cap.near .cap-track span { background: var(--amber); }
+.cap.over .cap-track span { background: var(--red); }
+.cap-label { font-size: 12.5px; color: var(--text-2); margin-top: 8px; }
+.cap-count { font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.cap.near .cap-label { color: var(--amber); }
+.cap.over .cap-label { color: var(--red); }
+
+.ctx-search { margin-top: 12px; }
+.ctx-search input {
+  width: 100%; padding: 8px 11px; font-size: 13px;
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--r-sm); outline: none;
+}
+.ctx-search input:focus { border-color: var(--border-strong); }
 
 .ctx-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 .ctx-row { display: flex; align-items: center; gap: 10px; }
