@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import LibraryShell, {
@@ -18,15 +18,39 @@ export default function ProjectsPage() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+  /* When the project itself was last written -- renamed, re-scoped, given new
+     instructions -- says nothing about when it was last USED. Chatting inside
+     a project deliberately does not touch the project row, so a project worked
+     in all morning still reported the day its documents were chosen.
+     The last interaction is the later of the two: the project's own timestamp,
+     or the newest chat filed under it. */
+  const lastChatIn = useMemo(() => {
+    const m = new Map();
+    for (const c of chat.conversations) {
+      if (!c.project_id) continue;
+      const seen = m.get(c.project_id);
+      if (!seen || new Date(c.updated_at) > new Date(seen)) m.set(c.project_id, c.updated_at);
+    }
+    return m;
+  }, [chat.conversations]);
+
+  const lastTouched = useCallback(
+    (p) => {
+      const chatted = lastChatIn.get(p.project_id);
+      return chatted && new Date(chatted) > new Date(p.updated_at) ? chatted : p.updated_at;
+    },
+    [lastChatIn]
+  );
+
   /* A project has both dates and they answer different questions: which one
      did I touch last, and which one did I start first. */
   const sorts = useMemo(
     () => [
-      { value: "recent", label: t("common.sortRecent"), nameOf: (p) => p.name, cmp: byDateDesc((p) => p.updated_at) },
+      { value: "recent", label: t("common.sortRecent"), nameOf: (p) => p.name, cmp: byDateDesc(lastTouched) },
       { value: "created", label: t("common.sortCreated"), nameOf: (p) => p.name, cmp: byDateDesc((p) => p.created_at) },
       { value: "name", label: t("common.sortAlpha"), nameOf: (p) => p.name, cmp: byName((p) => p.name) },
     ],
-    [t]
+    [t, lastTouched]
   );
   const { q, setQ, sort, setSort, shown } = useLibrary(chat.projects, sorts);
 
@@ -85,7 +109,9 @@ export default function ProjectsPage() {
                   told apart from another by, so they stand in as the blurb. */}
               {p.instructions && <p className="lib-card-body">{p.instructions}</p>}
               <div className="lib-card-foot">
-                <span className="lib-date">{timeAgo(p.updated_at)}</span>
+                {/* The last time this project was used, not the last time
+                    its settings were written. */}
+                <span className="lib-date">{timeAgo(lastTouched(p))}</span>
               </div>
             </button>
           ))}
