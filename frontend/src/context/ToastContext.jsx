@@ -71,7 +71,8 @@ export function ToastProvider({ children }) {
       {children}
       <div id="toasts" role="status" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className={`toast ${t.type} ${t.leaving ? "leaving" : ""}`}>
+          <div key={t.id}
+            className={`toast ${t.type} ${t.ring ? "is-live" : ""} ${t.leaving ? "leaving" : ""}`}>
             {t.ring ? (
               <span className={`t-ring ${t.ring.state}`}>
                 <span className="t-ring-track" />
@@ -95,7 +96,11 @@ export function ToastProvider({ children }) {
             )}
             <div className="t-msg">
               <span className="t-text">{t.msg}</span>
-              {t.sub && <span className="t-sub">{t.sub}</span>}
+              {/* A progress toast keeps the row even while it is empty. The
+                  detail comes and goes between phases, and a box that changes
+                  height under a reader who is watching it is worse than a
+                  blank line. */}
+              {(t.sub || t.ring) && <span className="t-sub">{t.sub}</span>}
               {t.action && (
                 <button
                   className="t-act"

@@ -2073,6 +2073,23 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   line-height: 1.45; color: var(--text-3);
 }
 
+/* An ordinary toast is sized by its words, because it says one thing once. A
+   progress toast says six things in a row -- "Reading the document" then
+   "batch 1 of 5 - 64 of 257 chunks embedded" -- and resizing at every step
+   makes the thing you are watching jump under your eyes. So it is given one
+   size at the start and keeps it: fixed width, both lines held to one line
+   each, and the detail row reserved whether or not there is detail in it.
+
+   NOT called .progress: that name is already taken by the 5px inline bar
+   further up this file, and a toast wearing it inherited `height: 5px` and
+   collapsed to a fifth of its size with the text hanging out of it. */
+.toast.is-live { width: 340px; max-width: calc(100vw - 44px); }
+.toast.is-live .t-msg { min-width: 0; }
+.toast.is-live .t-sub {
+  height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--mono); font-size: 11px;
+}
+
 /* Mobile shell bits */
 #sb-backdrop { position: fixed; inset: 0; background: rgba(24,21,15,.4); z-index: 55; animation: fadeIn .2s; }
 /* The narrow-screen drawer toggle. BOTH the button and its tooltip wrapper are
