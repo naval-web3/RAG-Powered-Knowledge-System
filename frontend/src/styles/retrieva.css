@@ -1370,7 +1370,7 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 }
 /* The pin sits against the end of the name, and the menu takes the far corner:
    one of them describes the project, the other acts on it. */
-.lib-card-top .lib-menu { margin-left: auto; }
+.lib-card-top .proj-menu { margin-left: auto; }
 /* Two lines, so every card is the same height whatever has been written in
    it. Anywhere-breaking too: instructions are free text and may well contain
    a URL with no spaces in it. */
