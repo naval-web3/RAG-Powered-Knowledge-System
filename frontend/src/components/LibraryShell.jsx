@@ -105,12 +105,24 @@ function LibrarySearch({ q, setQ, placeholder }) {
      happens: the cross, Escape and a click outside all leave the list showing
      everything again. A search that shut but kept filtering would be a page
      hiding rows with nothing on screen to say why.
-     mousedown rather than click, so it closes on the press that begins a
-     click elsewhere rather than waiting for the release. */
+
+     The results are NOT away. Closing clears the query, which re-renders the
+     grid -- so a press on a card used to pull that card out from under the
+     pointer before the click landed on it, and the search ate every attempt to
+     open a result it had just found. A dialog opened from one of those cards
+     is not away either: dismissing it should give the filtered list back, not
+     a list of everything.
+
+     mousedown rather than click, so pressing genuinely unrelated chrome closes
+     it on the press rather than waiting for the release. */
   useEffect(() => {
     if (!open) return undefined;
     const onDown = (e) => {
-      if (boxRef.current && !boxRef.current.contains(e.target)) close();
+      const el = e.target;
+      if (!(el instanceof Element)) return;
+      if (boxRef.current?.contains(el)) return;
+      if (el.closest(".lib-results, .modal-overlay")) return;
+      close();
     };
     window.addEventListener("mousedown", onDown);
     return () => window.removeEventListener("mousedown", onDown);
@@ -177,7 +189,9 @@ export default function LibraryShell({
             {action}
           </div>
         </div>
-        {children}
+        {/* Named so the click-away can tell the results from the page around
+            them: pressing a card is using the search, not leaving it. */}
+        <div className="lib-results">{children}</div>
       </div>
     </div>
   );
