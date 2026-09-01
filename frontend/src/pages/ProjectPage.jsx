@@ -1,12 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Composer from "../components/Composer";
+import ContextDialog from "../components/ContextDialog";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
 import Tooltip from "../components/Tooltip";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { fmtBytes, timeAgo } from "../utils";
+
+/* Whatever actually went wrong, in the toast's second line. A bare "couldn't
+   do that" is unactionable, and the server already sends a reason. */
+const why = (err) =>
+  err?.response?.data?.detail || err?.friendlyMessage || err?.message || undefined;
 
 /* A project is a working set, not an archive: past a couple of thousand
    chunks a retrieval of five starts competing with itself and answers get
@@ -41,10 +47,7 @@ export default function ProjectPage() {
   const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  // The context search is opened by its own button rather than sitting there
-  // always: a search box over three rows is furniture.
-  const [searching, setSearching] = useState(false);
-  const [ctxQ, setCtxQ] = useState("");
+  const [reading, setReading] = useState(false);
 
   // A project the user just deleted, or one that never existed.
   if (!project) {
@@ -75,18 +78,13 @@ export default function ProjectPage() {
   const pct = Math.min(100, Math.round((chunks / CHUNK_BUDGET) * 100));
   const capLevel = chunks >= CHUNK_BUDGET ? "over" : chunks >= CHUNK_BUDGET * 0.9 ? "near" : "";
 
-  const needle = ctxQ.trim().toLowerCase();
-  const listed = needle
-    ? attached.filter((d) => d.title.toLowerCase().includes(needle))
-    : attached;
-
   async function saveInstructions(instructions) {
     try {
       await chat.updateProject(projectId, { instructions });
       setEditingInstr(false);
       toast("Instructions saved", "ok");
-    } catch {
-      toast("Couldn't save the instructions", "err");
+    } catch (err) {
+      toast("Couldn't save the instructions", "err", why(err));
     }
   }
 
@@ -94,8 +92,8 @@ export default function ProjectPage() {
     const next = project.document_ids.filter((id) => id !== documentId);
     try {
       await chat.setProjectDocuments(projectId, "selected", next);
-    } catch {
-      toast("Couldn't remove that document", "err");
+    } catch (err) {
+      toast("Couldn't remove that document", "err", why(err));
     }
   }
 
@@ -119,8 +117,8 @@ export default function ProjectPage() {
   async function togglePin() {
     try {
       await chat.updateProject(projectId, { pinned: !project.pinned });
-    } catch {
-      toast("Couldn't change the pin", "err");
+    } catch (err) {
+      toast("Couldn't change the pin", "err", why(err));
     }
   }
 
@@ -141,8 +139,8 @@ export default function ProjectPage() {
       await chat.deleteProject(projectId);
       toast("Project deleted", "ok", "Its chats and documents are still here.");
       navigate("/projects");
-    } catch {
-      toast("Couldn't delete the project", "err");
+    } catch (err) {
+      toast("Couldn't delete the project", "err", why(err));
     }
   }
 
@@ -257,11 +255,10 @@ export default function ProjectPage() {
                   the first one mid-row. The heading takes the slack instead. */}
               <div className="proj-sec-head">
                 <h3>Context</h3>
-                {!usingAll && attached.length > 0 && (
-                  <Tooltip label="Search context" placement="top">
-                    <button className={`btn-icon ${searching ? "on" : ""}`}
-                      aria-label="Search context" aria-pressed={searching}
-                      onClick={() => { setSearching((s) => !s); setCtxQ(""); }}>
+                {inScope.length > 0 && (
+                  <Tooltip label="Browse context" placement="top">
+                    <button className="btn-icon" aria-label="Browse context"
+                      aria-haspopup="dialog" onClick={() => setReading(true)}>
                       <Icon name="search" className="icon-sm" />
                     </button>
                   </Tooltip>
@@ -281,20 +278,6 @@ export default function ProjectPage() {
                     <span style={{ width: `${Math.max(pct, 1)}%` }} />
                   </div>
                   <div className="cap-label">{pct}% of project capacity used</div>
-                  <div className="cap-count">
-                    {chunks.toLocaleString()} of {CHUNK_BUDGET.toLocaleString()} chunks
-                    {usingAll ? " · your whole library" : ""}
-                  </div>
-                </div>
-              )}
-
-              {searching && (
-                <div className="ctx-search">
-                  <input autoFocus value={ctxQ} onChange={(e) => setCtxQ(e.target.value)}
-                    placeholder="Search these documents…" aria-label="Search context"
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") { setSearching(false); setCtxQ(""); }
-                    }} />
                 </div>
               )}
 
@@ -313,11 +296,9 @@ export default function ProjectPage() {
                     alt="" width="210" height="112" />
                   <span>Add PDFs, documents, or other text to reference in this project.</span>
                 </button>
-              ) : listed.length === 0 ? (
-                <p className="proj-sec-text muted">No document here matches “{ctxQ.trim()}”.</p>
               ) : (
                 <div className="ctx-list">
-                  {listed.map((d) => (
+                  {attached.map((d) => (
                     <div key={d.document_id} className="ctx-row">
                       <span className={`file-ic ${d.file_type}`}>{d.file_type}</span>
                       <div className="ctx-meta">
@@ -354,6 +335,10 @@ export default function ProjectPage() {
         </div>
       </div>
 
+      {reading && (
+        <ContextDialog docs={inScope} onClose={() => setReading(false)} />
+      )}
+
       {editingInstr && (
         <InstructionsModal
           project={project}
@@ -371,8 +356,8 @@ export default function ProjectPage() {
               await chat.updateProject(projectId, patch);
               setEditing(false);
               toast("Project updated", "ok");
-            } catch {
-              toast("Couldn't save those details", "err");
+            } catch (err) {
+              toast("Couldn't save those details", "err", why(err));
             }
           }}
         />
@@ -383,12 +368,12 @@ export default function ProjectPage() {
           project={project}
           docs={chat.docs}
           onClose={() => setPicking(false)}
-          onSave={async (scope, ids) => {
+          onSave={async (ids) => {
             try {
-              await chat.setProjectDocuments(projectId, scope, ids);
+              await chat.setProjectDocuments(projectId, "selected", ids);
               setPicking(false);
-            } catch {
-              toast("Couldn't update the document selection", "err");
+            } catch (err) {
+              toast("Couldn't update the document selection", "err", why(err));
             }
           }}
         />
@@ -556,10 +541,28 @@ function InstructionsModal({ project, onClose, onSave }) {
   );
 }
 
-/** Pick the documents a project may retrieve from: all of them, or a chosen set. */
+/**
+ * Which documents this project may read.
+ *
+ * A flat multi-select: search, tick, save. It used to open on a pair of radios
+ * offering "my whole library" as a mode of its own, which asked a question
+ * before the one the dialog is actually for -- so a project opened on that
+ * setting arrives here with every document already ticked, which is what the
+ * setting meant anyway.
+ */
 function DocPicker({ project, docs, onClose, onSave }) {
-  const [scope, setScope] = useState(project.doc_scope);
-  const [selected, setSelected] = useState(() => new Set(project.document_ids));
+  const ready = useMemo(
+    () => docs.filter((d) => d.processing_status === "done"),
+    [docs]
+  );
+  /* A project on the old whole-library scope keeps no links at all, so seeding
+     from document_ids would open the dialog looking empty and quietly detach
+     everything on save. Seed it with what the project can currently read. */
+  const [selected, setSelected] = useState(() =>
+    project.doc_scope === "all"
+      ? new Set(ready.map((d) => d.document_id))
+      : new Set(project.document_ids)
+  );
   const [q, setQ] = useState("");
 
   const listed = useMemo(() => {
@@ -572,6 +575,12 @@ function DocPicker({ project, docs, onClose, onSave }) {
     );
   }, [docs, q]);
 
+  /* Select all acts on what the search has left showing, not on the library.
+     Filtering to "invoice" and ticking the box should tick the invoices. */
+  const selectable = listed.filter((d) => d.processing_status === "done");
+  const allShown = selectable.length > 0 && selectable.every((d) => selected.has(d.document_id));
+  const someShown = selectable.some((d) => selected.has(d.document_id));
+
   function toggle(id) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -581,78 +590,96 @@ function DocPicker({ project, docs, onClose, onSave }) {
     });
   }
 
+  function toggleAll() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      selectable.forEach((d) => {
+        if (allShown) next.delete(d.document_id);
+        else next.add(d.document_id);
+      });
+      return next;
+    });
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-lg" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-lg pick-modal" role="dialog" aria-modal="true"
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+        onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>Documents for this project</h3>
-          <button className="btn-icon" aria-label="Close" onClick={onClose}><Icon name="x" className="icon-sm" /></button>
+          <button className="btn-icon" aria-label="Close" onClick={onClose}>
+            <Icon name="x" className="icon-sm" />
+          </button>
         </div>
-        <div className="modal-body">
-          <div className="scope-choice">
-            <label className={`scope-opt ${scope === "all" ? "on" : ""}`}>
-              <input type="radio" name="docscope" checked={scope === "all"} onChange={() => setScope("all")} />
-              <span>
-                <b>My whole library</b>
-                <small>Every document you have uploaded, including ones you add later.</small>
-              </span>
-            </label>
-            <label className={`scope-opt ${scope === "selected" ? "on" : ""}`}>
-              <input type="radio" name="docscope" checked={scope === "selected"} onChange={() => setScope("selected")} />
-              <span>
-                <b>Only these documents</b>
-                <small>Pick one or several. This project will not look at anything else.</small>
-              </span>
-            </label>
-          </div>
 
-          {scope === "selected" && (
-            <>
-              <div className="tb-search picker-search">
-                <Icon name="search" className="icon-sm" />
-                <input
-                  type="text"
-                  placeholder="Search your documents…"
-                  autoComplete="off"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                />
-              </div>
-              <div className="picker-list">
-                {listed.length === 0 && <p className="page-sub">No documents match.</p>}
-                {listed.map((d) => {
-                  const usable = d.processing_status === "done";
-                  return (
-                    <label key={d.document_id} className={`picker-row ${usable ? "" : "muted"}`}>
-                      <input
-                        type="checkbox"
-                        checked={selected.has(d.document_id)}
-                        onChange={() => toggle(d.document_id)}
-                        disabled={!usable}
-                      />
-                      <span className={`file-ic ${d.file_type}`}>{d.file_type}</span>
-                      <span className="pk-meta">
-                        <span className="pk-title">{d.title}</span>
-                        <span className="pk-sub">
-                          {usable ? `${d.chunk_count} chunks` : `${d.processing_status} - not searchable yet`}
-                        </span>
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </>
+        <div className="pick-tools">
+          <label className="pick-search">
+            <Icon name="search" className="icon-sm" />
+            <input
+              type="text"
+              autoFocus
+              placeholder="Search your documents…"
+              aria-label="Search your documents"
+              autoComplete="off"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </label>
+          <label className={`pick-all ${selectable.length === 0 ? "is-off" : ""}`}>
+            <input
+              type="checkbox"
+              checked={allShown}
+              disabled={selectable.length === 0}
+              /* Partly ticked is a property, not an attribute: React cannot
+                 set it from JSX, so it is written on the node itself. */
+              ref={(el) => { if (el) el.indeterminate = !allShown && someShown; }}
+              onChange={toggleAll}
+            />
+            <span>Select all</span>
+          </label>
+        </div>
+
+        <div className="pick-list">
+          {listed.length === 0 && (
+            <p className="pick-empty">
+              {q.trim() ? `No document matches “${q.trim()}”.` : "Your library is empty."}
+            </p>
           )}
+          {listed.map((d) => {
+            const usable = d.processing_status === "done";
+            return (
+              <label key={d.document_id} className={`picker-row ${usable ? "" : "muted"}`}>
+                <input
+                  type="checkbox"
+                  checked={selected.has(d.document_id)}
+                  onChange={() => toggle(d.document_id)}
+                  disabled={!usable}
+                />
+                <span className={`file-ic ${d.file_type}`}>{d.file_type}</span>
+                <span className="pk-meta">
+                  <span className="pk-title">{d.title}</span>
+                  <span className="pk-sub">
+                    {usable ? `${d.chunk_count} chunks` : `${d.processing_status} — not searchable yet`}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
 
-          <div className="save-row spread">
-            <span className="p-sub">
-              {scope === "all" ? "Whole library" : `${selected.size} selected`}
-            </span>
-            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={() => onSave(scope, Array.from(selected))}>
-              Save selection
-            </button>
-          </div>
+        <div className="modal-foot pick-foot">
+          <span className="pick-count">
+            {selected.size === 0 ? (
+              "Nothing selected"
+            ) : (
+              <><b>{selected.size}</b> of {docs.length} selected</>
+            )}
+          </span>
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={() => onSave(Array.from(selected))}>
+            Save selection
+          </button>
         </div>
       </div>
     </div>

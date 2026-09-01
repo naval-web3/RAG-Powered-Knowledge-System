@@ -1791,17 +1791,59 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .cap.near .cap-track span { background: var(--amber); }
 .cap.over .cap-track span { background: var(--red); }
 .cap-label { font-size: 12.5px; color: var(--text-2); margin-top: 8px; }
-.cap-count { font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-top: 2px; }
 .cap.near .cap-label { color: var(--amber); }
 .cap.over .cap-label { color: var(--red); }
 
-.ctx-search { margin-top: 12px; }
-.ctx-search input {
-  width: 100%; padding: 8px 11px; font-size: 13px;
-  background: var(--surface-2); color: var(--text);
-  border: 1px solid var(--border); border-radius: var(--r-sm); outline: none;
+/* ---------- The context reader ---------- */
+/* Names on the left, the file itself on the right. Wide and tall, because the
+   thing on the right is a page of a document, not a preview of one. */
+.modal.ctxd-modal { max-width: 1120px; height: 80vh; max-height: 88vh; }
+.ctxd-head {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 20px 22px 14px; flex: none;
 }
-.ctx-search input:focus { border-color: var(--border-strong); }
+.ctxd-heading { flex: 1; min-width: 0; }
+.ctxd-heading h3 { font-size: 21px; font-weight: 600; }
+.ctxd-sub { font-size: 12.5px; color: var(--text-3); margin-top: 2px; }
+.ctxd-body {
+  flex: 1; min-height: 0; display: grid; grid-template-columns: 268px minmax(0, 1fr);
+  gap: 14px; padding: 0 22px 22px;
+}
+.ctxd-rail { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+/* The search box is shared with the picker, where it sits in a ROW and takes
+   the horizontal slack. Here the rail is a column, so the same flex:1 makes
+   it grow downwards into a 250px-tall field. The list wants the slack. */
+.ctxd-rail .pick-search { flex: none; }
+.ctxd-files { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.ctxd-file {
+  text-align: left; padding: 9px 11px; border-radius: var(--r-sm);
+  background: none; border: 0; cursor: pointer;
+  font-size: 13.5px; color: var(--text-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: background .12s, color .12s;
+}
+.ctxd-file:hover { background: var(--surface-2); color: var(--text); }
+.ctxd-file.on { background: var(--surface-2); color: var(--text); font-weight: 600; }
+.ctxd-none { padding: 14px 11px; font-size: 12.5px; color: var(--text-3); }
+
+.ctxd-pane {
+  min-width: 0; display: flex; flex-direction: column;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-md); overflow: hidden;
+}
+.ctxd-empty {
+  margin: auto; padding: 24px; text-align: center;
+  font-size: 14px; color: var(--text-3);
+}
+/* The browser's own reader, so a PDF keeps its pages and its layout rather
+   than being flattened into the text we happened to extract from it. */
+.ctxd-frame { flex: 1; width: 100%; border: 0; }
+.ctxd-read { flex: 1; overflow-y: auto; padding: 22px 24px; }
+.ctxd-plain {
+  margin: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
+  color: var(--text-2); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.ctxd-note { margin-top: 16px; font-size: 12px; color: var(--text-3); }
 
 .ctx-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 .ctx-row { display: flex; align-items: center; gap: 10px; }
@@ -1831,30 +1873,55 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   width: max-content; min-width: 180px;
 }
 
-@media (max-width: 940px) {
+@media (max-width: 1000px) {
   .proj-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
-.save-row.spread { justify-content: space-between; align-items: center; }
-.scope-choice { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
-.scope-opt {
-  display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; cursor: pointer;
-  border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface);
+/* Three zones rather than one scrolling body: the search and the footer stay
+   put, and only the list moves, so the box you are filtering with is still
+   there after you have scrolled to the bottom of a long library. */
+.modal.pick-modal { max-height: 80vh; }
+.pick-tools { display: flex; align-items: center; gap: 10px; padding: 16px 22px 12px; flex: none; }
+.pick-search {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; color: var(--text-3);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm);
+  transition: border-color .13s, color .13s;
 }
-.scope-opt.on { border-color: var(--accent); background: var(--surface-2); }
-.scope-opt span { display: flex; flex-direction: column; gap: 3px; }
-.scope-opt b { font-size: 13.5px; }
-.scope-opt small { font-size: 11.5px; color: var(--text-3); }
-.picker-search { margin-bottom: 10px; }
-.picker-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
-.picker-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer; }
+.pick-search:focus-within { border-color: var(--border-strong); color: var(--text-2); }
+.pick-search input {
+  flex: 1; min-width: 0; border: 0; background: none; outline: none;
+  font-size: 13.5px; color: var(--text);
+}
+/* At the end of the search row, not above the list: it acts on whatever the
+   search has left showing, so it belongs to the search rather than the results. */
+.pick-all {
+  display: flex; align-items: center; gap: 8px; flex: none; cursor: pointer;
+  padding: 8px 11px; border-radius: var(--r-sm);
+  font-size: 13px; color: var(--text-2); white-space: nowrap;
+  transition: background .12s, color .12s;
+}
+.pick-all:hover { background: var(--surface-2); color: var(--text); }
+.pick-all.is-off { opacity: .45; cursor: not-allowed; }
+.pick-all input, .picker-row input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex: none; }
+
+.pick-list {
+  flex: 1; min-height: 140px; overflow-y: auto;
+  padding: 0 16px 10px; display: flex; flex-direction: column; gap: 2px;
+}
+.pick-empty { padding: 26px 8px; font-size: 13.5px; color: var(--text-3); text-align: center; }
+.picker-row { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: var(--r-sm); cursor: pointer; }
 .picker-row:hover { background: var(--surface-2); }
 .picker-row.muted { opacity: .55; cursor: not-allowed; }
 .pk-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.pk-title { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-title { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pk-sub { font-family: var(--mono); font-size: 11px; color: var(--text-3); }
 
-@media (max-width: 1000px) { .proj-grid { grid-template-columns: 1fr; } }
+/* The count takes the slack so the two buttons stay paired at the end, and a
+   rule separates the footer from a list that scrolls under it. */
+.pick-foot { flex: none; align-items: center; padding: 14px 22px; border-top: 1px solid var(--border); }
+.pick-count { margin-right: auto; font-size: 13px; color: var(--text-2); }
+.pick-count b { color: var(--text); font-weight: 600; }
 
 /* Ingest progress bars */
 .prog { margin: 0 0 20px; }
