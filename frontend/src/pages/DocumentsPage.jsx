@@ -1,6 +1,7 @@
 import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
-import LibraryShell, { useLibrary, PinButton } from "../components/LibraryShell";
+import LibraryShell, { useLibrary, PinButton, CardAction } from "../components/LibraryShell";
 import { useChat } from "../context/ChatContext";
 import { useT } from "../i18n";
 import { fmtBytes, timeAgo, fileExt } from "../utils";
@@ -12,6 +13,7 @@ import { fmtBytes, timeAgo, fileExt } from "../utils";
 export default function DocumentsPage() {
   const t = useT();
   const chat = useChat();
+  const navigate = useNavigate();
   const uploadRef = useRef(null);
   const { q, setQ, sort, setSort, shown } = useLibrary(
     chat.docs,
@@ -49,6 +51,17 @@ export default function DocumentsPage() {
             <button key={d.document_id} className="lib-card" onClick={() => chat.setOpenDoc(d)}>
               <div className="lib-card-top">
                 <span className="lib-card-name">{d.title}</span>
+                {/* Only once there is something to retrieve. Scoping a chat to
+                    a document that failed to index would narrow the search to
+                    nothing and answer accordingly. Same action and same
+                    wording as the row menu's -- one idea, one name. */}
+                {d.processing_status === "done" && (
+                  <CardAction
+                    icon="target"
+                    label={t("docs.scopeChat")}
+                    onClick={() => { chat.scopeToDocument(d); navigate("/"); }}
+                  />
+                )}
                 <PinButton
                   pinned={!!d.pinned}
                   label={d.pinned ? t("common.unpin") : t("common.pin")}

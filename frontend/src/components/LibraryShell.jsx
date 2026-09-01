@@ -38,17 +38,35 @@ export function useLibrary(items, nameOf, dateOf) {
   return { q, setQ, sort, setSort, shown };
 }
 
-/** The pin toggle that sits in the corner of every card. */
+/**
+ * The controls in the corner of a card. They share `lib-act`, which is what
+ * holds them quiet until the card is under the pointer -- a card carrying two
+ * lit buttons at rest is mostly buttons.
+ */
 export function PinButton({ pinned, onToggle, label }) {
   return (
     <button
-      className={`lib-pin ${pinned ? "on" : ""}`}
+      className={`lib-act lib-pin ${pinned ? "on" : ""}`}
       aria-label={label}
       aria-pressed={pinned}
       title={label}
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
     >
       <Icon name="pin" className="icon-sm" />
+    </button>
+  );
+}
+
+/** Anything else a card offers: same corner, same reveal. */
+export function CardAction({ icon, label, onClick }) {
+  return (
+    <button
+      className="lib-act"
+      aria-label={label}
+      title={label}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+    >
+      <Icon name={icon} className="icon-sm" />
     </button>
   );
 }

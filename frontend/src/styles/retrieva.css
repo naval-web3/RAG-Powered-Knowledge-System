@@ -1261,15 +1261,16 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 }
 .lib-meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Quiet until the card is under the pointer -- unless it is pinned, which is a
-   state worth seeing at a glance. */
-.lib-pin {
+   state worth seeing at a glance. Keyboard focus reveals them too, or they
+   would be unreachable without a mouse. */
+.lib-act {
   flex: none; width: 26px; height: 26px; border-radius: 8px;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-3); opacity: 0;
   transition: opacity .13s, background .13s, color .13s;
 }
-.lib-card:hover .lib-pin, .lib-pin:focus-visible, .lib-pin.on { opacity: 1; }
-.lib-pin:hover { background: var(--surface-2); color: var(--text); }
+.lib-card:hover .lib-act, .lib-act:focus-visible, .lib-pin.on { opacity: 1; }
+.lib-act:hover { background: var(--surface-2); color: var(--text); }
 .lib-pin.on { color: var(--accent); }
 .lib-empty { padding: 40px 0; text-align: center; color: var(--text-3); font-size: 13.5px; }
 .lib-new {
