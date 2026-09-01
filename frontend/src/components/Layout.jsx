@@ -897,10 +897,10 @@ function Shell() {
                 chat.docs.length === 0 ? (
                   <div className="sb-empty sb-empty-sm">{t("docs.empty")}</div>
                 ) : (
-                  <button className="sb-pin-hint" onClick={() => goto("/documents")}>
+                  <div className="sb-pin-hint">
                     <Icon name="pin" className="icon-sm" />
                     <span>{t("sidebar.pinDocs")}</span>
-                  </button>
+                  </div>
                 )
               )}
               {visibleDocs.map((d) => {
@@ -1006,10 +1006,10 @@ function Shell() {
             </div>
           )}
           {visibleProjects.length === 0 && !creatingProject && (
-            <button className="sb-pin-hint" onClick={() => goto("/projects")}>
+            <div className="sb-pin-hint">
               <Icon name="pin" className="icon-sm" />
               <span>{t("sidebar.pinProjects")}</span>
-            </button>
+            </div>
           )}
           {visibleProjects.map((p) => {
             const open = location.pathname === `/projects/${p.project_id}`;

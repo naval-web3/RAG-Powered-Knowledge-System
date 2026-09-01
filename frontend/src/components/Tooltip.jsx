@@ -81,6 +81,22 @@ export default function Tooltip({ label, keys, placement = "bottom", className =
     };
   }, [open, placement, label]);
 
+  /* Focus alone is not a request for a label. A click focuses what it hits and
+     a closing menu hands focus back, and either can arrive while the pointer is
+     somewhere else entirely -- at which point no mouseleave is ever coming and
+     the label stays on screen until something else takes focus. :focus-visible
+     is the browser's own answer to "did a keyboard do this", and a keyboard is
+     the only focus that has no pointer to speak for it. */
+  const onFocus = (e) => {
+    const el = e.target;
+    try {
+      if (el instanceof Element && el.matches(":focus-visible")) setOpen(true);
+    } catch {
+      /* An engine without :focus-visible gets no label here rather than a
+         stuck one. Hover still works, which is how it is reached anyway. */
+    }
+  };
+
   return (
     <>
       <span
@@ -88,7 +104,11 @@ export default function Tooltip({ label, keys, placement = "bottom", className =
         className={`tip-wrap ${className}`.trim()}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
-        onFocus={() => setOpen(true)}
+        /* Pressing the control is not asking what it is. Without this the label
+           sits over the thing you just clicked -- and over the composer's own
+           placeholder, in the case of the add button. */
+        onMouseDown={() => setOpen(false)}
+        onFocus={onFocus}
         onBlur={() => setOpen(false)}
       >
         {children}

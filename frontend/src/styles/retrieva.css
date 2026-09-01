@@ -1199,13 +1199,15 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .sb-group-row .sb-see-all:focus-visible { opacity: 1; pointer-events: auto; }
 /* Stands in for the rows it will be replaced by, so it borrows their metrics
    exactly: same padding, same gap, same type, same left edge. */
+/* Says where pinned things will appear. It is not a way to get anywhere -- the
+   arrow on the heading is -- so it lights up for nothing and takes no click.
+   It keeps .conv-item's metrics so it sits exactly where the first real row
+   will. */
 .sb-pin-hint {
   display: flex; align-items: center; gap: 8px; width: 100%;
-  padding: 8px 4px 8px 10px; border-radius: var(--r-sm);
+  padding: 8px 4px 8px 10px;
   font-size: 13.5px; color: var(--text-3); text-align: left;
-  transition: background .13s, color .13s;
 }
-.sb-pin-hint:hover { background: var(--surface-2); color: var(--text-2); }
 .sb-pin-hint .icon-sm { flex: none; }
 
 /* ---------- Library pages: all documents, all projects ---------- */

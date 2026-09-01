@@ -223,7 +223,21 @@ export default function Composer({
   function stopDictation() {
     if (!shouldListenRef.current && !recording) return;
     shouldListenRef.current = false;
-    try { recRef.current?.stop(); } catch { /* ignore */ }
+    const rec = recRef.current;
+    if (rec) {
+      /* Detaching the handlers is what actually ends a dictation; stop() only
+         gives the microphone back, and it is asynchronous -- Chrome flushes
+         whatever it has already heard as one last onresult BEFORE onend. That
+         handler still closes over setText, so discarding used to be undone a
+         moment later by words arriving after the ✕ had been pressed. Accepting
+         takes the same route on purpose: what you read back is what you get,
+         rather than the text changing once more after you agreed to it. */
+      rec.onresult = null;
+      rec.onend = null;
+      rec.onerror = null;
+      try { rec.stop(); } catch { /* ignore */ }
+      recRef.current = null;
+    }
     setRecording(false);
   }
 
