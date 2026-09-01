@@ -21,12 +21,6 @@ import LanguageDialog from "./LanguageDialog";
 import SettingsDialog from "./SettingsDialog";
 import Tooltip from "./Tooltip";
 
-const PAGE_TITLES = {
-  "/": "Chat",
-  "/documents": "Documents",
-  "/dashboard": "Dashboard",
-};
-
 /**
  * How recent a date is, as a string KEY rather than words: the caller
  * translates it. Boundaries are calendar ones -- start of day, of the week
@@ -459,7 +453,6 @@ function Shell() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
-  const title = PAGE_TITLES[location.pathname] || "Retrieva";
   /* Only a saved conversation has a title worth showing; a new chat has none
      until the first exchange names it. */
   const activeConversation = onChat
@@ -1168,9 +1161,13 @@ function Shell() {
                 </button>
               </Tooltip>
             )}
-            {/* The chat page needs no label -- a conversation on screen says what
-                it is -- but a saved one shows its own name, editable in place. */}
-            {!onChat && <h1>{title}</h1>}
+            {/* No page label here. Every page that is not the chat titles
+                itself -- Documents, Projects, the project's own name, the admin
+                dashboard -- so a second copy in the bar said the same thing
+                twice, and on the routes the map had no entry for it said
+                "Retrieva", which was not the name of the page at all.
+                A saved conversation still shows its name below, editable in
+                place, because the chat has no heading of its own. */}
             {activeConversation &&
               (titleEditing ? (
                 <input
