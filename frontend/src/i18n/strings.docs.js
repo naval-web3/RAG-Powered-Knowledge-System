@@ -36,6 +36,17 @@ const en = {
   "docs.copyText": "Copy text",
   "docs.copied": "Text copied",
   "docs.copyFailed": "Couldn’t copy",
+  "upload.uploading": "Uploading {name}",
+  "upload.extracting": "Reading the document",
+  "upload.ocr": "Reading it with OCR",
+  "upload.chunking": "Splitting it into passages",
+  "upload.embedding": "Learning the passages",
+  "upload.indexing": "Filing it away",
+  "upload.processing": "Getting it ready",
+  "upload.ready": "Ready to ask about",
+  "upload.failed": "Couldn’t process {name}",
+  "upload.stillWorking": "Still working on it",
+  "upload.checkLater": "It will appear in Documents once it is done.",
 };
 
 const fr = {
@@ -68,6 +79,17 @@ const fr = {
   "docs.copyText": "Copier le texte",
   "docs.copied": "Texte copié",
   "docs.copyFailed": "Copie impossible",
+  "upload.uploading": "Envoi de {name}",
+  "upload.extracting": "Lecture du document",
+  "upload.ocr": "Lecture par OCR",
+  "upload.chunking": "Découpage en passages",
+  "upload.embedding": "Apprentissage des passages",
+  "upload.indexing": "Classement",
+  "upload.processing": "Préparation",
+  "upload.ready": "Prêt à être interrogé",
+  "upload.failed": "Impossible de traiter {name}",
+  "upload.stillWorking": "Toujours en cours",
+  "upload.checkLater": "Il apparaîtra dans Documents une fois terminé.",
 };
 
 const de = {
@@ -100,6 +122,17 @@ const de = {
   "docs.copyText": "Text kopieren",
   "docs.copied": "Text kopiert",
   "docs.copyFailed": "Kopieren fehlgeschlagen",
+  "upload.uploading": "{name} wird hochgeladen",
+  "upload.extracting": "Dokument wird gelesen",
+  "upload.ocr": "Wird per OCR gelesen",
+  "upload.chunking": "Wird in Abschnitte geteilt",
+  "upload.embedding": "Abschnitte werden gelernt",
+  "upload.indexing": "Wird abgelegt",
+  "upload.processing": "Wird vorbereitet",
+  "upload.ready": "Bereit für Fragen",
+  "upload.failed": "{name} konnte nicht verarbeitet werden",
+  "upload.stillWorking": "Noch in Arbeit",
+  "upload.checkLater": "Es erscheint in Dokumente, sobald es fertig ist.",
 };
 
 const hi = {
@@ -132,6 +165,17 @@ const hi = {
   "docs.copyText": "पाठ कॉपी करें",
   "docs.copied": "पाठ कॉपी हो गया",
   "docs.copyFailed": "कॉपी नहीं हो सका",
+  "upload.uploading": "{name} अपलोड हो रहा है",
+  "upload.extracting": "दस्तावेज़ पढ़ा जा रहा है",
+  "upload.ocr": "OCR से पढ़ा जा रहा है",
+  "upload.chunking": "अंशों में बाँटा जा रहा है",
+  "upload.embedding": "अंश सीखे जा रहे हैं",
+  "upload.indexing": "संग्रह किया जा रहा है",
+  "upload.processing": "तैयार किया जा रहा है",
+  "upload.ready": "पूछने के लिए तैयार",
+  "upload.failed": "{name} संसाधित नहीं हो सका",
+  "upload.stillWorking": "अभी भी काम चल रहा है",
+  "upload.checkLater": "पूरा होने पर यह दस्तावेज़ में दिखेगा।",
 };
 
 const id = {
@@ -164,6 +208,17 @@ const id = {
   "docs.copyText": "Salin teks",
   "docs.copied": "Teks tersalin",
   "docs.copyFailed": "Gagal menyalin",
+  "upload.uploading": "Mengunggah {name}",
+  "upload.extracting": "Membaca dokumen",
+  "upload.ocr": "Membaca dengan OCR",
+  "upload.chunking": "Membagi menjadi bagian",
+  "upload.embedding": "Mempelajari bagian-bagiannya",
+  "upload.indexing": "Menyimpan",
+  "upload.processing": "Menyiapkan",
+  "upload.ready": "Siap ditanyai",
+  "upload.failed": "Tidak dapat memproses {name}",
+  "upload.stillWorking": "Masih diproses",
+  "upload.checkLater": "Akan muncul di Dokumen setelah selesai.",
 };
 
 const it = {
@@ -196,6 +251,17 @@ const it = {
   "docs.copyText": "Copia il testo",
   "docs.copied": "Testo copiato",
   "docs.copyFailed": "Copia non riuscita",
+  "upload.uploading": "Caricamento di {name}",
+  "upload.extracting": "Lettura del documento",
+  "upload.ocr": "Lettura con OCR",
+  "upload.chunking": "Suddivisione in passaggi",
+  "upload.embedding": "Apprendimento dei passaggi",
+  "upload.indexing": "Archiviazione",
+  "upload.processing": "Preparazione",
+  "upload.ready": "Pronto per le domande",
+  "upload.failed": "Impossibile elaborare {name}",
+  "upload.stillWorking": "Ancora in corso",
+  "upload.checkLater": "Apparirà in Documenti una volta finito.",
 };
 
 const ja = {
@@ -228,6 +294,17 @@ const ja = {
   "docs.copyText": "テキストをコピー",
   "docs.copied": "テキストをコピーしました",
   "docs.copyFailed": "コピーできませんでした",
+  "upload.uploading": "{name} をアップロード中",
+  "upload.extracting": "ドキュメントを読み込み中",
+  "upload.ocr": "OCR で読み取り中",
+  "upload.chunking": "文章を分割中",
+  "upload.embedding": "文章を学習中",
+  "upload.indexing": "保存中",
+  "upload.processing": "準備中",
+  "upload.ready": "質問できます",
+  "upload.failed": "{name} を処理できませんでした",
+  "upload.stillWorking": "まだ処理中です",
+  "upload.checkLater": "完了するとドキュメントに表示されます。",
 };
 
 const ko = {
@@ -260,6 +337,17 @@ const ko = {
   "docs.copyText": "텍스트 복사",
   "docs.copied": "텍스트를 복사했습니다",
   "docs.copyFailed": "복사하지 못했습니다",
+  "upload.uploading": "{name} 업로드 중",
+  "upload.extracting": "문서를 읽는 중",
+  "upload.ocr": "OCR로 읽는 중",
+  "upload.chunking": "구절로 나누는 중",
+  "upload.embedding": "구절을 학습하는 중",
+  "upload.indexing": "보관하는 중",
+  "upload.processing": "준비하는 중",
+  "upload.ready": "질문할 준비가 됐습니다",
+  "upload.failed": "{name}을(를) 처리하지 못했습니다",
+  "upload.stillWorking": "아직 처리 중입니다",
+  "upload.checkLater": "완료되면 문서에 표시됩니다.",
 };
 
 const pt = {
@@ -292,6 +380,17 @@ const pt = {
   "docs.copyText": "Copiar o texto",
   "docs.copied": "Texto copiado",
   "docs.copyFailed": "Não foi possível copiar",
+  "upload.uploading": "Enviando {name}",
+  "upload.extracting": "Lendo o documento",
+  "upload.ocr": "Lendo com OCR",
+  "upload.chunking": "Dividindo em trechos",
+  "upload.embedding": "Aprendendo os trechos",
+  "upload.indexing": "Arquivando",
+  "upload.processing": "Preparando",
+  "upload.ready": "Pronto para perguntas",
+  "upload.failed": "Não foi possível processar {name}",
+  "upload.stillWorking": "Ainda em andamento",
+  "upload.checkLater": "Aparecerá em Documentos quando terminar.",
 };
 
 const es419 = {
@@ -324,6 +423,17 @@ const es419 = {
   "docs.copyText": "Copiar el texto",
   "docs.copied": "Texto copiado",
   "docs.copyFailed": "No se pudo copiar",
+  "upload.uploading": "Subiendo {name}",
+  "upload.extracting": "Leyendo el documento",
+  "upload.ocr": "Leyendo con OCR",
+  "upload.chunking": "Dividiendo en fragmentos",
+  "upload.embedding": "Aprendiendo los fragmentos",
+  "upload.indexing": "Archivando",
+  "upload.processing": "Preparando",
+  "upload.ready": "Listo para preguntar",
+  "upload.failed": "No se pudo procesar {name}",
+  "upload.stillWorking": "Todavía en proceso",
+  "upload.checkLater": "Aparecerá en Documentos cuando termine.",
 };
 
 const esES = {

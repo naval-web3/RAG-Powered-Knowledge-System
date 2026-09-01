@@ -5,8 +5,19 @@ import { useToast } from "./ToastContext";
 
 const ChatContext = createContext(null);
 
+/* The fine stages document_processor.py persists, in plain words. Anything it
+   reports that is not on this list still shows a sensible label rather than a
+   blank one. */
+const STAGE_LABEL = {
+  extracting: "upload.extracting",
+  ocr: "upload.ocr",
+  chunking: "upload.chunking",
+  embedding: "upload.embedding",
+  indexing: "upload.indexing",
+};
+
 export function ChatProvider({ children }) {
-  const { toast } = useToast();
+  const { toast, progressToast, updateToast, settleToast } = useToast();
   // Sent with every question so answers come back in the reader's language.
   const { locale, t } = useLocale();
 
@@ -513,7 +524,16 @@ export function ChatProvider({ children }) {
       if (!file) return;
       setUploading(true);
       setUploadProgress({ name: file.name, pct: 0 });
-      const tid = toast(`Uploading “${file.name}”…`, "info");
+
+      /* One toast for the whole journey, rather than four announcements at
+         four different moments. The ring goes round exactly once and never
+         backwards: the bytes going up own its first tenth, and the server's
+         own 0-100 owns the rest. That split is a weighting -- both halves are
+         measured, nothing is estimated -- and it is set low because sending
+         the file is the quick part and reading it is not. */
+      const UPLOAD_SHARE = 10;
+      const tid = progressToast(t("upload.uploading", { name: file.name }));
+
       const form = new FormData();
       form.append("file", file);
       if (projectId) form.append("project_id", projectId);
@@ -522,43 +542,72 @@ export function ChatProvider({ children }) {
           headers: { "Content-Type": "multipart/form-data" },
           onUploadProgress: (e) => {
             if (!e.total) return;
-            setUploadProgress({ name: file.name, pct: Math.round((e.loaded / e.total) * 100) });
+            const pct = Math.round((e.loaded / e.total) * 100);
+            setUploadProgress({ name: file.name, pct });
+            updateToast(tid, { ring: { pct: (pct * UPLOAD_SHARE) / 100 } });
           },
         });
         // The bytes are in; the server pipeline takes over from here.
         setUploadProgress(null);
         if (projectId) loadProjects();
         loadDocs();
-        let status = data.processing_status;
-        let reason = "";
-        let ocrNotified = false;
+
+        let d = data;
+        let status = d.processing_status;
         for (let i = 0; i < 180 && !["done", "failed"].includes(status); i++) {
+          const stage = d.stage || "extracting";
+          updateToast(tid, {
+            msg: t(STAGE_LABEL[stage] || "upload.processing"),
+            /* Whatever the pipeline is actually looking at -- a page number, a
+               batch of chunks. It says more than a percentage repeated back. */
+            sub: d.stage_detail || "",
+            ring: { pct: UPLOAD_SHARE + ((d.progress || 0) * (100 - UPLOAD_SHARE)) / 100 },
+          });
+          // eslint-disable-next-line no-await-in-loop
           await sleep(2000);
-          const d = (await client.get(`/api/documents/${data.document_id}`)).data;
+          // eslint-disable-next-line no-await-in-loop
+          d = (await client.get(`/api/documents/${data.document_id}`)).data;
           status = d.processing_status;
-          reason = d.error_message || "";
-          if (status === "ocr" && !ocrNotified) {
-            ocrNotified = true;
-            toast(`“${file.name}” looks scanned, so we're reading it with OCR`, "info", "This can take a few minutes.");
-          }
         }
         loadDocs();
+
         if (status === "done") {
-          toast(`“${file.name}” is ready`, "ok", "Ask a question about it.");
+          settleToast(tid, {
+            msg: t("upload.ready"),
+            sub: t("chat.chunks", { n: d.chunk_count || 0 }),
+            ring: { pct: 100, state: "done" },
+          });
         } else if (status === "failed") {
-          toast(`“${file.name}” could not be processed`, "err", reason);
+          settleToast(tid, {
+            type: "err",
+            msg: t("upload.failed", { name: file.name }),
+            sub: d.error_message || "",
+            ring: { state: "fail" },
+          }, 8000);
         } else {
-          toast(`“${file.name}” is still processing`, "warn", "Check the Documents tab shortly.");
+          // Six minutes of polling and still going: stop watching, say so, and
+          // leave the document to finish in its own time.
+          settleToast(tid, {
+            type: "warn",
+            msg: t("upload.stillWorking"),
+            sub: t("upload.checkLater"),
+            ring: { state: "fail" },
+          }, 8000);
         }
         return status;
       } catch (err) {
-        toast("Upload failed", "err", err?.response?.data?.detail || err.message);
+        settleToast(tid, {
+          type: "err",
+          msg: t("upload.failed", { name: file.name }),
+          sub: err?.response?.data?.detail || err.message || "",
+          ring: { state: "fail" },
+        }, 8000);
       } finally {
         setUploading(false);
         setUploadProgress(null);
       }
     },
-    [toast, loadDocs, loadProjects]
+    [t, progressToast, updateToast, settleToast, loadDocs, loadProjects]
   );
 
   /** Cut generation short; the text so far is kept. */

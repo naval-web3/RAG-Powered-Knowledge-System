@@ -1994,6 +1994,51 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   -webkit-backdrop-filter: blur(12px) saturate(1.5);
 }
 .toast.leaving { animation: toastOut .25s var(--ease) forwards; }
+
+/* ---- The ring an upload fills ----
+   Registering the angle is what makes it animate: a custom property is a
+   string to the engine unless it is told otherwise, and an un-animated conic
+   gradient jumps between polls instead of sweeping between them. The backend
+   promises progress only ever moves forward, so sweeping is safe. */
+@property --deg { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.t-ring { position: relative; width: 22px; height: 22px; flex: none; }
+.t-ring-track {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 3px solid var(--border-strong); box-sizing: border-box;
+  transition: opacity .25s;
+}
+/* A conic gradient with its middle punched out. The alternative -- a second
+   element rotating over the first -- cannot draw an arc past 180deg without a
+   second half to go with it. */
+.t-ring-fill {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from -90deg, var(--accent) 0deg, var(--accent) var(--deg), rgba(0,0,0,0) var(--deg));
+  mask: radial-gradient(circle, transparent 0 58%, #000 59%);
+  -webkit-mask: radial-gradient(circle, transparent 0 58%, #000 59%);
+  transition: --deg .45s linear, opacity .25s;
+}
+/* The end of it: the ring goes, a disc arrives with a little overshoot. */
+.t-ring-cap {
+  position: absolute; inset: 0; border-radius: 50%; background: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: scale(.6); pointer-events: none;
+  transition: opacity .22s, transform .38s cubic-bezier(.34, 1.56, .64, 1);
+}
+.t-ring.done .t-ring-cap, .t-ring.fail .t-ring-cap { opacity: 1; transform: none; }
+.t-ring.done .t-ring-track, .t-ring.done .t-ring-fill,
+.t-ring.fail .t-ring-track, .t-ring.fail .t-ring-fill { opacity: 0; }
+.t-ring.fail .t-ring-cap { background: var(--red-fill); }
+.t-ring-ic { width: 12px; height: 12px; color: #FFF; }
+/* Drawn rather than fetched: two borders on an empty box, turned 45 degrees. */
+.t-tick {
+  width: 9px; height: 5px; border-radius: 1px;
+  border-left: 2px solid var(--bg); border-bottom: 2px solid var(--bg);
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-ring-fill { transition: none; }
+  .t-ring-cap { transition: opacity .01ms; transform: none; }
+}
 /* Rises from the corner it now lives in, instead of sliding in from the right. */
 @keyframes toastIn { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes toastOut { to { opacity: 0; transform: translateY(8px); } }
