@@ -2218,7 +2218,16 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    the travel cannot be written here. */
 #toasts {
   position: fixed; bottom: 22px; right: 22px; z-index: 200;
-  width: 340px; max-width: calc(100vw - 44px);
+  /* Every card in ONE grid cell. That is what makes the deck: they overlap,
+     and the column is sized to the widest of them, so each card is as wide as
+     the longest message in the pile and no wider. Three "Chat deleted"s make a
+     short deck; a fixed width padded them out to the dismiss button.
+     No JS measures this -- the grid does it.
+     `align-content: end` puts the row at the bottom of the box and
+     `align-items: end` puts the cards at the bottom of the row, so the deck
+     stays anchored to the corner however tall the box gets. */
+  display: grid; align-content: end; align-items: end;
+  max-width: min(420px, calc(100vw - 44px));
   height: var(--pile-h, 0px);
   transition: height .24s var(--ease);
 }
@@ -2229,7 +2238,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    transform, and one element cannot hold both without the exit throwing the
    card back to an unstacked position on its first frame. */
 .t-slot {
-  position: absolute; right: 0; bottom: 0; width: 100%;
+  grid-area: 1 / 1;
   /* -10 and not -7: the card is also scaled, and with a bottom origin that
      pulls its top edge back down by height x .04. The visible peek is the
      difference between the two, so the lift has to overshoot it. */
@@ -2251,13 +2260,11 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 
 .toast {
-  /* One width, so the deck is square. These used to be sized to their text --
-     "Chat deleted." should not be padded out to 280px -- but a card wider than
-     the one in front of it hangs out of the side of the pile, and a fanned card
-     has to be readable at its own size so it cannot simply be pinned to the
-     front card's box. 340px is the width the live upload toast already had, so
-     the deck does not change width when one joins it. */
-  width: 100%;
+  /* Sized to its words, by way of the grid above: every card takes the width of
+     the longest message in the pile. It cannot simply take its OWN width -- a
+     card wider than the one in front of it would hang out of the side of the
+     deck -- but matching the widest sibling costs a short message nothing when
+     its siblings are short too, which is the common case. */
   display: flex; align-items: center; gap: 9px;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--r-md); box-shadow: var(--shadow-lg); padding: 9px 12px;
@@ -2368,8 +2375,12 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    NOT called .progress: that name is already taken by the 5px inline bar
    further up this file, and a toast wearing it inherited `height: 5px` and
    collapsed to a fifth of its size with the text hanging out of it. */
-/* The live toast no longer sets its own width -- every card is 340px now, and
-   its own rule would have made it the odd one out at narrow windows. */
+/* The live toast keeps its 340px as a FLOOR. It is the one card whose words
+   change every few seconds ("Reading the document" then "Learning the
+   passages"), and it was fixed deliberately so it would stop resizing at every
+   phase. As a min-width it still sets the deck's width on its own, while a
+   longer message beside it can widen the pile past it. */
+.toast.is-live { min-width: 340px; }
 /* The text column takes the slack. A shrink-wrapped toast has none, so this
    never mattered until the width was pinned -- and then the leftover space
    fell after the dismiss instead, parking it against the words. */
@@ -2422,6 +2433,8 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   .topbar h1 { font-size: 15px; }
   #toasts { left: 16px; right: 16px; top: 64px; width: auto; max-width: none; }
   .toast { max-width: none; }
+  /* No room for a floor on a phone. */
+  .toast.is-live { min-width: 0; }
 }
 
 
