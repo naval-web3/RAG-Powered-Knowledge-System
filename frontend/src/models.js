@@ -62,7 +62,7 @@ function prettyOpenAI(id) {
 export function parseModel(provider, id) {
   if (provider !== "ollama") {
     const label = prettyOpenAI(id);
-    return { provider, id, family: id, familyLabel: label, version: "", size: "", params: null };
+    return { provider, id, family: id, familyLabel: label, version: "", variant: "", size: "", params: null };
   }
 
   const [repoRaw, tagRaw = ""] = id.split(":");
@@ -76,11 +76,17 @@ export function parseModel(provider, id) {
      reason, for the compounds PRETTY has not heard of yet. */
   let family = repo;
   let version = "";
+  let variant = "";
   if (!PRETTY[repo]) {
-    const m = repo.match(/^(.*?)[-_.]?(\d[\d.]*)$/);
+    const m = repo.match(/^(.*?)[-_.]?(\d[\d.]*)(?:[-_.](.+))?$/);
     if (m && !/(^|[-_.])[a-z]$/.test(m[1])) {
       family = m[1].replace(/[-_.]+$/, "");
       version = m[2];
+      /* Whatever trails the version is the edition, not part of the family:
+         `phi4-mini` is Phi at 4, in its mini edition. Reading it as a family
+         name gave a row called "Phi4-Mini" that no other Phi could ever join,
+         and left the level with nothing to call itself but "latest". */
+      variant = m[3] || "";
     }
   }
 
@@ -94,11 +100,43 @@ export function parseModel(provider, id) {
     family,
     familyLabel: PRETTY[family] || titleCase(family) || id,
     version,
+    variant,
     size,
     tag: tagRaw,
     params,
   };
 }
+
+/**
+ * What a family is FOR.
+ *
+ * Someone opening the picker is asking "which of these should answer my
+ * question", and neither the family name nor the parameter count answers that.
+ * These are the differences that actually show up in a retrieval-augmented
+ * answer -- how closely a model stays to the passages it was given, how well it
+ * holds a long instruction, whether it reasons aloud -- not benchmark scores.
+ *
+ * Keyed the same way PRETTY is, and just as optional: a family nobody has
+ * written a note for falls back to what its size implies, so a model pulled
+ * tomorrow still says something true about itself.
+ */
+const FAMILY_NOTE = {
+  llama: "chat.noteLlama",
+  qwen: "chat.noteQwen",
+  phi: "chat.notePhi",
+  granite: "chat.noteGranite",
+  gemma: "chat.noteGemma",
+  mistral: "chat.noteMistral",
+  mixtral: "chat.noteMistral",
+  qwq: "chat.noteThinks",
+  deepseek: "chat.noteThinks",
+  "deepseek-r1": "chat.noteThinks",
+  codellama: "chat.noteCode",
+  "deepseek-coder": "chat.noteCode",
+  starcoder: "chat.noteCode",
+  smollm: "chat.noteQuick",
+  tinyllama: "chat.noteQuick",
+};
 
 /* Big models are the ones that crawl on a 4GB card. The threshold is the one
    the composer already used before any of this existed. */
@@ -136,7 +174,7 @@ export function groupModels(models) {
        says more than the `3` in phi3 does. "latest" is nobody's idea of a
        level, so it only stands in when there is nothing else at all. */
     const base = (l) =>
-      l.size || (l.tag && l.tag !== "latest" ? l.tag : "") || l.version || l.tag || l.id;
+      l.size || (l.tag && l.tag !== "latest" ? l.tag : "") || l.variant || l.version || l.tag || l.id;
     const bases = g.levels.map(base);
     const unique = new Set(bases).size === bases.length;
     for (const l of g.levels) {
@@ -153,6 +191,33 @@ export function groupModels(models) {
     return a.label.localeCompare(b.label);
   });
   return groups;
+}
+
+/**
+ * The translation key for the line under a family's name.
+ *
+ * The fallback is measured against the family's SMALLEST level, because that is
+ * the one clicking the family gives you; the Size panel is where the bigger
+ * ones describe themselves. A cloud model has no parameter count to go on, so
+ * it is read off its name -- a "mini" is sold as the quick one.
+ */
+export function familyNote(g) {
+  if (g.provider !== "ollama") {
+    return /mini|nano|small|flash|lite/i.test(g.family)
+      ? "chat.noteCloudFast"
+      : "chat.noteCloudTop";
+  }
+  const known = FAMILY_NOTE[g.family];
+  if (known) return known;
+
+  const smallest = g.levels.reduce(
+    (n, l) => (l.params != null && (n == null || l.params < n) ? l.params : n),
+    null,
+  );
+  if (smallest == null) return "chat.noteEveryday";
+  if (smallest <= 2) return "chat.noteQuick";
+  if (smallest >= SLOW_PARAM_B) return "chat.modelSlow";
+  return "chat.noteEveryday";
 }
 
 /** The `provider|model` string the rest of the app selects with. */

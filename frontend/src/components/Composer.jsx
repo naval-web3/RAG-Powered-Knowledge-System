@@ -5,7 +5,7 @@ import Tooltip from "./Tooltip";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
-import { groupModels, isSlow, locate, selOf } from "../models";
+import { familyNote, groupModels, isSlow, locate, selOf } from "../models";
 
 /**
  * The prompt box, and the three menus that live on its bottom row.
@@ -465,9 +465,14 @@ function ModelMenu() {
     setOpen(false);
   }
 
-  function whereItRuns(g) {
-    if (g.provider === "ollama") return t("chat.ollamaLocal");
-    return chat.models.openai_enabled ? t("chat.openaiCloud") : t("chat.addApiKey");
+  /* The line under a name says what the model is FOR. Where it runs is
+     answered once by the section the row sits in, which frees the only line
+     there is to say something the reader cannot work out for themselves.
+     A cloud model with no key is the exception: what it is good at does not
+     matter until it can run at all. */
+  function noteFor(g) {
+    if (g.provider !== "ollama" && !chat.models.openai_enabled) return t("chat.addApiKey");
+    return t(familyNote(g));
   }
 
   const Family = ({ g }) => (
@@ -475,14 +480,26 @@ function ModelMenu() {
       onClick={() => pickFamily(g)}>
       <span>
         <span className="d-name">{g.label}</span>
-        <span className="d-sub">{whereItRuns(g)}</span>
+        <span className="d-sub d-note">{noteFor(g)}</span>
       </span>
       <Icon name="check" className="icon-sm check" />
     </button>
   );
 
-  const primary = groups.slice(0, MAIN_FAMILIES);
-  const rest = groups.slice(MAIN_FAMILIES);
+  /* Only the LOCAL families are capped. Choosing between what runs on this
+     machine and what runs in the cloud is the choice this whole app is built
+     around, and a choice you have to go looking for is not being offered. */
+  const local = groups.filter((g) => g.provider === "ollama");
+  const cloud = groups.filter((g) => g.provider !== "ollama");
+  const shownLocal = local.slice(0, MAIN_FAMILIES);
+  const rest = local.slice(MAIN_FAMILIES);
+  /* Whatever is selected stays in sight even when it is one of the overflow
+     families -- a menu that opens without your own model anywhere on it reads
+     as though the selection had been lost. */
+  const hidden = rest.findIndex((g) => g.key === group?.key);
+  if (hidden >= 0) shownLocal.push(...rest.splice(hidden, 1));
+  /* A heading with nothing to contrast against is just a word in the way. */
+  const split = shownLocal.length > 0 && cloud.length > 0;
   const hasSizes = (group?.levels.length || 0) > 1;
 
   return (
@@ -499,7 +516,10 @@ function ModelMenu() {
         <div className="drop-menu drop-right">
           {view === "root" && (
             <>
-              {primary.map((g) => <Family key={g.key} g={g} />)}
+              {split && <div className="drop-label">{t("chat.onThisMachine")}</div>}
+              {shownLocal.map((g) => <Family key={g.key} g={g} />)}
+              {split && <div className="drop-label">{t("chat.cloudSection")}</div>}
+              {cloud.map((g) => <Family key={g.key} g={g} />)}
               {(hasSizes || rest.length > 0) && <div className="drop-sep" />}
               {hasSizes && (
                 <button className="drop-item drop-nav" onClick={() => setView("size")}>
@@ -522,6 +542,9 @@ function ModelMenu() {
               <button className="drop-back" onClick={() => setView("root")}>
                 <Icon name="chev-r" className="icon-sm flip" /> {t("chat.modelSize")}
               </button>
+              {/* Size is this app's version of an effort dial, and like one it
+                  needs a sentence saying what you are trading away. */}
+              <p className="drop-help">{t("chat.sizeHelp")}</p>
               {group?.levels.map((l) => (
                 <button key={l.id}
                   className={`drop-item ${selOf(l) === chat.sel ? "selected" : ""}`}
