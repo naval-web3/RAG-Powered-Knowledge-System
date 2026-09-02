@@ -5,7 +5,7 @@ import Tooltip from "./Tooltip";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
-import { familyNote, groupModels, isSlow, locate, selOf } from "../models";
+import { familyNote, groupModels, locate, selOf } from "../models";
 
 /**
  * The prompt box, and the three menus that live on its bottom row.
@@ -422,16 +422,21 @@ const MAIN_FAMILIES = 3;
 /**
  * Which model answers, and at what size.
  *
- * One row per family rather than one per tag: a machine with llama3.2:3b and
- * llama3.1:8b on it has one Llama, offered at two sizes, not two Llamas. The
- * sizes live behind "Size", which is this app's honest version of the effort
- * control a hosted model would have -- there is no reasoning dial on a local
- * model, but there is a real choice between a fast small one and a slow big
- * one, and that is the choice being offered.
+ * One row per family, and one model per family: the family name IS the model.
+ * There was a "Size" panel here that let one family offer several tags at once;
+ * it was removed deliberately. Keeping a single best model per family makes the
+ * menu a list of answers to "which model", rather than a list of families each
+ * hiding a second question.
  *
- * The panel swaps rather than flying out sideways: it opens from a control at
- * the right edge of the composer, and a submenu opening further right would
- * have nowhere to go.
+ * The consequence, accepted knowingly: if two tags of one family are ever
+ * installed, only the FIRST is reachable -- groupModels sorts smallest first,
+ * so it is the small one that wins and the other is invisible until it is
+ * removed from Ollama. /api/models reads Ollama live, so this can happen
+ * without anyone touching this file. Pull one model per family.
+ *
+ * "More models" still swaps the panel rather than flying out sideways: it opens
+ * from a control at the right edge of the composer, and a submenu opening
+ * further right would have nowhere to go.
  */
 function ModelMenu() {
   const t = useT();
@@ -457,11 +462,8 @@ function ModelMenu() {
     return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  /* Switching family keeps the size you were on if the new one offers it, so
-     moving between families does not silently change how long answers take. */
   function pickFamily(g) {
-    const same = level && g.levels.find((l) => l.levelLabel === level.levelLabel);
-    chat.setSel(selOf(same || g.levels[0]));
+    chat.setSel(selOf(g.levels[0]));
     setOpen(false);
   }
 
@@ -500,7 +502,6 @@ function ModelMenu() {
   if (hidden >= 0) shownLocal.push(...rest.splice(hidden, 1));
   /* A heading with nothing to contrast against is just a word in the way. */
   const split = shownLocal.length > 0 && cloud.length > 0;
-  const hasSizes = (group?.levels.length || 0) > 1;
 
   return (
     <div className="menu-anchor" ref={ref}>
@@ -520,47 +521,13 @@ function ModelMenu() {
               {shownLocal.map((g) => <Family key={g.key} g={g} />)}
               {split && <div className="drop-label">{t("chat.cloudSection")}</div>}
               {cloud.map((g) => <Family key={g.key} g={g} />)}
-              {(hasSizes || rest.length > 0) && <div className="drop-sep" />}
-              {hasSizes && (
-                <button className="drop-item drop-nav" onClick={() => setView("size")}>
-                  <span className="d-name">{t("chat.modelSize")}</span>
-                  <span className="drop-value">{level?.levelLabel}</span>
-                  <Icon name="chev-r" className="icon-sm" />
-                </button>
-              )}
+              {rest.length > 0 && <div className="drop-sep" />}
               {rest.length > 0 && (
                 <button className="drop-item drop-nav" onClick={() => setView("more")}>
                   <span className="d-name">{t("chat.moreModels")}</span>
                   <Icon name="chev-r" className="icon-sm" />
                 </button>
               )}
-            </>
-          )}
-
-          {view === "size" && (
-            <>
-              <button className="drop-back" onClick={() => setView("root")}>
-                <Icon name="chev-r" className="icon-sm flip" /> {t("chat.modelSize")}
-              </button>
-              {/* Size is this app's version of an effort dial, and like one it
-                  needs a sentence saying what you are trading away. */}
-              <p className="drop-help">{t("chat.sizeHelp")}</p>
-              {group?.levels.map((l) => (
-                <button key={l.id}
-                  className={`drop-item ${selOf(l) === chat.sel ? "selected" : ""}`}
-                  onClick={() => { chat.setSel(selOf(l)); setOpen(false); }}>
-                  <span>
-                    <span className="d-name">
-                      {l.levelLabel}
-                      {isSlow(l) && <span className="badge badge-amber" style={{ marginLeft: 6 }}>{t("chat.slow")}</span>}
-                    </span>
-                    {/* The real tag, because a level called "8B" should still
-                        be traceable to the thing Ollama actually runs. */}
-                    <span className="d-sub">{l.id} · {isSlow(l) ? t("chat.modelSlow") : t("chat.modelFast")}</span>
-                  </span>
-                  <Icon name="check" className="icon-sm check" />
-                </button>
-              ))}
             </>
           )}
 

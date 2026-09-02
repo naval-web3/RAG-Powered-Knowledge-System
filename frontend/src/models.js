@@ -139,9 +139,10 @@ const FAMILY_NOTE = {
 };
 
 /* Big models are the ones that crawl on a 4GB card. The threshold is the one
-   the composer already used before any of this existed. */
+   the composer already used before any of this existed; the picker no longer
+   badges a model as slow, but familyNote still reads a large unknown family
+   against this. */
 export const SLOW_PARAM_B = 5;
-export const isSlow = (m) => (m.params == null ? false : m.params >= SLOW_PARAM_B);
 
 /**
  * Every model, gathered into families and ordered smallest first.

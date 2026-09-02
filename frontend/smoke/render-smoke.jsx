@@ -259,8 +259,7 @@ console.log("checking the model picker:");
   });
   check("the picker's own labels are strings English has", () => {
     const missing = [
-      "chat.onThisMachine", "chat.cloudSection", "chat.sizeHelp",
-      "chat.modelSize", "chat.moreModels", "chat.addApiKey", "chat.slow",
+      "chat.onThisMachine", "chat.cloudSection", "chat.moreModels", "chat.addApiKey",
     ].filter((k) => !en[k]);
     if (missing.length) throw new Error(`not in English: ${missing.join(", ")}`);
     return "ok".repeat(12);
