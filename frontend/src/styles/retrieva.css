@@ -2206,11 +2206,59 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 /* Toasts */
 /* Bottom right, clear of the composer's own bottom padding. column-reverse
    keeps the newest toast nearest the corner. */
-#toasts { position: fixed; bottom: 22px; right: 22px; z-index: 200; display: flex; flex-direction: column-reverse; gap: 10px; }
+/* ---- The deck ----
+   Toasts are a pile of cards, not a list of rows: newest in front, the ones
+   behind peeking over its top edge. Hovering fans them apart so the ones
+   underneath can be read.
+
+   The container is exactly its front card and grows to the whole fan on hover.
+   It has to: the pointer must stay inside the box the hover opened, or the deck
+   would shut the moment a card rose past the old edge. Heights come from
+   ToastContext, which measures them -- the cards are not the same height, so
+   the travel cannot be written here. */
+#toasts {
+  position: fixed; bottom: 22px; right: 22px; z-index: 200;
+  width: 340px; max-width: calc(100vw - 44px);
+  height: var(--pile-h, 0px);
+  transition: height .24s var(--ease);
+}
+@media (hover: hover) { #toasts:hover { height: var(--pile-fan-h, 0px); } }
+
+/* The slot carries the card's place in the deck; the card inside carries its
+   own arrival and departure. Kept apart because a leaving card animates its
+   transform, and one element cannot hold both without the exit throwing the
+   card back to an unstacked position on its first frame. */
+.t-slot {
+  position: absolute; right: 0; bottom: 0; width: 100%;
+  /* -10 and not -7: the card is also scaled, and with a bottom origin that
+     pulls its top edge back down by height x .04. The visible peek is the
+     difference between the two, so the lift has to overshoot it. */
+  transform: translateY(calc(var(--i) * -10px)) scale(calc(1 - var(--i) * .04));
+  transform-origin: bottom center;
+  z-index: calc(100 - var(--i));
+  transition: transform .24s var(--ease);
+}
+/* Behind the front card there is nothing to click: the dismiss sits under the
+   card in front of it. The fan is what makes them reachable. */
+.t-slot ~ .t-slot { pointer-events: none; }
+@media (hover: hover) {
+  #toasts:hover .t-slot { transform: translateY(calc(var(--fan-y) * -1px)); pointer-events: auto; }
+}
+/* Already on its way out; it must not take the pointer with it. */
+.t-slot:has(.toast.leaving) { pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  #toasts, .t-slot { transition: none; }
+}
+
 .toast {
-  /* Sized to its text. The old 280px floor left a confirmation as short as
-     "Chat deleted." padded out with empty space before the close button. */
-  display: flex; align-items: center; gap: 9px; max-width: min(420px, calc(100vw - 44px));
+  /* One width, so the deck is square. These used to be sized to their text --
+     "Chat deleted." should not be padded out to 280px -- but a card wider than
+     the one in front of it hangs out of the side of the pile, and a fanned card
+     has to be readable at its own size so it cannot simply be pinned to the
+     front card's box. 340px is the width the live upload toast already had, so
+     the deck does not change width when one joins it. */
+  width: 100%;
+  display: flex; align-items: center; gap: 9px;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--r-md); box-shadow: var(--shadow-lg); padding: 9px 12px;
   animation: toastIn .28s var(--ease);
@@ -2267,7 +2315,8 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 /* Rises from the corner it now lives in, instead of sliding in from the right. */
 @keyframes toastIn { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
-@keyframes toastOut { to { opacity: 0; transform: translateY(8px); } }
+/* Sinks rather than slides: in a deck, leaving means falling back into it. */
+@keyframes toastOut { to { opacity: 0; transform: translateY(6px) scale(.97); } }
 /* Only trouble is tinted. A confirmation looks like the rest of the UI, so
    colour appearing at all means something needs attention. */
 .toast.err  { background: color-mix(in srgb, var(--red) 15%, transparent);   border-color: color-mix(in srgb, var(--red) 45%, transparent); }
@@ -2294,8 +2343,15 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 /* Deliberately NOT top-aligned: the toast is align-items:center, so the
    dismiss centres itself against whatever is there -- one line or two --
    without a rule per case. Cornering it was tried and looked worse. */
-.toast .t-text {
-  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+/* Wraps. It used to be one ellipsised line, which worked while a toast grew to
+   fit its words -- but the deck fixed every card at one width, and a cut-off
+   message is worse than a card one line taller. Heights are measured, so the
+   pile copes with a tall card on its own. The live toast is the exception and
+   keeps its single line: it is a fixed box by decision, and its words change
+   every few seconds. */
+.toast .t-text { display: block; }
+.toast.is-live .t-text {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .toast .t-sub {
   display: block; margin-top: 3px; font-size: 12px; font-weight: 400;
@@ -2312,7 +2368,8 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    NOT called .progress: that name is already taken by the 5px inline bar
    further up this file, and a toast wearing it inherited `height: 5px` and
    collapsed to a fifth of its size with the text hanging out of it. */
-.toast.is-live { width: 340px; max-width: calc(100vw - 44px); }
+/* The live toast no longer sets its own width -- every card is 340px now, and
+   its own rule would have made it the odd one out at narrow windows. */
 /* The text column takes the slack. A shrink-wrapped toast has none, so this
    never mattered until the width was pinned -- and then the leftover space
    fell after the dismiss instead, parking it against the words. */
@@ -2363,7 +2420,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   .kpi-grid, .stat-row { grid-template-columns: 1fr 1fr; }
   .msg-user .user-col { max-width: 92%; }
   .topbar h1 { font-size: 15px; }
-  #toasts { left: 16px; right: 16px; top: 64px; }
+  #toasts { left: 16px; right: 16px; top: 64px; width: auto; max-width: none; }
   .toast { max-width: none; }
 }
 
