@@ -33,6 +33,7 @@ import SettingsDialog, { SECTIONS } from "../src/components/SettingsDialog";
 import { LocaleProvider } from "../src/i18n";
 import { LANGUAGES } from "../src/i18n/languages";
 import STRINGS from "../src/i18n/strings";
+import { familyNote, groupModels, parseModel } from "../src/models";
 
 const SAMPLE_DOC = {
   document_id: "00000000-0000-0000-0000-000000000001",
@@ -200,6 +201,70 @@ console.log("checking the markdown renderer:");
       return "ok".repeat(12);
     });
   }
+}
+
+// Nothing in the model picker is looked up -- the family name, the level label
+// and the "what is it for" line are all computed from whatever Ollama happens
+// to report, so a model pulled tomorrow has to parse on these rules alone.
+// Each of the first three checks below was a bug first.
+//
+// The last two are the ones that matter most: a note is a translation KEY, and
+// a key the dictionary does not have renders as its own name -- "chat.noteQwen"
+// printed on screen under a model. Nothing else in this file would catch it.
+console.log("checking the model picker:");
+{
+  const en = STRINGS["en-US"];
+  const group = (ollama, openai = []) => groupModels({ ollama, openai });
+  const one = (id) => group([id])[0];
+  const is = (name, got, want) =>
+    check(name, () => {
+      if (String(got) !== String(want)) {
+        throw new Error(`got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
+      }
+      return "ok".repeat(12);
+    });
+
+  is("deepseek-r1:7b is not DeepSeek-R at version 1",
+     parseModel("ollama", "deepseek-r1:7b").familyLabel, "DeepSeek-R1");
+  is("mixtral:8x7b counts as 56B, so it reads as slow",
+     parseModel("ollama", "mixtral:8x7b").params, 56);
+  is("phi3:mini takes its level from the tag, not the version",
+     one("phi3:mini").levels[0].levelLabel, "mini");
+  is("phi4-mini is Phi, not a family of its own",
+     one("phi4-mini:latest").label, "Phi");
+  is("...at its mini edition, not \"latest\"",
+     one("phi4-mini:latest").levels[0].levelLabel, "mini");
+  is("two Phi editions stay one family, still tellable apart",
+     group(["phi3:mini", "phi4-mini:latest"])[0].levels.map((l) => l.levelLabel).join(","),
+     "3 \u00b7 mini,4 \u00b7 mini");
+  is("an unknown -r1 compound is left whole",
+     parseModel("ollama", "acme-r1-distill:8b").family, "acme-r1-distill");
+  is("a name with no digits in it is left whole",
+     parseModel("ollama", "nomic-embed-text:latest").family, "nomic-embed-text");
+  is("the fallback note is read off the SMALLEST level",
+     familyNote(one("alfa:1b")), familyNote(group(["alfa:1b", "alfa:13b"])[0]));
+
+  /* Every family the picker can put on screen, including three invented ones
+     that reach each size-derived fallback and a cloud model of each kind. */
+  const reachable = group(
+    ["llama3.2:3b", "qwen3.5:4b", "phi4-mini:latest", "granite4:micro", "gemma3:4b",
+     "mistral:7b", "deepseek-r1:7b", "codellama:7b", "smollm2:1.7b",
+     "alfa:1b", "bravo:4b", "charlie:13b"],
+    ["gpt-4o", "gpt-4o-mini"],
+  );
+  check(`every model note is a string English has (${reachable.length} families)`, () => {
+    const missing = [...new Set(reachable.map(familyNote).filter((k) => !en[k]))];
+    if (missing.length) throw new Error(`not in English: ${missing.join(", ")}`);
+    return "ok".repeat(12);
+  });
+  check("the picker's own labels are strings English has", () => {
+    const missing = [
+      "chat.onThisMachine", "chat.cloudSection", "chat.sizeHelp",
+      "chat.modelSize", "chat.moreModels", "chat.addApiKey", "chat.slow",
+    ].filter((k) => !en[k]);
+    if (missing.length) throw new Error(`not in English: ${missing.join(", ")}`);
+    return "ok".repeat(12);
+  });
 }
 
 console.log("checking locale coverage:");
