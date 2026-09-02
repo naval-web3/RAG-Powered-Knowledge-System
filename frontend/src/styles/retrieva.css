@@ -2987,10 +2987,9 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(40px, 6vw, 96px);
   align-items: start;
 }
-.faq-label h2 { font-size: clamp(26px, 3vw, 36px); font-weight: 600; letter-spacing: -.015em; margin-bottom: 12px; }
-.faq-label p { color: var(--text-2); font-size: 15.5px; max-width: 40ch; }
-.faq-label a { color: var(--accent); font-weight: 600; text-decoration: none; }
-.faq-label a:hover { text-decoration: underline; }
+/* The heading is the whole column now -- the standfirst under it was cut, and
+   with it the only paragraph and link this label ever had. */
+.faq-label h2 { font-size: clamp(26px, 3vw, 36px); font-weight: 600; letter-spacing: -.015em; }
 .faq-list { border-top: 1px solid var(--border); }
 .faq-item { border-bottom: 1px solid var(--border); }
 .faq-q {
@@ -3007,6 +3006,11 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .faq-a > div { overflow: hidden; }
 .faq-item.open .faq-a { grid-template-rows: 1fr; }
 .faq-a p { font-size: 14.5px; line-height: 1.65; color: var(--text-2); padding: 0 42px 22px 0; max-width: 60ch; }
+/* Reserved space below the last question, sized in Landing.jsx. It has to move
+   on the SAME clock as the answer above it, or the two would not cancel and the
+   footer would still shift for a third of a second. */
+.faq-reserve { transition: height .3s var(--ease); }
+@media (prefers-reduced-motion: reduce) { .faq-reserve { transition: none; } }
 @media (max-width: 1080px) { .faq { grid-template-columns: 1fr; gap: 28px; } }
 
 /* ---------- Sub-page header ---------- */

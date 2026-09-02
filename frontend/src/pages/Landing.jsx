@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import LandingShell from "../components/LandingShell";
 
@@ -38,15 +38,38 @@ function Faq() {
      are reading. */
   const [open, setOpen] = useState(-1);
 
+  /* The list keeps ONE height whatever is open.
+     The answers are different lengths, so opening one grew the page under the
+     footer and closing it shrank it back -- and since the last question sits
+     right above the footer, reading the bottom of the list walked the footer up
+     and down. So the list reserves the tallest answer's height as empty space
+     and hands it back as the open answer takes it. Total height: the questions,
+     plus the tallest answer, always.
+
+     Measured rather than declared, because the answers wrap differently at
+     every width -- which is also why it is remeasured on resize. scrollHeight
+     reads the content even while the row is collapsed to 0fr, since the inner
+     div is what overflow:hidden is on. */
+  const inners = useRef([]);
+  const [tallest, setTallest] = useState(0);
+
+  useEffect(() => {
+    const measure = () => {
+      const hs = inners.current.filter(Boolean).map((el) => el.scrollHeight);
+      setTallest(hs.length ? Math.max(...hs) : 0);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  const openH = open < 0 ? 0 : inners.current[open]?.scrollHeight ?? 0;
+
   return (
     <section className="section" id="faq">
       <div className="faq">
         <div className="faq-label">
           <h2>FAQ</h2>
-          <p>
-            Short answers to the questions people ask before they upload their first document.
-            For the longer version, see <Link to="/under-the-hood">under the hood</Link>.
-          </p>
         </div>
         <div className="faq-list">
           {FAQ.map((item, i) => (
@@ -63,10 +86,15 @@ function Faq() {
                 <Icon name="plus" />
               </button>
               <div className="faq-a" id={`faq-a-${i}`} role="region" aria-labelledby={`faq-q-${i}`}>
-                <div><p>{item.a}</p></div>
+                <div ref={(el) => { inners.current[i] = el; }}><p>{item.a}</p></div>
               </div>
             </div>
           ))}
+          {/* The gap that keeps the footer still. It shrinks by exactly what the
+              opening answer grows, over the same duration, so nothing below the
+              list moves at any point in the animation. */}
+          <div className="faq-reserve" aria-hidden="true"
+            style={{ height: Math.max(0, tallest - openH) }} />
         </div>
       </div>
     </section>
