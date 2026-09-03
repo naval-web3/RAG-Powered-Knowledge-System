@@ -203,6 +203,12 @@ body {
   border: 1px solid var(--border-strong); border-radius: var(--r-md);
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
+/* A textarea defaults to resize: both, and the corner grip drags it sideways
+   out of whatever dialog it sits in -- past the edge, with a scrollbar left
+   behind. Height is the only dimension worth giving away: the width belongs to
+   the layout. Every textarea that names itself already pins this; the rule
+   lives on the shared class so the next one cannot forget. */
+textarea.input { resize: vertical; }
 .input::placeholder { color: var(--text-3); }
 .input:focus, .select:focus, textarea.input:focus {
   outline: none; border-color: var(--accent);
