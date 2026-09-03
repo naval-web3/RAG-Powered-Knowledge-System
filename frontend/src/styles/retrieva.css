@@ -1269,6 +1269,36 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 }
 .sb-pin-hint .icon-sm { flex: none; }
 
+/* ---------- Sidebar skeleton ---------- */
+/* Metrics COPIED from .conv-item rather than inherited: the placeholder has to
+   sit exactly where the real row will, but must not pick up the hover and
+   active painting that class carries. Same reason .sb-pin-hint copies them. */
+.sk-row {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 4px 8px 10px; font-size: 13.5px;
+}
+.sk-row .icon-sm { flex: none; color: var(--text-3); opacity: .4; }
+.sk-bar { height: 9px; border-radius: 999px; background: var(--border); position: relative; overflow: hidden; }
+/* The sweep travels inside the bar, which is what stops it spilling past the
+   rounded ends. The highlight is mixed from --text rather than hardcoded, so it
+   lightens the bar in the dark theme and darkens it in the light one instead of
+   glaring white in both. */
+.sk-bar::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--text) 14%, transparent) 50%,
+    transparent 100%);
+  transform: translateX(-100%);
+  animation: skShimmer 1.35s linear infinite;
+  /* Each row starts after the one above it, so the light runs DOWN the list
+     rather than every bar flashing together. */
+  animation-delay: calc(var(--r, 0) * 90ms);
+}
+@keyframes skShimmer { to { transform: translateX(100%); } }
+/* A sweep is decoration; the rows still hold the layout without it. */
+@media (prefers-reduced-motion: reduce) { .sk-bar::after { animation: none; } }
+
 /* ---------- Library pages: all documents, all projects ---------- */
 .lib-pad { max-width: 1040px; margin: 0 auto; }
 .lib-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }

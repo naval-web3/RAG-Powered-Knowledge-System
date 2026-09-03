@@ -23,6 +23,14 @@ export function ChatProvider({ children }) {
   const { locale, t } = useLocale();
 
   const [conversations, setConversations] = useState([]);
+  /* "Has this list answered yet", which is a different question from "is it
+     empty". Without it the sidebar cannot tell an empty library from one it has
+     not been told about, and it was announcing the first while waiting for the
+     second. Each list carries its own, so Documents can settle while Chats is
+     still in flight instead of one gate holding the whole sidebar. */
+  const [convsLoaded, setConvsLoaded] = useState(false);
+  const [docsLoaded, setDocsLoaded] = useState(false);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [projects, setProjects] = useState([]);
   const [activeProjectId, setActiveProjectIdState] = useState(null);
@@ -65,6 +73,8 @@ export function ChatProvider({ children }) {
       setConversations(data);
     } catch {
       /* ignore */
+    } finally {
+      setConvsLoaded(true);
     }
   }, []);
 
@@ -74,6 +84,8 @@ export function ChatProvider({ children }) {
       setDocs(data);
     } catch {
       /* ignore */
+    } finally {
+      setDocsLoaded(true);
     }
   }, []);
 
@@ -114,6 +126,8 @@ export function ChatProvider({ children }) {
       setProjects(data || []);
     } catch {
       /* non-fatal: the sidebar simply shows no projects */
+    } finally {
+      setProjectsLoaded(true);
     }
   }, []);
 
@@ -656,6 +670,9 @@ export function ChatProvider({ children }) {
     deleteProject,
     setProjectDocuments,
     touchProject,
+    convsLoaded,
+    docsLoaded,
+    projectsLoaded,
     messages,
     sending,
     loadingConv,

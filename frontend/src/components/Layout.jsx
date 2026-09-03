@@ -11,6 +11,9 @@ import { getThemePref, setTheme } from "../theme";
 import { initialsOf } from "../utils";
 import ConfirmModal from "./ConfirmModal";
 import PortalMenu from "./PortalMenu";
+import {
+  SkeletonRows, readSkeletonCounts, useSkeleton, writeSkeletonCounts,
+} from "./SidebarSkeleton";
 import DocumentDialog from "./DocumentDialog";
 import Ghost from "./Ghost";
 import Icon from "./Icon";
@@ -733,6 +736,28 @@ function Shell() {
   // are simply the head of the list.
   const shownChats = filtered.slice(0, RECENT_CHATS);
 
+  /* Each section waits on its own fetch, so Documents can settle while Chats is
+     still coming rather than one gate holding the whole sidebar blank. */
+  const skCounts = useMemo(readSkeletonCounts, []);
+  const skDocs = useSkeleton(!chat.docsLoaded);
+  const skProjects = useSkeleton(!chat.projectsLoaded);
+  const skChats = useSkeleton(!chat.convsLoaded);
+
+  /* Remember the shape of this sidebar for the next reload. Written from the
+     RENDERED lists, not the raw ones -- the sections show only what is pinned,
+     and the chat list is capped -- so the skeleton stands in for what will
+     actually appear. Keyed on lengths, never on the arrays: a new array every
+     render would rewrite this on every render. */
+  useEffect(() => {
+    if (!chat.docsLoaded || !chat.projectsLoaded || !chat.convsLoaded) return;
+    writeSkeletonCounts({
+      docs: visibleDocs.length,
+      projects: visibleProjects.length,
+      chats: shownChats.length,
+    });
+  }, [chat.docsLoaded, chat.projectsLoaded, chat.convsLoaded,
+      visibleDocs.length, visibleProjects.length, shownChats.length]);
+
   // Documents have their own section below, so the nav is the dashboard alone.
   const navItems = user?.role === "admin"
     ? [{ page: "/dashboard", icon: "grid", label: t("sidebar.dashboard") }]
@@ -836,9 +861,10 @@ function Shell() {
           </div>
           {docsOpen && (
             <>
+              {skDocs && <SkeletonRows n={skCounts.docs} icon="file" />}
               {/* Nothing uploaded and nothing pinned are different problems,
                   and only the second one has a page to point at. */}
-              {visibleDocs.length === 0 && (
+              {!skDocs && visibleDocs.length === 0 && (
                 chat.docs.length === 0 ? (
                   <div className="sb-empty sb-empty-sm">{t("docs.empty")}</div>
                 ) : (
@@ -848,7 +874,10 @@ function Shell() {
                   </div>
                 )
               )}
-              {visibleDocs.map((d) => {
+              {/* Either the placeholder or the real rows, never both: data can
+                  land while the skeleton is still being held open, and the two
+                  lists would then stack. */}
+              {!skDocs && visibleDocs.map((d) => {
                 const busy = d.processing_status !== "done" && d.processing_status !== "failed";
                 const open = docMenuId === d.document_id;
                 const editing = docEditId === d.document_id;
@@ -935,13 +964,14 @@ function Shell() {
           </div>
           {projectsOpen && (
           <>
-          {visibleProjects.length === 0 && (
+          {skProjects && <SkeletonRows n={skCounts.projects} icon="book" />}
+          {!skProjects && visibleProjects.length === 0 && (
             <div className="sb-pin-hint">
               <Icon name="pin" className="icon-sm" />
               <span>{t("sidebar.pinProjects")}</span>
             </div>
           )}
-          {visibleProjects.map((p) => {
+          {!skProjects && visibleProjects.map((p) => {
             const open = location.pathname === `/projects/${p.project_id}`;
             const own = chatsByProject[p.project_id] || [];
             return (
@@ -996,16 +1026,17 @@ function Shell() {
           className={`sb-scroll ${convFade}`} id="conv-list" ref={convScrollRef}>
           {chatsOpen && (
           <>
-          {chat.conversations.length === 0 && (
+          {skChats && <SkeletonRows n={skCounts.chats} icon="chat" />}
+          {!skChats && chat.conversations.length === 0 && (
             <div className="sb-empty">
               {t("sidebar.noConversations")}<br />{t("sidebar.startNewChat")}
             </div>
           )}
-          {chat.conversations.length > 0 && filtered.length === 0 && (
+          {!skChats && chat.conversations.length > 0 && filtered.length === 0 && (
             <div className="sb-empty">{t("sidebar.noMatchingChats", { q: convSearch })}</div>
           )}
           <div className="sb-chat-list">
-            {shownChats.map((c) => {
+            {!skChats && shownChats.map((c) => {
                 const active = c.conversation_id === chat.activeId;
                 const open = menuId === c.conversation_id;
                 const editing = editingId === c.conversation_id;
