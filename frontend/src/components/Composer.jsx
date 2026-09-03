@@ -444,7 +444,15 @@ function ModelMenu() {
   const chat = useChat();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("root");
+  /* null when closed, otherwise the side it opened on. Which side is decided
+     when it opens, not declared: the menu hangs off the right edge of a
+     composer that is centred and capped, so how much room sits beside it
+     depends on the window. */
+  const [fly, setFly] = useState(null);
   const ref = useRef(null);
+  const menuRef = useRef(null);
+  const openT = useRef(0);
+  const closeT = useRef(0);
 
   const groups = useMemo(() => groupModels(chat.models), [chat.models]);
   const { group, level } = locate(groups, chat.sel);
@@ -464,8 +472,55 @@ function ModelMenu() {
     return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
 
+  /* Closing the menu has to take the flyout with it, or it would be waiting
+     where it was left the next time the menu opens. */
+  useEffect(() => {
+    if (open) return;
+    clearTimeout(openT.current);
+    clearTimeout(closeT.current);
+    setFly(null);
+    setView("root");
+  }, [open]);
+
+  useEffect(() => () => { clearTimeout(openT.current); clearTimeout(closeT.current); }, []);
+
+  /* Right if it fits, left if it does not, and neither when the window is too
+     narrow for a second panel at all -- on a phone there is nowhere beside the
+     menu to put one, so it falls back to swapping the panel as it did before.
+     The flyout is the same width as the menu, so the menu's own width is the
+     measurement; no constant here has to be kept in step with the CSS. */
+  function sideForFly() {
+    const m = menuRef.current?.getBoundingClientRect();
+    if (!m) return null;
+    const need = m.width + 12 + 8; // gap, then a margin off the window edge
+    if (window.innerWidth - m.right >= need) return "right";
+    if (m.left >= need) return "left";
+    return null;
+  }
+
+  function openFly(now) {
+    clearTimeout(closeT.current);
+    clearTimeout(openT.current);
+    const go = () => {
+      const side = sideForFly();
+      if (side) setFly(side);
+      else { setFly(null); setView("more"); }
+    };
+    /* A short wait before opening, so running the pointer down the list to
+       reach the cloud row does not flash this open on the way past. */
+    if (now) go(); else openT.current = setTimeout(go, 120);
+  }
+
+  function closeFly() {
+    clearTimeout(openT.current);
+    /* And a moment's grace after leaving, so the diagonal from the row to the
+       flyout does not pass through nothing and shut it. */
+    closeT.current = setTimeout(() => setFly(null), 200);
+  }
+
   function pickFamily(g) {
     chat.setSel(selOf(g.levels[0]));
+    setFly(null);
     setOpen(false);
   }
 
@@ -527,7 +582,7 @@ function ModelMenu() {
       </button>
 
       {open && (
-        <div className="drop-menu drop-right">
+        <div className="drop-menu drop-right" ref={menuRef}>
           {view === "root" && (
             <>
               {split && <div className="drop-label">{t("chat.onThisMachine")}</div>}
@@ -536,10 +591,34 @@ function ModelMenu() {
               {cloud.map((g) => <Family key={g.key} g={g} />)}
               {rest.length > 0 && <div className="drop-sep" />}
               {rest.length > 0 && (
-                <button className="drop-item drop-nav" onClick={() => setView("more")}>
-                  <span className="d-name">{t("chat.moreModels")}</span>
-                  <Icon name="chev-r" className="icon-sm" />
-                </button>
+                /* The row and the flyout are one hover group, so travelling
+                   between them never leaves it. Hover is not the only way in:
+                   it does not exist on a touchscreen and cannot be reached
+                   from the keyboard, and the models behind it would be lost
+                   to both. */
+                <div className="drop-sub" onMouseEnter={() => openFly(false)} onMouseLeave={closeFly}>
+                  <button className="drop-item drop-nav" aria-haspopup="menu"
+                    aria-expanded={!!fly}
+                    onClick={() => openFly(true)}
+                    onFocus={() => openFly(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowRight" || e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openFly(true);
+                      }
+                    }}>
+                    <span className="d-name">{t("chat.moreModels")}</span>
+                    {/* Never points at a wall: it turns round with the panel. */}
+                    <Icon name="chev-r" className={`icon-sm ${fly === "left" ? "flip" : ""}`} />
+                  </button>
+                  {fly && (
+                    <div className={`drop-menu drop-fly fly-${fly}`}
+                      onMouseEnter={() => clearTimeout(closeT.current)}
+                      onMouseLeave={closeFly}>
+                      {rest.map((g) => <Family key={g.key} g={g} />)}
+                    </div>
+                  )}
+                </div>
               )}
             </>
           )}

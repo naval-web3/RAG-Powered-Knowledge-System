@@ -1769,11 +1769,26 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
    that edge. left:0 would push it off the window. */
 .drop-menu.drop-right { left: auto; right: 0; min-width: 292px; }
 .drop-sep { height: 1px; background: var(--border); margin: 5px 6px; }
+
+/* ---- "More models", opening beside the menu instead of replacing it ----
+   The row and its panel are one group so the pointer can travel between them.
+   The panel takes the MENU's width rather than a width of its own, which is
+   also what the side-of-opening is measured against -- so no constant here has
+   to be kept in step with the JavaScript.
+   Aligned to the bottom, because this menu hangs upward off the composer and a
+   panel dropping from the row would run down into it. */
+.drop-sub { position: relative; }
+.drop-menu.drop-fly { bottom: -6px; width: 100%; min-width: 0; }
+.drop-menu.drop-fly.fly-right { left: calc(100% + 12px); right: auto; }
+.drop-menu.drop-fly.fly-left { right: calc(100% + 12px); left: auto; }
 /* A row that leads somewhere rather than choosing something: the value it
    currently holds, then the arrow. */
 .drop-nav { justify-content: flex-start; }
 .drop-nav .d-name { flex: 1; }
 .drop-nav .icon-sm:last-child { color: var(--text-3); }
+/* The nav chevron turns round when its panel opens on the other side. The
+   .drop-back rule cannot be reused -- it is scoped to that class alone. */
+.drop-nav .flip { transform: rotate(180deg); }
 .drop-back {
   display: flex; align-items: center; gap: 8px; width: 100%;
   padding: 7px 10px 9px; margin-bottom: 2px;
