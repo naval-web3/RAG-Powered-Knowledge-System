@@ -1348,7 +1348,13 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .lib-sort .sel-trigger:hover { background: var(--row-hover); }
 .sel-prefix { color: var(--text-3); }
 .lib-sort .sel-value { font-weight: 500; }
-.lib-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+/* Two columns, not as many as will fit. auto-fill gave three on a wide window,
+   which made each card too narrow to be worth the space it took.
+   minmax(0, 1fr) rather than 1fr: a project named or described in one unbroken
+   run of characters has no wrapping point, and an `auto` minimum would let it
+   push its own column wider than half the row. */
+.lib-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 720px) { .lib-grid { grid-template-columns: minmax(0, 1fr); } }
 /* relative, because the menu it holds is positioned against it. */
 .lib-card { position: relative; }
 /* A pinned project says so without being hovered -- it is the reason the card
