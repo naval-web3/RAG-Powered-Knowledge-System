@@ -5,7 +5,7 @@ documents (PDF / DOCX / TXT), index them as vector embeddings, and ask
 questions in natural language to get answers grounded in your own documents,
 with source citations.
 
-> MCA Project (MCSP-232) — IGNOU. Built per the approved synopsis.
+> MCA Project (MCSP-232) — IGNOU. 
 
 ## Architecture
 
