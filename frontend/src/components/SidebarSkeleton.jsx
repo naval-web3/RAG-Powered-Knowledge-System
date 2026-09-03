@@ -33,15 +33,21 @@ export function SkeletonRows({ n, icon }) {
 /**
  * Whether to draw the skeleton at all.
  *
- * Two guards, and they solve opposite problems. A local fetch can land in 80ms,
- * and a skeleton that appears and vanishes inside a tenth of a second reads as
- * a glitch rather than as loading -- so nothing is drawn for `delay` first.
- * Once it IS drawn it stays for at least `hold`, because data arriving just
- * after the delay would otherwise blink it out as fast as it came.
+ * The skeleton is what a reload shows FIRST, before any fetch has answered --
+ * so `delay` is 0 and the guarding is all done by `hold`. An earlier version
+ * waited 150ms before drawing anything, on the theory that a fast load should
+ * stay still; what that actually produced was 150ms of the sidebar's EMPTY
+ * STATES, because "not loaded" and "loaded and empty" looked the same to it.
+ * Holding for `hold` is what stops the blink instead: the skeleton is up from
+ * the first frame and stays a beat, whether the data takes 14ms or two seconds.
  */
-export function useSkeleton(loading, { delay = 150, hold = 300 } = {}) {
-  const [show, setShow] = useState(false);
+export function useSkeleton(loading, { delay = 0, hold = 300 } = {}) {
+  /* With no delay it has to be on screen at the FIRST render, not a tick later:
+     even setTimeout(0) lands after the first paint, and that frame of blank
+     sidebar is the very gap this exists to fill. */
+  const [show, setShow] = useState(() => loading && delay <= 0);
   const shownAt = useRef(0);
+  if (show && !shownAt.current) shownAt.current = Date.now();
 
   useEffect(() => {
     if (loading) {

@@ -864,7 +864,11 @@ function Shell() {
               {skDocs && <SkeletonRows n={skCounts.docs} icon="file" />}
               {/* Nothing uploaded and nothing pinned are different problems,
                   and only the second one has a page to point at. */}
-              {!skDocs && visibleDocs.length === 0 && (
+              {/* WAITS FOR THE DATA, not for the skeleton. Keyed on !skDocs alone
+                  this still rendered "Pin documents here" during the gap before
+                  the skeleton appeared -- the same false empty state the
+                  skeleton was added to remove. */}
+              {chat.docsLoaded && !skDocs && visibleDocs.length === 0 && (
                 chat.docs.length === 0 ? (
                   <div className="sb-empty sb-empty-sm">{t("docs.empty")}</div>
                 ) : (
@@ -965,7 +969,7 @@ function Shell() {
           {projectsOpen && (
           <>
           {skProjects && <SkeletonRows n={skCounts.projects} icon="book" />}
-          {!skProjects && visibleProjects.length === 0 && (
+          {chat.projectsLoaded && !skProjects && visibleProjects.length === 0 && (
             <div className="sb-pin-hint">
               <Icon name="pin" className="icon-sm" />
               <span>{t("sidebar.pinProjects")}</span>
@@ -1027,12 +1031,12 @@ function Shell() {
           {chatsOpen && (
           <>
           {skChats && <SkeletonRows n={skCounts.chats} icon="chat" />}
-          {!skChats && chat.conversations.length === 0 && (
+          {chat.convsLoaded && !skChats && chat.conversations.length === 0 && (
             <div className="sb-empty">
               {t("sidebar.noConversations")}<br />{t("sidebar.startNewChat")}
             </div>
           )}
-          {!skChats && chat.conversations.length > 0 && filtered.length === 0 && (
+          {chat.convsLoaded && !skChats && chat.conversations.length > 0 && filtered.length === 0 && (
             <div className="sb-empty">{t("sidebar.noMatchingChats", { q: convSearch })}</div>
           )}
           <div className="sb-chat-list">

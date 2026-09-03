@@ -1296,6 +1296,10 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
   animation-delay: calc(var(--r, 0) * 90ms);
 }
 @keyframes skShimmer { to { transform: translateX(100%); } }
+/* Standing in for the model name on the composer. Sized to roughly what the
+   name plus its size chip occupies, so the row does not resize when the real
+   label lands. */
+.sk-model { display: inline-block; width: 62px; height: 10px; }
 /* A sweep is decoration; the rows still hold the layout without it. */
 @media (prefers-reduced-motion: reduce) { .sk-bar::after { animation: none; } }
 

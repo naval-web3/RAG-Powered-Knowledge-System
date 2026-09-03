@@ -6,6 +6,7 @@ import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
 import { familyNote, groupModels, locate, selOf } from "../models";
+import { useSkeleton } from "./SidebarSkeleton";
 
 /**
  * The prompt box, and the three menus that live on its bottom row.
@@ -447,6 +448,7 @@ function ModelMenu() {
 
   const groups = useMemo(() => groupModels(chat.models), [chat.models]);
   const { group, level } = locate(groups, chat.sel);
+  const skModel = useSkeleton(!chat.modelsLoaded);
 
   function toggleOpen() {
     const next = !open;
@@ -505,12 +507,23 @@ function ModelMenu() {
 
   return (
     <div className="menu-anchor" ref={ref}>
+      {/* /api/models asks Ollama for its tags and waits up to 3s, which is long
+          enough to watch. Until it answers there is no family to name, so the
+          button used to print the raw tag -- "llama3.2:3b" -- and then rewrite
+          itself to "Llama 3B" once the list arrived. A bar says "not yet"
+          without saying something it will take back. */}
       <button className="model-btn" aria-haspopup="true" aria-expanded={open}
-        onClick={toggleOpen}>
-        <span>{group ? group.label : chat.sel.split("|")[1] || "model"}</span>
-        {/* Only when there is one to show. A family with a single model has no
-            size worth naming, and an empty chip is a control that lies. */}
-        {level?.size && <span className="model-level">{level.size}</span>}
+        aria-busy={skModel} disabled={skModel} onClick={toggleOpen}>
+        {skModel ? (
+          <span className="sk-bar sk-model" />
+        ) : (
+          <>
+            <span>{group ? group.label : chat.sel.split("|")[1] || "model"}</span>
+            {/* Only when there is one to show. A family with a single model has
+                no size worth naming, and an empty chip is a control that lies. */}
+            {level?.size && <span className="model-level">{level.size}</span>}
+          </>
+        )}
       </button>
 
       {open && (

@@ -31,6 +31,9 @@ export function ChatProvider({ children }) {
   const [convsLoaded, setConvsLoaded] = useState(false);
   const [docsLoaded, setDocsLoaded] = useState(false);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
+  /* Its own flag, and the slowest of the four by a distance: /api/models asks
+     Ollama for its tags and waits up to 3s for an answer. */
+  const [modelsLoaded, setModelsLoaded] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [projects, setProjects] = useState([]);
   const [activeProjectId, setActiveProjectIdState] = useState(null);
@@ -112,6 +115,8 @@ export function ChatProvider({ children }) {
       });
     } catch {
       /* ignore */
+    } finally {
+      setModelsLoaded(true);
     }
   }, []);
 
@@ -673,6 +678,7 @@ export function ChatProvider({ children }) {
     convsLoaded,
     docsLoaded,
     projectsLoaded,
+    modelsLoaded,
     messages,
     sending,
     loadingConv,
