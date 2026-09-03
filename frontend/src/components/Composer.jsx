@@ -552,11 +552,12 @@ function ModelMenu() {
   const cloud = groups.filter((g) => g.provider !== "ollama");
   const shownLocal = local.slice(0, MAIN_FAMILIES);
   const rest = local.slice(MAIN_FAMILIES);
-  /* Whatever is selected stays in sight even when it is one of the overflow
-     families -- a menu that opens without your own model anywhere on it reads
-     as though the selection had been lost. */
-  const hidden = rest.findIndex((g) => g.key === group?.key);
-  if (hidden >= 0) shownLocal.push(...rest.splice(hidden, 1));
+  /* The selected family is deliberately NOT pulled forward out of the overflow.
+     It used to be, so the menu never opened without your own model on it -- but
+     that quietly rearranged the list around whatever you last picked, so the
+     same menu held different families depending on your history. A family keeps
+     its place and carries its tick where it sits; the composer button names the
+     current model anyway, so nothing is actually hidden. */
   /* A heading with nothing to contrast against is just a word in the way. */
   const split = shownLocal.length > 0 && cloud.length > 0;
 
