@@ -1730,15 +1730,15 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .scope-btn #scope-btn-label { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scope-btn.scoped { background: var(--accent-soft-2); color: var(--accent); }
 .scope-btn.scoped:hover { background: var(--accent-soft); color: var(--accent); }
-/* Capped and scrolling. This menu is one row per document, it opens UPWARDS
-   from the composer, and a library of sixteen made it 933px tall: it ran 255px
-   off the top of the window, where the first rows could be neither read nor
-   clicked. Tooltips are portalled into <body>, so the overflow cannot clip
-   them. */
-#scope-menu {
-  min-width: 280px; max-width: 330px;
-  max-height: min(52vh, 440px); overflow-y: auto; overscroll-behavior: contain;
-}
+/* This menu is one row per document, and it opens UPWARDS from the composer:
+   a library of sixteen made it 933px tall and it ran 255px off the top of the
+   window, where the first rows could be neither read nor clicked.
+   The scrolling is on .scope-list rather than here. The height it is cut to is
+   set in JS, because it has to be a whole number of rows and a row is two
+   lines of type -- see ScopeMenu. Tooltips are portalled into <body>, so the
+   overflow cannot clip them. */
+#scope-menu { min-width: 280px; max-width: 330px; }
+.scope-list { overflow-y: auto; overscroll-behavior: contain; }
 #scope-menu .d-name { display: block; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The row is a container for two buttons, so the padding and the hover tint
    move onto them: whichever half is under the pointer is the half that lights,

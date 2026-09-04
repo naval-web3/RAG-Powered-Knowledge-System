@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "./Icon";
 import Tooltip from "./Tooltip";
@@ -7,6 +7,7 @@ import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
 import { familyNote, groupModels, locate, selOf } from "../models";
 import { useSkeleton } from "./SidebarSkeleton";
+import useEdgeFade from "../useEdgeFade";
 
 /**
  * The prompt box, and the three menus that live on its bottom row.
@@ -684,11 +685,24 @@ function ScopeRow({ doc, on, onOpen, onPick }) {
   );
 }
 
+/* Whole rows, never a sliced one. The list is cut to a MULTIPLE OF THE ROW
+   HEIGHT, measured rather than written down: the rows are two lines of type
+   whose height follows the font, so a number here would be right until the
+   day someone changes it. Between three and eight of them -- fewer and the
+   menu is not worth scrolling, more and it is a page. */
+const MIN_ROWS = 3;
+const MAX_ROWS = 8;
+const TOP_EDGE = 12; // smallest gap left between the menu and the window's top
+
 function ScopeMenu() {
   const t = useT();
   const chat = useChat();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const menuRef = useRef(null);
+  const listEl = useRef(null);
+  const [listRef, listFade] = useEdgeFade();
+  const [maxH, setMaxH] = useState(null);
   const ready = chat.docs.filter((d) => d.processing_status === "done");
 
   useEffect(() => {
@@ -697,6 +711,27 @@ function ScopeMenu() {
     window.addEventListener("mousedown", onDown);
     return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
+
+  /* Measured off the menu's BOTTOM, which is the fixed edge -- it is anchored
+     to the composer and the menu grows upwards from it. Measuring the list's
+     own height instead would feed the cap back into itself: cap it, the list
+     shrinks, and the next measurement finds the room it just gave up.
+     Before paint, so the untrimmed list is never seen. */
+  useLayoutEffect(() => {
+    if (!open) return;
+    const menu = menuRef.current;
+    const list = listEl.current;
+    const row = list?.querySelector(".drop-item");
+    if (!menu || !list || !row) return;
+    const rowH = row.getBoundingClientRect().height;
+    if (!rowH) return;
+    const label = menu.querySelector(".drop-label");
+    const pad = 12; // the popover's own 6px, top and bottom
+    const room = menu.getBoundingClientRect().bottom - TOP_EDGE
+      - (label?.getBoundingClientRect().height || 0) - pad;
+    const rows = Math.max(MIN_ROWS, Math.min(MAX_ROWS, Math.floor(room / rowH)));
+    setMaxH(Math.round(rows * rowH));
+  }, [open, ready.length]);
 
   const label = chat.scopeDoc ? chat.scopeDoc.title : t("chat.allDocuments");
 
@@ -708,8 +743,16 @@ function ScopeMenu() {
         <span id="scope-btn-label">{label}</span>
       </button>
       {open && (
-        <div className="drop-menu" id="scope-menu">
+        <div className="drop-menu" id="scope-menu" ref={menuRef}>
+          {/* Outside the scroller: it is the menu's own heading, and keeping it
+              there is also what makes the row arithmetic exact. */}
           <div className="drop-label">{t("chat.retrievalScope")}</div>
+          {/* The mask that fades a cut edge goes on THIS, not on the popover:
+              on the popover it would fade the border and the shadow with the
+              rows, and the menu would dissolve at its own corners. */}
+          <div className={`scope-list ${listFade}`}
+            style={maxH ? { maxHeight: `${maxH}px` } : undefined}
+            ref={(el) => { listEl.current = el; listRef(el); }}>
           <button className={`drop-item ${!chat.scopeDoc ? "selected" : ""}`}
             onClick={() => { chat.setScopeDocId(null); setOpen(false); }}>
             <span><span className="d-name">{t("chat.allDocuments")}</span><span className="d-sub">{t("chat.wholeCorpus")}</span></span>
@@ -728,6 +771,7 @@ function ScopeMenu() {
               onOpen={() => { chat.setOpenDoc(d); setOpen(false); }}
               onPick={() => { chat.setScopeDocId(d.document_id); setOpen(false); }} />
           ))}
+          </div>
         </div>
       )}
     </div>
