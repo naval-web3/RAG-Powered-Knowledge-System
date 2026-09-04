@@ -670,14 +670,31 @@ function ScopeMenu() {
             <Icon name="check" className="icon-sm check" />
           </button>
           {ready.length === 0 && <div className="scope-empty">{t("chat.noScopeDocs")}</div>}
-          {ready.map((d) => (
-            <button key={d.document_id} className={`drop-item ${chat.scopeDocId === d.document_id ? "selected" : ""}`}
-              onClick={() => { chat.setScopeDocId(d.document_id); setOpen(false); }}>
-              <span><span className="d-name d-name"><span style={{ display: "block", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</span></span>
-                <span className="d-sub">{t("chat.chunks", { n: d.chunk_count })}</span></span>
-              <Icon name="check" className="icon-sm check" />
-            </button>
-          ))}
+          {/* Two things to want from a document you can see the name of: to
+              read it, and to ask about it. The name opens it; the target beside
+              it scopes the question, which is what the whole row used to do.
+              TWO BUTTONS SIDE BY SIDE, never one inside the other -- nested
+              controls are invalid, and the outer one eats the inner one's
+              click. */}
+          {ready.map((d) => {
+            const on = chat.scopeDocId === d.document_id;
+            return (
+              <div key={d.document_id} className={`drop-item scope-row ${on ? "selected" : ""}`}>
+                <button className="scope-open" title={d.title}
+                  onClick={() => { chat.setOpenDoc(d); setOpen(false); }}>
+                  <span className="d-name">{d.title}</span>
+                  <span className="d-sub">{t("chat.chunks", { n: d.chunk_count })}</span>
+                </button>
+                <Tooltip label={t("docs.scopeChat")} placement="left">
+                  <button className="scope-pick" aria-label={t("docs.scopeChat")}
+                    aria-pressed={on}
+                    onClick={() => { chat.setScopeDocId(d.document_id); setOpen(false); }}>
+                    <Icon name={on ? "check" : "target"} className="icon-sm" />
+                  </button>
+                </Tooltip>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

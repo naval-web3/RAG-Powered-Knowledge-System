@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import client from "../api/client";
+import { MIME } from "../docMime";
 import Icon from "./Icon";
 import MarkdownLite from "./MarkdownLite";
 
@@ -14,17 +15,6 @@ import MarkdownLite from "./MarkdownLite";
  * claim about the document that is not true.
  */
 const PLAIN = ["txt", "md", "docx"];
-/* The file endpoint is the DOWNLOAD endpoint: it answers with
-   application/octet-stream and an attachment disposition, which is right for
-   saving a file and useless for showing one -- an iframe handed an
-   octet-stream blob renders nothing at all. The type is taken from what the
-   document is instead, and the blob rebuilt with it. */
-const MIME = {
-  pdf: "application/pdf",
-  txt: "text/plain",
-  md: "text/markdown",
-  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-};
 
 export default function ContextDialog({ docs, title = "Context", onClose }) {
   const [q, setQ] = useState("");

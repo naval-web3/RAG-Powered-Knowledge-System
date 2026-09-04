@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import client from "../api/client";
+import { MIME } from "../docMime";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import { useT } from "../i18n";
@@ -17,10 +18,11 @@ import Tooltip from "./Tooltip";
  * honest view of a file whose content IS text, and the numbers make it possible
  * to talk about a particular line.
  *
- * A PDF opens to a card instead. Its extraction is a flattening of something
- * that was laid out, and showing a wall of run-together text as though it were
- * the document would misrepresent it. The file itself is one click away, in a
- * reader built for it.
+ * A PDF opens in the browser's own reader, filling the dialog. Its extraction
+ * is a flattening of something that was laid out, and showing a wall of
+ * run-together text as though it were the document would misrepresent it -- so
+ * the file itself is handed to a reader built for it, with its pages, its
+ * layout and its own search, and given the room to be read in.
  *
  * Two ways to look at one: read it, or read its source. Reading renders the
  * headings, emphasis and lists that are in the file; code shows the characters
@@ -64,13 +66,13 @@ export default function DocumentDialog({ doc, onClose }) {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const isPlain = PLAIN.includes((doc.file_type || "").toLowerCase());
+  const type = (doc.file_type || "").toLowerCase();
+  const isPlain = PLAIN.includes(type);
   const [view, setView] = useState("reading");
   const [pageCount, setPageCount] = useState(null);
-  const [thumb, setThumb] = useState(null);
-  // Set if the page could not be drawn, so the card can say so rather than
-  // showing an empty rectangle for ever.
-  const [thumbFailed, setThumbFailed] = useState(false);
+  // The file itself, as an object URL for the reader below -- not a picture of
+  // its first page.
+  const [fileUrl, setFileUrl] = useState(null);
   // Only a .md is worth colouring: the others are prose that happens to be
   // monospaced, and painting stray asterisks in a .txt would invent structure
   // the file does not have.
@@ -92,17 +94,21 @@ export default function DocumentDialog({ doc, onClose }) {
         .then(({ data }) => alive && setPageCount(data.page_count || null))
         .catch(() => {});
       /* Fetched rather than pointed at with a src: the endpoint wants the
-         bearer token, and an <img> cannot carry a header. The object URL is
-         released on the way out so the blob is not held for the session. */
+         bearer token, and an iframe cannot carry a header. What comes back is
+         the original file, rebuilt with the type the document says it is --
+         see docMime. The object URL is released on the way out so the blob is
+         not held for the session. */
       let objectUrl = null;
       client
-        .get(`/api/documents/${id}/thumbnail`, { responseType: "blob" })
+        .get(`/api/documents/${id}/file`, { responseType: "blob" })
         .then((res) => {
           if (!alive) return;
-          objectUrl = URL.createObjectURL(res.data);
-          setThumb(objectUrl);
+          objectUrl = URL.createObjectURL(
+            new Blob([res.data], { type: MIME[type] || "application/pdf" })
+          );
+          setFileUrl(objectUrl);
         })
-        .catch(() => alive && setThumbFailed(true));
+        .catch(() => alive && setError(true));
       return () => {
         alive = false;
         if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -113,7 +119,7 @@ export default function DocumentDialog({ doc, onClose }) {
       .then(({ data }) => alive && setContent(data))
       .catch(() => alive && setError(true));
     return () => { alive = false; };
-  }, [id, isPlain]);
+  }, [id, isPlain, type]);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -160,21 +166,12 @@ export default function DocumentDialog({ doc, onClose }) {
 
   return (
     <div className="modal-overlay doc-overlay" onClick={onClose}>
-      <div className={`modal doc-modal ${isPlain ? "" : "is-file"}`}
+      <div className={`modal doc-modal ${isPlain ? "is-text" : "is-pdf"}`}
         role="dialog" aria-modal="true" aria-label={doc.title}
         onClick={(e) => e.stopPropagation()}>
 
         <div className="doc-head">
           <h3 title={doc.title}>{doc.title}</h3>
-          {/* The card has no toolbar to put this on, and beside the name is
-              where it reads anyway: ask about THIS document. */}
-          {!isPlain && (
-            <Tooltip label={t("docs.scopeChat")} placement="left">
-              <button className="btn-icon" aria-label={t("docs.scopeChat")} onClick={scopeToDoc}>
-                <Icon name="target" className="icon-sm" />
-              </button>
-            </Tooltip>
-          )}
           <Tooltip label={t("common.close")} placement="left">
             <button className="btn-icon" aria-label={t("common.close")} onClick={onClose}>
               <Icon name="x" className="icon-sm" />
@@ -182,8 +179,16 @@ export default function DocumentDialog({ doc, onClose }) {
           </Tooltip>
         </div>
 
-        {isPlain && (
+        {/* One toolbar for both kinds now that a PDF has a view to put under
+            it, rather than a card with nowhere to hang its controls. */}
         <div className="doc-bar">
+          {/* The reader counts pages in its own toolbar, but the count belongs
+              to the document rather than to the view of it. */}
+          {!isPlain && pageCount != null && (
+            <span className="doc-pages">
+              {pageCount === 1 ? t("docs.onePage") : t("docs.pageCount", { n: pageCount })}
+            </span>
+          )}
           {isPlain && (
             <div className="set-seg doc-seg">
               <Tooltip label={t("docs.readingView")}>
@@ -227,38 +232,17 @@ export default function DocumentDialog({ doc, onClose }) {
             </button>
           </Tooltip>
         </div>
-        )}
 
         <div className="doc-body">
           {error && <p className="doc-note">{t("docs.loadFailed")}</p>}
 
-          {/* A PDF: the file, not a flattening of it. */}
-          {!isPlain && (
-            <div className="doc-file">
-              {/* The sheets ARE the button: hovering them offers the file,
-                  which is the only thing this card is for. */}
-              <button className="doc-stack" onClick={download} aria-label={t("docs.download")}>
-                {/* The page, in normal flow: it is what gives this button its
-                    height. A landscape deck comes out landscape and a portrait
-                    report portrait, with nothing measured to make that happen. */}
-                {thumb ? (
-                  <img className="doc-page-img" src={thumb} alt=""
-                    onError={() => setThumbFailed(true)} />
-                ) : (
-                  <span className="doc-page-blank">
-                    {thumbFailed && <Icon name="file-text" className="icon-lg" />}
-                  </span>
-                )}
-                <span className="doc-stack-dl">
-                  <Icon name="upload" className="icon-sm doc-dl" /> {t("docs.download")}
-                </span>
-              </button>
-              {pageCount ? (
-                <p className="doc-file-meta">
-                  {pageCount === 1 ? t("docs.onePage") : t("docs.pageCount", { n: pageCount })}
-                </p>
-              ) : null}
-            </div>
+          {/* A PDF: the file itself, in the reader the browser already has.
+              Nothing of ours draws it -- pages, zoom, print and its own search
+              all come with it. */}
+          {!isPlain && !error && !fileUrl && <p className="doc-note">{t("docs.loading")}</p>}
+          {!isPlain && fileUrl && (
+            <iframe className="doc-frame" src={fileUrl}
+              title={doc.original_filename || doc.title} />
           )}
 
           {isPlain && !error && !content && (

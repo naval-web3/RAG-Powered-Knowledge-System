@@ -1718,8 +1718,37 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .scope-btn #scope-btn-label { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scope-btn.scoped { background: var(--accent-soft-2); color: var(--accent); }
 .scope-btn.scoped:hover { background: var(--accent-soft); color: var(--accent); }
-#scope-menu { min-width: 280px; max-width: 330px; }
+/* Capped and scrolling. This menu is one row per document, it opens UPWARDS
+   from the composer, and a library of sixteen made it 933px tall: it ran 255px
+   off the top of the window, where the first rows could be neither read nor
+   clicked. Tooltips are portalled into <body>, so the overflow cannot clip
+   them. */
+#scope-menu {
+  min-width: 280px; max-width: 330px;
+  max-height: min(52vh, 440px); overflow-y: auto; overscroll-behavior: contain;
+}
 #scope-menu .d-name { display: block; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The row is a container for two buttons, so the padding and the hover tint
+   move onto them: whichever half is under the pointer is the half that lights,
+   which is the only way to tell a row that does two things that it does two. */
+.drop-item.scope-row { padding: 0; gap: 2px; }
+.drop-item.scope-row:hover { background: none; }
+.scope-row .scope-open {
+  flex: 1; min-width: 0; text-align: left;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  background: none; border: 0; cursor: pointer; transition: background .12s;
+}
+.scope-row .scope-pick {
+  flex: none; width: 32px; align-self: stretch;
+  display: grid; place-items: center;
+  border-radius: var(--r-sm); color: var(--text-3);
+  background: none; border: 0; cursor: pointer; transition: background .12s, color .12s;
+}
+.scope-row .scope-open:hover,
+.scope-row .scope-pick:hover { background: var(--surface-2); }
+.scope-row .scope-pick:hover { color: var(--accent); }
+/* The scoped document keeps its mark whether or not you are pointing at it. */
+.drop-item.scope-row.selected .scope-pick { color: var(--accent); }
 .scope-empty { padding: 10px 12px 12px; font-size: 12.5px; color: var(--text-3); }
 .msg-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .msg-chip {
@@ -2512,9 +2541,17 @@ table.data tbody tr:last-child td { border-bottom: 0; }
    the glass looks worst. */
 .modal-overlay.set-overlay,
 .modal-overlay.doc-overlay { align-items: center; padding: 24px 32px; }
-.modal.set-modal,
-.modal.doc-modal {
+.modal.set-modal {
   max-width: 920px; height: min(78vh, 720px); max-height: none; padding: 0;
+}
+/* The viewer is nearly the window. A document is the thing you came to look at,
+   and 920px of dialog around a PDF was a letterbox. It keeps the overlay's
+   padding on all four sides, so it still reads as something laid OVER the app
+   rather than a page that replaced it: width and height are 100% OF THE
+   OVERLAY'S CONTENT BOX, which is the viewport less that padding. */
+.modal.doc-modal {
+  width: min(1400px, 100%); max-width: none;
+  height: 100%; max-height: none; padding: 0;
 }
 /* The only difference: settings is a rail beside a pane, the viewer is a stack. */
 .modal.set-modal { flex-direction: row; overflow: hidden; }
@@ -2869,61 +2906,19 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 .doc-code { flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; color: var(--text); }
 
-/* A PDF is not shown, it is handed over: the card is the file, not a reading
-   of it. Small enough that it does not pretend to be a viewer. */
-.modal.doc-modal.is-file { max-width: 380px; height: auto; }
-/* .doc-body is flex: 1, which is flex-basis: 0. In the text viewer that fills a
-   dialog of fixed height, which is what it is for. In this card the dialog is
-   height: auto, and a basis of zero in an auto-height column means the body has
-   no size to start from and collapses to a sliver, taking the page preview with
-   it. Here it is sized by what is in it. */
-.modal.doc-modal.is-file .doc-body { flex: 0 0 auto; overflow: visible; }
-.doc-file { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 0 4px; }
-/* The sheets are decoration: two offset copies of whatever box the page turns
-   out to occupy, pinned to it with inset: 0. They cannot disagree with the
-   page's size because they are told it rather than told a number. */
-.doc-stack {
-  position: relative; display: block; width: 100%; max-width: 240px;
-  background: none; border: 0; padding: 0; cursor: pointer;
+/* A PDF fills the body with the browser's own reader. The body scrolls its
+   text views, so it must NOT scroll this one: the iframe is the thing with the
+   pages in it and does its own scrolling, and a scroller inside a scroller
+   leaves the outer one to be nudged by every stray wheel event. */
+.modal.doc-modal.is-pdf .doc-body { padding: 0; overflow: hidden; display: flex; }
+.doc-frame {
+  flex: 1; width: 100%; border: 0; background: var(--surface-2);
+  /* The dialog's own corners, or the frame squares off the bottom two. */
+  border-radius: 0 0 var(--r-xl) var(--r-xl);
 }
-.doc-stack::before, .doc-stack::after {
-  content: ""; position: absolute; inset: 0;
-  border: 1px solid var(--paper-edge); border-radius: 8px; background: var(--paper);
-  transition: transform .18s var(--ease);
-}
-.doc-stack::before { transform: translate(9px, -7px) rotate(2deg); opacity: .45; }
-.doc-stack::after { transform: translate(5px, -4px) rotate(1deg); opacity: .7; }
-/* They fan a little further under the pointer, so the stack reads as something
-   you can take rather than a picture of one. */
-.doc-stack:hover::before { transform: translate(13px, -10px) rotate(3deg); }
-.doc-stack:hover::after { transform: translate(7px, -6px) rotate(1.6deg); }
-
-/* The page itself, in normal flow. This is the element with a size; everything
-   else on the card follows it. */
-.doc-page-img,
-.doc-page-blank {
-  position: relative; display: block; width: 100%;
-  border: 1px solid var(--paper-edge); border-radius: 8px;
-  background: var(--paper); box-shadow: var(--shadow-sm);
-}
-.doc-page-img { height: auto; }
-/* Roughly A4 while the page is on its way, so the card does not resize under
-   the pointer when it arrives. */
-.doc-page-blank {
-  aspect-ratio: 1 / 1.414;
-  display: flex; align-items: center; justify-content: center; color: var(--text-3);
-}
-/* Only on hover: at rest the card says what the file is, not what to do. */
-.doc-stack-dl {
-  position: absolute; inset: 0; z-index: 1;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  border-radius: 8px; background: color-mix(in srgb, var(--surface) 88%, transparent);
-  font-size: 13px; font-weight: 600; color: var(--accent);
-  opacity: 0; transition: opacity .16s var(--ease);
-}
-.doc-stack:hover .doc-stack-dl,
-.doc-stack:focus-visible .doc-stack-dl { opacity: 1; }
-.doc-file-meta { font-size: 12.5px; color: var(--text-3); }
+/* Sits where the reading/source control sits on a text file: the left of the
+   toolbar, quiet, saying what the document is rather than what to do with it. */
+.doc-pages { font-family: var(--mono); font-size: 11px; color: var(--text-3); padding-left: 2px; }
 
 /* Reading a document: the same renderer the chat uses, given room to breathe
    and a measure that does not run the full width of the dialog. */
