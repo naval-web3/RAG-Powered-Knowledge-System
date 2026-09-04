@@ -21,9 +21,20 @@ export function ProjectMenu({ project, onPin, onEdit, onDelete, placement = "top
   const ref = useRef(null);
   const btnRef = useRef(null);
 
+  /* The menu is rendered into <body>, so it is NOT inside `ref` -- and every
+     press on one of its own items therefore looked like a press outside it.
+     mousedown closed the menu, the item unmounted, and the click that followed
+     had nothing left to land on: Unpin, Edit details and Delete all did
+     precisely nothing, from the sidebar row and from the card alike.
+     Anything inside a .pop-menu is that menu's own business; its items close
+     it themselves. Layout's row menus learned this when they moved into the
+     portal, in the same words. */
   useEffect(() => {
     if (!open) return undefined;
-    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onDown = (e) => {
+      if (e.target instanceof Element && e.target.closest(".pop-menu")) return;
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
     window.addEventListener("mousedown", onDown);
     return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
