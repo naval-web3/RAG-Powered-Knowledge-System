@@ -975,6 +975,16 @@ input[type="checkbox"]:indeterminate::after {
 
 /* Anchors the bar's menu, and keeps the caret against the title however long
    the name is. */
+/* The project a chat lives in, ahead of the chat's own name.
+   It gives way first: `flex: 0 1 auto` against the title's own min-width: 0
+   means a narrow window eats into the project's name before it touches the
+   one being read. Capped so it cannot take the bar on a wide one either. */
+.bar-crumb { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 0 1 auto; }
+.bar-crumb .crumb-proj {
+  max-width: 240px; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-size: 14px;
+}
+.crumb-sep { flex: none; color: var(--text-3); opacity: .55; }
 .conv-title-wrap { position: relative; display: flex; align-items: center; gap: 1px; min-width: 0; }
 .conv-title-caret { width: 22px; height: 22px; border-radius: 6px; color: var(--text-3); flex: none; }
 /* Hangs from the left under the title, where .conv-menu hangs from the right. */

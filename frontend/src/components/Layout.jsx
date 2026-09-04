@@ -467,6 +467,29 @@ function Shell() {
   const activeConversation = onChat
     ? chat.conversations.find((c) => c.conversation_id === chat.activeId)
     : null;
+  /* A chat filed in a project is named by both. Looked up rather than carried
+     on the conversation: a chat moved between projects has a new home the
+     moment the list reloads, and a stale name in the bar would be worse than
+     no name at all. */
+  const activeProject = activeConversation?.project_id
+    ? chat.projects.find((p) => p.project_id === activeConversation.project_id)
+    : null;
+
+  /* Renaming from the top bar, on Enter or on losing the field.
+     This did not exist. The field called it on both, and neither the sidebar
+     rows nor the document rows could stand in -- each of those closes over its
+     own row's id, so the bar had nothing to borrow. The identifier is read as
+     the field's props are built, which is to say the moment titleEditing turns
+     true, so clicking the chat's name to rename it took the whole app to a
+     blank page on a ReferenceError instead. Empty is not a rename: a title
+     cleared to nothing is a chat you cannot find again. */
+  function commitTitle() {
+    const next = titleDraft.trim();
+    if (activeConversation && next && next !== activeConversation.title) {
+      chat.renameConversation(activeConversation.conversation_id, next);
+    }
+    setTitleEditing(false);
+  }
 
 
   function menuAction(conv, key) {
@@ -1213,6 +1236,20 @@ function Shell() {
                 "Retrieva", which was not the name of the page at all.
                 A saved conversation still shows its name below, editable in
                 place, because the chat has no heading of its own. */}
+            {/* The project comes FIRST, and the chat's own name after it: the
+                project is where the chat lives, and a title like "Test case
+                coverage" only means anything inside one. It stays put while
+                the title is being renamed -- the chat does not leave its
+                project because you are typing. */}
+            {activeProject && (
+              <nav className="bar-crumb" aria-label="Breadcrumb">
+                <button className="link-btn crumb-proj" title={activeProject.name}
+                  onClick={() => goto(`/projects/${activeProject.project_id}`)}>
+                  {activeProject.name}
+                </button>
+                <span className="crumb-sep" aria-hidden="true">/</span>
+              </nav>
+            )}
             {activeConversation &&
               (titleEditing ? (
                 <input
