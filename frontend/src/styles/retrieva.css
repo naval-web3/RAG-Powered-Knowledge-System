@@ -1593,17 +1593,17 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
    of each pass rather than swinging without pause. Nothing moves until the
    pointer arrives: this control sits in the top bar and is on screen at all
    times.
-   The distances are SVG user units, and the artwork is a 256 viewBox drawn at
-   24px, so one unit is 0.094px on screen: a 10-unit glance would have moved the
-   eyes less than a pixel and been invisible. 18 units is 1.7px, slightly more
-   than an eye's own diameter, which is what makes it read as looking. At full
-   travel the eyes still sit well inside the head, whose cavity spans 44..212 at
-   this height. */
+   The distances are SVG USER UNITS, so they only mean anything next to the
+   viewBox: the artwork is 20 units drawn at 24px, one unit being 1.2px on
+   screen. 1.4 units is the 1.7px the old 256-unit drawing travelled at 18 --
+   about three quarters of an eye's width, which is what makes it read as
+   looking rather than drifting. Swap the artwork and these numbers move with
+   it. At full travel the eyes still sit well inside a head spanning 3..17. */
 @keyframes ghost-look {
   0%, 8%  { transform: translate(0, 0); }
-  26%     { transform: translate(-18px, 0); }
-  52%     { transform: translate(18px, 0); }
-  76%     { transform: translate(0, -14px); }
+  26%     { transform: translate(-1.4px, 0); }
+  52%     { transform: translate(1.4px, 0); }
+  76%     { transform: translate(0, -1.1px); }
   100%    { transform: translate(0, 0); }
 }
 .private-toggle:hover .ghost-eye { animation: ghost-look 2.2s var(--ease) infinite; }
