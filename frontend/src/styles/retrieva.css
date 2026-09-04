@@ -1496,6 +1496,18 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
 .doc-pick input { width: 17px; height: 17px; }
 /* The card's own actions share the corner the checkbox does not use. */
 .doc-card-acts { position: absolute; top: 8px; right: 8px; display: flex; gap: 2px; }
+/* ...and the name keeps out of it. The actions float OVER the face, so a long
+   title ran underneath them: on a 232px card the name has 206px and the two
+   26px buttons start 50px before its right edge, which is the whole first line
+   and a fifth of the second. The gutter is 50px of overlap plus 6px of air.
+   Reserved rather than added on hover, so nothing reflows as the icons fade in
+   -- and a PINNED card shows its pin at all times anyway (.lib-pin.on), so the
+   collision was permanent there.
+   Tied to the actions with :has, not to the page: the project's context grid
+   uses this same card with no actions on it, and 56px of nothing would be a
+   lot to spend on a 150px column. Its remove button sits half outside the
+   corner for the same reason this gutter exists. */
+.doc-card:has(.doc-card-acts) .doc-card-name { padding-right: 56px; }
 .doc-card .lib-act { opacity: 0; }
 .doc-card:hover .lib-act, .doc-card .lib-act:focus-visible, .doc-card .lib-pin.on { opacity: 1; }
 
