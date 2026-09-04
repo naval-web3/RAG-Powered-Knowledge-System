@@ -657,12 +657,18 @@ function Shell() {
     setMobileOpen(false);
   }
   /* A project holds its chats until you ask for them. Remembered the same way
-     the sections are, so a project left open is open again tomorrow. */
-  function toggleProject(id) {
+     the sections are, so a project left open is open again tomorrow.
+     `want` is true to open, false to close, omitted to flip: arriving on a
+     project opens it and must never close one that already was. */
+  function foldProject(id, want) {
     setOpenProjects((prev) => {
+      const isOpen = prev.has(id);
+      const shouldOpen = want === undefined ? !isOpen : want;
+      // Nothing to do, and returning prev keeps the panel from re-rendering.
+      if (shouldOpen === isOpen) return prev;
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (shouldOpen) next.add(id);
+      else next.delete(id);
       try {
         localStorage.setItem(OPEN_PROJ_KEY, JSON.stringify([...next]));
       } catch {
@@ -1045,13 +1051,27 @@ function Shell() {
             </div>
           )}
           {!skProjects && visibleProjects.map((p) => {
-            const open = location.pathname === `/projects/${p.project_id}`;
+            const onPage = location.pathname === `/projects/${p.project_id}`;
             const own = chatsByProject[p.project_id] || [];
             const folded = openProjects.has(p.project_id);
             return (
               <div key={p.project_id}>
-                <div className={`conv-item ${open ? "active" : ""}`}
-                  onClick={() => goto(`/projects/${p.project_id}`)}>
+                {/* The row means "take me there" from anywhere else, and "fold
+                    it away" once you are already there. Going to the page you
+                    are on is nothing at all, which is exactly what the row
+                    looked like it was doing: dead. Arriving also opens the
+                    folder, and only ever opens it -- landing on a project
+                    should never be what hides its chats. The chevron folds
+                    from anywhere, page or not. */}
+                <div className={`conv-item ${onPage ? "active" : ""}`}
+                  onClick={() => {
+                    if (!onPage) {
+                      goto(`/projects/${p.project_id}`);
+                      if (own.length > 0) foldProject(p.project_id, true);
+                    } else if (own.length > 0) {
+                      foldProject(p.project_id);
+                    }
+                  }}>
                   {/* The icon IS the fold. At rest it says what the row is; under
                       the pointer it says what it does, and the two glyphs are
                       stacked and swapped in CSS so no hover has to be tracked in
@@ -1061,7 +1081,7 @@ function Shell() {
                       Design, collapsed" rather than a bare "expand". */}
                   {own.length > 0 ? (
                     <button className="proj-twist" aria-label={p.name} aria-expanded={folded}
-                      onClick={(e) => { e.stopPropagation(); toggleProject(p.project_id); }}>
+                      onClick={(e) => { e.stopPropagation(); foldProject(p.project_id); }}>
                       <Icon name="book" className="icon-sm tw-rest" />
                       <Icon name={folded ? "chev-d" : "chev-r"} className="icon-sm tw-hover" />
                     </button>
