@@ -316,8 +316,9 @@ function Shell() {
   const resultsRef = useRef(null);
   const [hitsRef, hitsFade] = useEdgeFade();
   const resultsInnerRef = useRef(null);
-  const [convScrollRef, convFade] = useEdgeFade();
-  const [projScrollRef, projFade] = useEdgeFade();
+  /* Documents, projects and chats share one scroller, so there is one edge
+     fade for the three of them. */
+  const [listScrollRef, listFade] = useEdgeFade();
   // Only one menu is open at a time, so one anchor ref each is enough.
   const rowMenuBtnRef = useRef(null);
   const titleMenuBtnRef = useRef(null);
@@ -833,8 +834,16 @@ function Shell() {
           )}
         </div>
 
+        {/* ONE scroller for the middle of the panel. Documents, projects and
+            chats are a single list: a wheel anywhere in it moves all three,
+            and a long pinned list pushes the chats below the fold rather than
+            scrolling inside a box of its own.
+            The inner div is there for useEdgeFade, whose ResizeObserver takes
+            the scroller's FIRST CHILD to catch content-height changes -- left
+            bare that would be a group heading, which never changes size. */}
         <div
-          className={`sb-projects ${projFade}`} ref={projScrollRef}>
+          className={`sb-scroll ${listFade}`} id="sb-list" ref={listScrollRef}>
+          <div className="sb-groups">
 
           <div className="sb-group-row">
             <button className="sb-group-toggle" aria-expanded={!collapsedGroups.docs}
@@ -1005,29 +1014,24 @@ function Shell() {
 
           </>
           )}
-        </div>
 
-        {/* Outside the scroller entirely, so it holds its place rather than
-            riding to the top and sticking there. Only the chats move. */}
-        <div className="sb-group-row sb-chats-head">
-          <button className="sb-group-toggle" aria-expanded={!collapsedGroups.chats}
-            onClick={() => toggleGroup("chats")}>
-            <span>{t("sidebar.chats")}</span>
-            <Icon name={chatsOpen ? "chev-d" : "chev-r"} className="chev" />
-          </button>
-          {/* Chats have no page of their own: the search dialog already lists
-              every one of them with dates and a filter, and it is where the
-              "view all" button under the list has always gone. */}
-          <Tooltip label={t("sidebar.seeAll")}>
-            <button className="btn-icon sb-see-all" aria-label={t("sidebar.seeAll")}
-              onClick={() => { setConvSearch(""); setSearchOpen(true); }}>
-              <Icon name="move-up-right" className="icon-sm" />
+          <div className="sb-group-row sb-chats-head">
+            <button className="sb-group-toggle" aria-expanded={!collapsedGroups.chats}
+              onClick={() => toggleGroup("chats")}>
+              <span>{t("sidebar.chats")}</span>
+              <Icon name={chatsOpen ? "chev-d" : "chev-r"} className="chev" />
             </button>
-          </Tooltip>
-        </div>
+            {/* Chats have no page of their own: the search dialog already lists
+                every one of them with dates and a filter, and it is where the
+                "view all" button under the list has always gone. */}
+            <Tooltip label={t("sidebar.seeAll")}>
+              <button className="btn-icon sb-see-all" aria-label={t("sidebar.seeAll")}
+                onClick={() => { setConvSearch(""); setSearchOpen(true); }}>
+                <Icon name="move-up-right" className="icon-sm" />
+              </button>
+            </Tooltip>
+          </div>
 
-        <div
-          className={`sb-scroll ${convFade}`} id="conv-list" ref={convScrollRef}>
           {chatsOpen && (
           <>
           {skChats && <SkeletonRows n={skCounts.chats} icon="chat" />}
@@ -1103,6 +1107,7 @@ function Shell() {
           )}
           </>
           )}
+          </div>
         </div>
 
         <div className="sb-foot" ref={footRef}>

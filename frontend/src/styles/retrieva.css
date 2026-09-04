@@ -766,15 +766,11 @@ input[type="checkbox"]:indeterminate::after {
    the panel -- a tooltip on a row, say -- both gets cut off AND counts as
    content wide enough to deserve a scrollbar. Neither list ever scrolls
    sideways, so say so. */
+/* THE scroller: documents, projects and chats all live in here, so the three
+   groups move as one list under a single wheel. */
 .sb-scroll {
   flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
-  padding: 2px 3px 12px 12px;
-}
-/* Projects scroll on their own so a long list cannot push the chats out. It
-   shrinks to its content first and only starts scrolling past the cap. */
-.sb-projects {
-  flex: 0 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
-  padding: 4px 3px 0 12px;
+  padding: 4px 3px 12px 12px;
 }
 /* Any scroller dissolves its rows at whichever edge still has list behind it,
    so none of them ends on a row sliced flat by the overflow. The class is put
@@ -790,13 +786,10 @@ input[type="checkbox"]:indeterminate::after {
 }
 .edge-fade.fade-top { --fade-t: 22px; }
 .edge-fade.fade-bot { --fade-b: 22px; }
-/* Fixed between the two scrollers: no negative margins, because it is a direct
-   child of the sidebar and has no scroller padding to bleed into. */
-/* Qualified with .sb-group-row: that rule is declared further down the file and
-   would otherwise win the tie and re-apply sticky and its negative margins. */
-.sb-group-row.sb-chats-head {
-  flex: none; position: static; margin: 10px 0 0; padding: 2px 7px 4px 12px;
-}
+/* Only the top margin: the side margins come from .sb-group-row and are what
+   line the heading up with the scroller's gutters. Setting `margin` in full
+   here would zero them and shift the label 12px in from every other row. */
+.sb-group-row.sb-chats-head { margin-top: 10px; padding-bottom: 4px; }
 .sb-group-label {
   font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
   color: var(--text-3); padding: 14px 11px 6px;
@@ -1986,15 +1979,16 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 /* Doc detail timeline */
 .pipe { display: flex; flex-direction: column; gap: 0; margin: 6px 0 4px; }
 /* Projects */
-/* The heading holds its place while its rows scroll under it. The negative
-   margins let the background bleed into .sb-scroll's own padding, so nothing
-   shows through the gutters on either side as rows pass beneath. */
+/* The headings ride up and off with their own rows -- they are three markers
+   in one list, not three bars competing for the top of it. The negative margins
+   pull the row out into .sb-scroll's padding so its label lines up with the
+   rows below it and its background spans the full width of the panel. */
 .sb-group-row {
   /* Not space-between: with a label and TWO buttons that spreads the free space
      between all three, parking the arrow halfway across the row. The label
      takes the slack instead, so the buttons stay together at the right edge. */
   display: flex; align-items: center;
-  position: sticky; top: 0; z-index: 2; background: var(--sidebar);
+  background: var(--sidebar);
   margin-left: -12px; margin-right: -3px;
   padding: 2px 7px 2px 12px;
 }
