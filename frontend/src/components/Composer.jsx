@@ -382,8 +382,6 @@ function AddMenu({ onUpload }) {
     return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  const ready = chat.docs.filter((d) => d.processing_status === "done").length;
-
   return (
     <div className="menu-anchor" ref={ref}>
       <Tooltip label={chat.uploading ? t("chat.uploading") : t("chat.add")} placement="top">
@@ -394,22 +392,19 @@ function AddMenu({ onUpload }) {
         </button>
       </Tooltip>
       {open && (
+        /* Two choices, two labels. The sub-lines under them named the accepted
+           formats and counted the corpus -- both true, and both already said in
+           Settings > Knowledge base, which is where you go to know them. Here
+           they were a wall of grey to read past on the way to a two-word
+           decision. */
         <div className="drop-menu add-menu">
           <button className="drop-item"
             onClick={() => { setOpen(false); onUpload(); }}>
-            <span>
-              <span className="d-name">{t("chat.uploadDoc")}</span>
-              <span className="d-sub">{t("chat.uploadDocSub")}</span>
-            </span>
+            <span className="d-name">{t("chat.uploadDoc")}</span>
           </button>
           <button className="drop-item"
             onClick={() => { setOpen(false); navigate("/documents"); }}>
-            <span>
-              <span className="d-name">{t("chat.browseLibrary")}</span>
-              <span className="d-sub">
-                {ready === 1 ? t("chat.oneDocIndexed") : t("chat.docsIndexed", { n: ready })}
-              </span>
-            </span>
+            <span className="d-name">{t("chat.browseLibrary")}</span>
           </button>
         </div>
       )}
