@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import client from "../api/client";
+import useEdgeFade from "../useEdgeFade";
 import { MIME } from "../docMime";
 import Icon from "./Icon";
 import MarkdownLite from "./MarkdownLite";
@@ -19,6 +20,7 @@ const PLAIN = ["txt", "md", "docx"];
 export default function ContextDialog({ docs, title = "Context", onClose }) {
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(null);
+  const [filesRef, filesFade] = useEdgeFade();
 
   const listed = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -66,7 +68,7 @@ export default function ContextDialog({ docs, title = "Context", onClose }) {
                 onChange={(e) => setQ(e.target.value)}
               />
             </label>
-            <div className="ctxd-files">
+            <div className={`ctxd-files ${filesFade}`} ref={filesRef}>
               {listed.length === 0 && (
                 <p className="ctxd-none">No file matches “{q.trim()}”.</p>
               )}

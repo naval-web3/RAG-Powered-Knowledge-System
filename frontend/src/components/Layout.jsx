@@ -75,6 +75,7 @@ function ProjectFlyout({ conv, projects, onMove, onCreate }) {
   const [q, setQ] = useState("");
   const boxRef = useRef(null);
   const listRef = useRef(null);
+  const [fadeRef, listFade] = useEdgeFade();
   const [listMax, setListMax] = useState(FLYOUT_LIST_MAX);
   const [place, setPlace] = useState({ flip: false, lift: 0 });
 
@@ -123,7 +124,11 @@ function ProjectFlyout({ conv, projects, onMove, onCreate }) {
           }}
         />
       </div>
-      <div className="pm-flyout-list" ref={listRef} style={{ maxHeight: listMax }}>
+      {/* Two refs on one node, the way useEdgeFade documents: one measures the
+          rows, the other watches the scroll. */}
+      <div className={`pm-flyout-list ${listFade}`}
+        ref={(el) => { listRef.current = el; fadeRef(el); }}
+        style={{ maxHeight: listMax }}>
         {hits.map((p) => (
           <button key={p.project_id} className="pm-item" onClick={() => onMove(conv, p.project_id)}>
             <span className="pm-label">{p.name}</span>

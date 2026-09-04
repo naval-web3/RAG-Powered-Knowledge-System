@@ -9,6 +9,7 @@ import Tooltip from "../components/Tooltip";
 import { useChat } from "../context/ChatContext";
 import { useToast } from "../context/ToastContext";
 import client from "../api/client";
+import useEdgeFade from "../useEdgeFade";
 import { timeAgo } from "../utils";
 
 /* Whatever actually went wrong, in the toast's second line. A bare "couldn't
@@ -624,6 +625,7 @@ function InstructionsModal({ project, onClose, onSave }) {
  * setting meant anyway.
  */
 function DocPicker({ project, docs, onClose, onSave }) {
+  const [pickRef, pickFade] = useEdgeFade();
   const ready = useMemo(
     () => docs.filter((d) => d.processing_status === "done"),
     [docs]
@@ -713,7 +715,7 @@ function DocPicker({ project, docs, onClose, onSave }) {
           </label>
         </div>
 
-        <div className="pick-list">
+        <div className={`pick-list ${pickFade}`} ref={pickRef}>
           {listed.length === 0 && (
             <p className="pick-empty">
               {q.trim() ? `No document matches “${q.trim()}”.` : "Your library is empty."}
