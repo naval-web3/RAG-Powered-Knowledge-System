@@ -398,12 +398,18 @@ function AddMenu({ onUpload }) {
            they were a wall of grey to read past on the way to a two-word
            decision. */
         <div className="drop-menu add-menu">
+          {/* An icon apiece, in the muted weight the row already paints them:
+             the clip for the one that opens a file picker, the page for the one
+             that walks to the library. .drop-item is a flex row with a gap, so
+             they need nothing of their own to sit right. */}
           <button className="drop-item"
             onClick={() => { setOpen(false); onUpload(); }}>
+            <Icon name="clip" className="icon-sm" />
             <span className="d-name">{t("chat.uploadDoc")}</span>
           </button>
           <button className="drop-item"
             onClick={() => { setOpen(false); navigate("/documents"); }}>
+            <Icon name="file" className="icon-sm" />
             <span className="d-name">{t("chat.browseLibrary")}</span>
           </button>
         </div>
