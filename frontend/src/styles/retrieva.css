@@ -1745,6 +1745,12 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
    which is the only way to tell a row that does two things that it does two. */
 .drop-item.scope-row { padding: 0; gap: 2px; }
 .drop-item.scope-row:hover { background: none; }
+/* Tooltip wraps its child in a span, so on a clipped row THAT is the flex
+   item and the button is one step further in. Both have to carry the sizing,
+   or the name column collapses to its text on exactly the rows long enough to
+   need a tooltip -- and only those. */
+.scope-row > .tip-wrap:first-child { flex: 1; min-width: 0; display: flex; }
+.scope-row > .tip-wrap:last-child { flex: none; }
 .scope-row .scope-open {
   flex: 1; min-width: 0; text-align: left;
   padding: 8px 10px; border-radius: var(--r-sm);

@@ -638,6 +638,52 @@ function ModelMenu() {
   );
 }
 
+/**
+ * One document in the scope menu: its name, and the target that aims the
+ * question at it.
+ *
+ * The name is one ellipsised line, so the full one has to be reachable --
+ * but ONLY when the row is actually hiding some of it. A label that repeats
+ * a name you can already read in full is noise on every other row, and this
+ * started life as a native `title`, which cannot be styled, arrives about a
+ * second late and draws the operating system's own black box in the middle
+ * of the app.
+ *
+ * Measured once per title: the menu's rows are a fixed width, so nothing that
+ * happens afterwards changes the answer.
+ */
+function ScopeRow({ doc, on, onOpen, onPick }) {
+  const t = useT();
+  const nameRef = useRef(null);
+  const [clipped, setClipped] = useState(false);
+
+  useEffect(() => {
+    const el = nameRef.current;
+    setClipped(!!el && el.scrollWidth > el.clientWidth + 1);
+  }, [doc.title]);
+
+  const name = (
+    <button className="scope-open" onClick={onOpen}>
+      <span className="d-name" ref={nameRef}>{doc.title}</span>
+      <span className="d-sub">{t("chat.chunks", { n: doc.chunk_count })}</span>
+    </button>
+  );
+
+  return (
+    <div className={`drop-item scope-row ${on ? "selected" : ""}`}>
+      {/* Placed to the right, which is off the menu entirely: above or below
+          it would cover the rows either side of the one being read. */}
+      {clipped ? <Tooltip label={doc.title} placement="right">{name}</Tooltip> : name}
+      <Tooltip label={t("docs.scopeChat")} placement="left">
+        <button className="scope-pick" aria-label={t("docs.scopeChat")}
+          aria-pressed={on} onClick={onPick}>
+          <Icon name={on ? "check" : "target"} className="icon-sm" />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
 function ScopeMenu() {
   const t = useT();
   const chat = useChat();
@@ -676,25 +722,12 @@ function ScopeMenu() {
               TWO BUTTONS SIDE BY SIDE, never one inside the other -- nested
               controls are invalid, and the outer one eats the inner one's
               click. */}
-          {ready.map((d) => {
-            const on = chat.scopeDocId === d.document_id;
-            return (
-              <div key={d.document_id} className={`drop-item scope-row ${on ? "selected" : ""}`}>
-                <button className="scope-open" title={d.title}
-                  onClick={() => { chat.setOpenDoc(d); setOpen(false); }}>
-                  <span className="d-name">{d.title}</span>
-                  <span className="d-sub">{t("chat.chunks", { n: d.chunk_count })}</span>
-                </button>
-                <Tooltip label={t("docs.scopeChat")} placement="left">
-                  <button className="scope-pick" aria-label={t("docs.scopeChat")}
-                    aria-pressed={on}
-                    onClick={() => { chat.setScopeDocId(d.document_id); setOpen(false); }}>
-                    <Icon name={on ? "check" : "target"} className="icon-sm" />
-                  </button>
-                </Tooltip>
-              </div>
-            );
-          })}
+          {ready.map((d) => (
+            <ScopeRow key={d.document_id} doc={d}
+              on={chat.scopeDocId === d.document_id}
+              onOpen={() => { chat.setOpenDoc(d); setOpen(false); }}
+              onPick={() => { chat.setScopeDocId(d.document_id); setOpen(false); }} />
+          ))}
         </div>
       )}
     </div>
