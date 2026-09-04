@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import LandingShell from "../components/LandingShell";
+import ProductTour from "../components/ProductTour";
 
 /* Six questions people ask before they upload anything. The long answers live
    on /under-the-hood; these are meant to be read standing up. */
@@ -145,6 +146,10 @@ export default function Landing() {
           </div>
         </div>
       </header>
+
+      {/* Between the hero and the FAQ: the pitch, then the thing itself, then
+          the questions it leaves you with. */}
+      <ProductTour />
 
       <Faq />
     </LandingShell>
