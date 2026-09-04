@@ -266,6 +266,7 @@ export default function Layout() {
 }
 
 const COLLAPSE_KEY = "retrieva-sidebar-collapsed";
+const OPEN_PROJ_KEY = "retrieva-open-projects";
 const WIDTH_KEY = "retrieva-sidebar-width";
 const SB_DEFAULT_W = 282;
 // A title long enough to want half the window is a title that should be
@@ -288,6 +289,20 @@ function readCollapsed() {
     return JSON.parse(localStorage.getItem(COLLAPSE_KEY)) || {};
   } catch {
     return {};
+  }
+}
+
+/** Which projects are folded open, remembered per browser.
+ *
+ *  A Set of ids rather than a map of booleans: closed is the default and the
+ *  absent case, so a project deleted elsewhere leaves nothing behind but a
+ *  dead id nobody looks up. */
+function readOpenProjects() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(OPEN_PROJ_KEY));
+    return new Set(Array.isArray(raw) ? raw : []);
+  } catch {
+    return new Set();
   }
 }
 
@@ -420,6 +435,7 @@ function Shell() {
   const [editProject, setEditProject] = useState(null);
   const [deleteProject, setDeleteProject] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState(readCollapsed);
+  const [openProjects, setOpenProjects] = useState(readOpenProjects);
   const [themePref, setThemePref] = useState(getThemePref);
   const footRef = useRef(null);
 
@@ -640,6 +656,22 @@ function Shell() {
     navigate(path);
     setMobileOpen(false);
   }
+  /* A project holds its chats until you ask for them. Remembered the same way
+     the sections are, so a project left open is open again tomorrow. */
+  function toggleProject(id) {
+    setOpenProjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try {
+        localStorage.setItem(OPEN_PROJ_KEY, JSON.stringify([...next]));
+      } catch {
+        /* private mode or a full quota: it still folds for now */
+      }
+      return next;
+    });
+  }
+
   function toggleGroup(key) {
     setCollapsedGroups((prev) => {
       const next = { ...prev, [key]: !prev[key] };
@@ -1015,11 +1047,27 @@ function Shell() {
           {!skProjects && visibleProjects.map((p) => {
             const open = location.pathname === `/projects/${p.project_id}`;
             const own = chatsByProject[p.project_id] || [];
+            const folded = openProjects.has(p.project_id);
             return (
               <div key={p.project_id}>
                 <div className={`conv-item ${open ? "active" : ""}`}
                   onClick={() => goto(`/projects/${p.project_id}`)}>
-                  <Icon name="book" className="icon-sm" />
+                  {/* The icon IS the fold. At rest it says what the row is; under
+                      the pointer it says what it does, and the two glyphs are
+                      stacked and swapped in CSS so no hover has to be tracked in
+                      JS. A project with nothing in it keeps the plain book:
+                      a disclosure that opens onto nothing is a broken promise.
+                      Named by the project, so a screen reader reads "Nova
+                      Design, collapsed" rather than a bare "expand". */}
+                  {own.length > 0 ? (
+                    <button className="proj-twist" aria-label={p.name} aria-expanded={folded}
+                      onClick={(e) => { e.stopPropagation(); toggleProject(p.project_id); }}>
+                      <Icon name="book" className="icon-sm tw-rest" />
+                      <Icon name={folded ? "chev-d" : "chev-r"} className="icon-sm tw-hover" />
+                    </button>
+                  ) : (
+                    <Icon name="book" className="icon-sm" />
+                  )}
                   <span className="conv-title">{p.name}</span>
                   <ProjectMenu
                     project={p}
@@ -1029,13 +1077,18 @@ function Shell() {
                     onDelete={() => setDeleteProject(p)}
                   />
                 </div>
-                {own.slice(0, 8).map((c) => (
-                  <div key={c.conversation_id}
-                    className={`conv-item conv-sub ${c.conversation_id === chat.activeId ? "active" : ""}`}
-                    onClick={() => openConv(c.conversation_id)}>
-                    <span className="conv-title">{c.title}</span>
+                {folded && own.length > 0 && (
+                  <div className="proj-subs">
+                    {own.slice(0, 8).map((c) => (
+                      <div key={c.conversation_id}
+                        className={`conv-item conv-sub ${c.conversation_id === chat.activeId ? "active" : ""}`}
+                        onClick={() => openConv(c.conversation_id)}>
+                        <span className="sub-dot" aria-hidden="true" />
+                        <span className="conv-title">{c.title}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             );
           })}
