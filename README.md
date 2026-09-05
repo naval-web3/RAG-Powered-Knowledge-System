@@ -14,7 +14,7 @@ with source citations.
 | Frontend         | ReactJS 18 + Vite + Tailwind CSS (Axios, React Router)  |
 | Backend API      | Python 3.12 + FastAPI + Uvicorn                         |
 | RAG orchestration| LangChain (Recursive splitter, prompt chains)           |
-| LLM providers    | Ollama (local: qwen3:8b, gpt-oss:20b) **and** OpenAI    |
+| LLM providers    | Ollama (local: llama3.2, qwen3.5, phi4, granite4, gemma3) **and** OpenAI |
 | Embeddings       | sentence-transformers (local) **or** OpenAI embeddings  |
 | Vector store     | ChromaDB (persistent / embedded, cosine similarity)     |
 | Relational DB    | PostgreSQL 16                                           |
@@ -33,7 +33,7 @@ with source citations.
 ## Prerequisites
 
 - Python 3.12, Node.js 18+, PostgreSQL 16
-- Ollama running locally with at least one model pulled (e.g. `ollama pull qwen3:8b`)
+- Ollama running locally with at least one model pulled (e.g. `ollama pull llama3.2:3b`)
 - (Optional) An OpenAI API key for the OpenAI provider
 
 ## Setup
@@ -73,7 +73,7 @@ npm run dev                     # http://localhost:5173
 Key settings (see `backend/.env.example` for the full list):
 
 - `DEFAULT_LLM_PROVIDER` — `ollama` (local, default) or `openai`
-- `OLLAMA_MODEL` — e.g. `qwen3:8b`
+- `OLLAMA_MODEL` — e.g. `llama3.2:3b`
 - `OPENAI_API_KEY` — required only to use the OpenAI provider
 - `EMBEDDING_BACKEND` — `local` (sentence-transformers) or `openai`
 - `CHUNK_SIZE` / `CHUNK_OVERLAP` / `RETRIEVAL_TOP_K` — RAG tuning
