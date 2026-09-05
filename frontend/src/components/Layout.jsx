@@ -863,12 +863,19 @@ function Shell() {
           </Tooltip>
           {/* Against the panel's right edge, but the main column is beside it,
               so there is room below. */}
-          <Tooltip label={collapsed ? t("sidebar.keepOpen") : t("sidebar.collapse")}>
+          <Tooltip label={mobileOpen ? t("sidebar.closeMenu") : collapsed ? t("sidebar.keepOpen") : t("sidebar.collapse")}>
             <button
               className="btn-icon"
-              aria-label={collapsed ? t("sidebar.keepOpen") : t("sidebar.collapse")}
+              aria-label={mobileOpen ? t("sidebar.closeMenu") : collapsed ? t("sidebar.keepOpen") : t("sidebar.collapse")}
               onClick={() => {
-                if (collapsed) {
+                /* On a narrow screen the drawer now covers the topbar, so the
+                   button that opened it is out of reach: this is the way out.
+                   Closing the drawer is NOT collapsing - collapsed is a desktop
+                   state, and setting it here would leave the sidebar hidden
+                   when the window is widened again. */
+                if (mobileOpen) {
+                  setMobileOpen(false);
+                } else if (collapsed) {
                   setPeeking(false);
                   setCollapsed(false);
                 } else {
@@ -1286,10 +1293,17 @@ function Shell() {
             </>
           ) : (
             <>
-            <Tooltip label={t("sidebar.openMenu")} className="only-narrow">
-              <button className="btn-icon" id="btn-mobile-menu" aria-label={t("sidebar.openMenu")}
-                onClick={() => setMobileOpen(true)}>
-                <Icon name="menu" />
+            {/* It TOGGLES. It used to setMobileOpen(true), so the drawer opened
+                on the first tap and the second did nothing at all - the button
+                stays hit-testable above the open drawer, so the tap landed and
+                was simply a no-op. Same panel icon as the desktop collapse
+                control, because it is the same idea. */}
+            <Tooltip label={mobileOpen ? t("sidebar.closeMenu") : t("sidebar.openMenu")} className="only-narrow">
+              <button className="btn-icon" id="btn-mobile-menu"
+                aria-expanded={mobileOpen}
+                aria-label={mobileOpen ? t("sidebar.closeMenu") : t("sidebar.openMenu")}
+                onClick={() => setMobileOpen((v) => !v)}>
+                <Icon name="panel" className="icon-sm" />
               </button>
             </Tooltip>
             {collapsed && (

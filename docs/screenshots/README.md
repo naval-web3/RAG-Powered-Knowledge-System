@@ -2,7 +2,7 @@
 
 **RAG Powered Knowledge System** — IGNOU MCA, MCSP-232
 
-Thirty-two screens captured from the running application, in the order they are
+Thirty-three screens captured from the running application, in the order they are
 meant to appear in the project report. All were taken at 1440×900 in Chromium.
 The three marketing pages are full-page captures; everything else is a viewport
 capture, so the figures stay a consistent size on the page.
@@ -52,6 +52,7 @@ answers shown are real answers from `llama3.2:3b` running locally, not mockups.
 | 30 | `30-dark-theme.png` | The same answer in dark theme | User Interface Design |
 | 31 | `31-sidebar-collapsed.png` | Sidebar collapsed to its rail | User Interface Design |
 | 32 | `32-sidebar-groups-folded.png` | Sidebar with all three groups folded shut | User Interface Design |
+| 33 | `33-mobile-sidebar.png` | The navigation drawer open on a phone | User Interface Design |
 
 ## Notes for placing these in the report
 
