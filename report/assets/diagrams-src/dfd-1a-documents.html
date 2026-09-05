@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_diagram.css">
+<title>DFD Level 1 (a)</title>
+<style>
+  .proc-no { font-size: 15px; font-weight: 700; }
+  .proc { font-size: 12.5px; }
+  .store-id { font-size: 12px; font-weight: 700; }
+  .store-name { font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div id="sheet">
+<svg width="1100" height="560" viewBox="0 0 1100 560" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+    </marker>
+  </defs>
+
+  <!-- ============ external entity ============ -->
+  <rect class="shape fill" x="30" y="250" width="150" height="90"/>
+  <text class="t b mid" x="105" y="282">Registered</text>
+  <text class="t b mid" x="105" y="302">User</text>
+  <text class="t-xs mid" x="105" y="322">external entity</text>
+
+  <!-- ============ processes ============ -->
+  <circle class="shape" cx="330" cy="110" r="58"/>
+  <text class="proc-no mid" x="330" y="100">1.0</text>
+  <text class="proc mid" x="330" y="120">Authenticate</text>
+  <text class="proc mid" x="330" y="136">User</text>
+
+  <circle class="shape" cx="330" cy="330" r="58"/>
+  <text class="proc-no mid" x="330" y="320">2.0</text>
+  <text class="proc mid" x="330" y="340">Manage</text>
+  <text class="proc mid" x="330" y="356">Documents</text>
+
+  <circle class="shape" cx="720" cy="330" r="58"/>
+  <text class="proc-no mid" x="720" y="320">3.0</text>
+  <text class="proc mid" x="720" y="340">Process</text>
+  <text class="proc mid" x="720" y="356">Document</text>
+
+  <!-- ============ data stores ============ -->
+  <g>
+    <path class="store-line" d="M 560 90 L 780 90 M 560 130 L 780 130 M 560 90 L 560 130 M 604 90 L 604 130"/>
+    <text class="store-id" x="573" y="116">D1</text>
+    <text class="store-name" x="616" y="116">users</text>
+
+    <path class="store-line" d="M 200 490 L 420 490 M 200 530 L 420 530 M 200 490 L 200 530 M 244 490 L 244 530"/>
+    <text class="store-id" x="213" y="516">D3</text>
+    <text class="store-name" x="256" y="516">upload store</text>
+
+    <path class="store-line" d="M 470 490 L 690 490 M 470 530 L 690 530 M 470 490 L 470 530 M 514 490 L 514 530"/>
+    <text class="store-id" x="483" y="516">D2</text>
+    <text class="store-name" x="526" y="516">documents</text>
+
+    <path class="store-line" d="M 740 490 L 960 490 M 740 530 L 960 530 M 740 490 L 740 530 M 784 490 L 784 530"/>
+    <text class="store-id" x="753" y="516">D4</text>
+    <text class="store-name" x="796" y="516">vector store</text>
+  </g>
+
+  <!-- ============ flows ============ -->
+
+  <!-- user -> 1.0 -->
+  <path class="flow" d="M 180 272 L 236 272 L 236 122 L 272 122"/>
+  <text class="flow-label" x="192" y="200">email,</text>
+  <text class="flow-label" x="192" y="214">password</text>
+
+  <!-- 1.0 -> user -->
+  <path class="flow" d="M 300 165 L 300 224 L 105 224 L 105 250"/>
+  <text class="flow-label" x="112" y="244">JWT token, role</text>
+
+  <!-- 1.0 <-> D1 -->
+  <path class="flow" d="M 388 110 L 560 110"/>
+  <text class="flow-label mid" x="474" y="82">account record,</text>
+  <text class="flow-label mid" x="474" y="96">hash, last_login</text>
+
+  <!-- user -> 2.0 -->
+  <path class="flow" d="M 180 314 L 272 314"/>
+  <text class="flow-label mid" x="226" y="304">file</text>
+
+  <!-- 2.0 -> user -->
+  <path class="flow" d="M 272 350 L 180 350"/>
+  <text class="flow-label mid" x="226" y="370">library,</text>
+  <text class="flow-label mid" x="226" y="384">progress</text>
+
+  <!-- 2.0 -> D3 -->
+  <path class="flow" d="M 310 388 L 310 490"/>
+  <text class="flow-label end" x="302" y="444">stored file</text>
+
+  <!-- 2.0 -> D2 -->
+  <path class="flow" d="M 352 386 L 352 458 L 560 458 L 560 490"/>
+  <text class="flow-label" x="380" y="450">title, type, size, owner</text>
+
+  <!-- 2.0 -> 3.0 -->
+  <path class="flow" d="M 388 318 L 662 318"/>
+  <text class="flow-label mid" x="525" y="308">document id</text>
+
+  <!-- D3 -> 3.0 -->
+  <path class="flow" d="M 400 490 L 400 424 L 700 424 L 700 388"/>
+  <text class="flow-label" x="430" y="416">raw file</text>
+
+  <!-- 3.0 -> D2 : ingest progress -->
+  <path class="flow" d="M 744 386 L 744 470 L 650 470 L 650 490"/>
+  <text class="flow-label end" x="738" y="450">stage, progress, chunk count</text>
+
+  <!-- 3.0 -> D4 -->
+  <path class="flow" d="M 778 330 L 850 330 L 850 490"/>
+  <text class="flow-label" x="800" y="292">chunk text, embedding</text>
+  <text class="flow-label" x="800" y="306">vector, page, section</text>
+</svg>
+</div>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_diagram.css">
+<title>DFD Level 0 - Context Diagram</title>
+</head>
+<body>
+<div id="sheet">
+<svg width="1060" height="600" viewBox="0 0 1060 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+    </marker>
+  </defs>
+
+  <!-- ================= external entities ================= -->
+
+  <rect class="shape fill" x="20" y="300" width="170" height="80" rx="2"/>
+  <text class="t b mid" x="105" y="333">Registered</text>
+  <text class="t b mid" x="105" y="353">User</text>
+  <text class="t-xs mid" x="105" y="371">external entity</text>
+
+  <rect class="shape fill" x="870" y="300" width="170" height="80" rx="2"/>
+  <text class="t b mid" x="955" y="343">Administrator</text>
+  <text class="t-xs mid" x="955" y="363">external entity</text>
+
+  <rect class="shape fill" x="435" y="30" width="190" height="80" rx="2"/>
+  <text class="t b mid" x="530" y="60">Language Model</text>
+  <text class="t b mid" x="530" y="80">Provider</text>
+  <text class="t-xs mid" x="530" y="98">Ollama (local) / OpenAI (cloud)</text>
+
+  <!-- ================= process 0 ================= -->
+  <circle class="shape heavy" cx="530" cy="340" r="118"/>
+  <text class="t-lg b mid" x="530" y="322">0</text>
+  <text class="t b mid" x="530" y="350">RAG Powered</text>
+  <text class="t b mid" x="530" y="370">Knowledge System</text>
+
+  <!-- ================= flows ================= -->
+
+  <!-- user -> system, along y = 312 -->
+  <path class="flow" d="M 190 312 L 406 312"/>
+  <text class="flow-label mid" x="298" y="292">credentials, documents,</text>
+  <text class="flow-label mid" x="298" y="306">natural-language questions</text>
+
+  <!-- system -> user, along y = 372 -->
+  <path class="flow" d="M 406 372 L 190 372"/>
+  <text class="flow-label mid" x="298" y="392">token, ingest progress, grounded</text>
+  <text class="flow-label mid" x="298" y="406">answer with sources, history</text>
+
+  <!-- system -> admin, along y = 312 -->
+  <path class="flow" d="M 654 312 L 870 312"/>
+  <text class="flow-label mid" x="762" y="292">usage analytics, health</text>
+  <text class="flow-label mid" x="762" y="306">check, query log</text>
+
+  <!-- admin -> system, along y = 372 -->
+  <path class="flow" d="M 870 372 L 654 372"/>
+  <text class="flow-label mid" x="762" y="392">account activation and</text>
+  <text class="flow-label mid" x="762" y="406">role change commands</text>
+
+  <!-- system -> provider -->
+  <path class="flow" d="M 490 226 L 490 110"/>
+  <text class="flow-label end" x="478" y="158">question + retrieved</text>
+  <text class="flow-label end" x="478" y="172">passages, text to embed</text>
+
+  <!-- provider -> system -->
+  <path class="flow" d="M 572 110 L 572 226"/>
+  <text class="flow-label" x="584" y="158">generated answer,</text>
+  <text class="flow-label" x="584" y="172">embedding vectors</text>
+
+  <!-- ================= note ================= -->
+  <text class="caption i" x="20" y="512">The vector store and the relational database do not appear at this level: both are internal to</text>
+  <text class="caption i" x="20" y="532">the system, and are shown as data stores from Level 1 onwards. The language model provider</text>
+  <text class="caption i" x="20" y="552">is external because inference may be served by OpenAI; when Ollama is selected, the same</text>
+  <text class="caption i" x="20" y="572">interface is satisfied by a process running on the local machine.</text>
+</svg>
+</div>
+</body>
+</html>

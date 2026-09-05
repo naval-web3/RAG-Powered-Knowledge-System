@@ -195,6 +195,17 @@ def build_styles(doc: Document) -> None:
     for name, (size, before, after) in specs.items():
         style = doc.styles[name]
         style.font.name = BODY_FONT
+        # Word's built-in heading styles name a *theme* font, and a theme font
+        # beats the plain w:ascii the line above sets - which is why headings
+        # came out in Calibri while the body was Times. Strip the theme
+        # attributes so the font actually asked for is the font used.
+        fonts = style.element.rPr.rFonts
+        for attribute in ("asciiTheme", "hAnsiTheme", "eastAsiaTheme", "cstheme"):
+            if fonts.get(qn("w:" + attribute)) is not None:
+                del fonts.attrib[qn("w:" + attribute)]
+        fonts.set(qn("w:ascii"), BODY_FONT)
+        fonts.set(qn("w:hAnsi"), BODY_FONT)
+        fonts.set(qn("w:cs"), BODY_FONT)
         style.font.size = Pt(size)
         style.font.bold = True
         style.font.italic = name == "Heading 4"
@@ -299,20 +310,17 @@ class ReportBuilder:
             self.started = True
             self.section_no = 0
             self.subsection_no = 0
+            title = text.upper()
             if not unnumbered and self.numbered:
                 self.chapter += 1
                 self.figure_no = 0
                 self.table_no = 0
-                label = self.doc.add_paragraph()
-                label.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                label.paragraph_format.space_after = Pt(2)
-                label.paragraph_format.keep_with_next = True
-                run = label.add_run("CHAPTER %d" % self.chapter)
-                run.font.name = BODY_FONT
-                run.font.size = Pt(11)
-                run.bold = True
-                run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
-            head = self.doc.add_heading(text.upper(), level=1)
+                # The chapter number belongs in the heading text itself, not in
+                # a separate line above it: Word builds the contents from
+                # heading paragraphs, and anything outside them is invisible to
+                # it. "CHAPTER 3  SYSTEM DESIGN" reads correctly in both places.
+                title = "CHAPTER %d.  %s" % (self.chapter, title)
+            head = self.doc.add_heading(title, level=1)
             self._rule(head)
             return head
 
@@ -453,7 +461,7 @@ TITLE_PAGE = [
     ("SUBMITTED TO", 11, False, 6),
     ("INDIRA GANDHI NATIONAL OPEN UNIVERSITY", 13, True, 2),
     ("MAIDAN GARHI, NEW DELHI - 110068", 11, False, 10),
-    ("Study Centre Code: 1105          Regional Centre: 11 - SHIMLA", 11, False, 34),
+    ("Study Centre Code: 1105          Regional Centre: 11 - SHIMLA", 11, False, 96),
 ]
 
 
@@ -653,6 +661,19 @@ def handle_directive(builder: ReportBuilder, name: str, arg: str | None) -> None
         para = doc.add_paragraph()
         para.paragraph_format.space_after = Pt(0)
         _field(para, ' TOC \\o "1-3" \\h \\z \\u ', "Right-click and choose Update Field to build the contents.")
+    elif name == "plainheading":
+        # A heading that looks like a chapter heading but is deliberately not
+        # one: the contents, the list of figures and the list of tables should
+        # not list themselves.
+        builder.started = True
+        para = doc.add_paragraph()
+        para.paragraph_format.space_after = Pt(12)
+        para.paragraph_format.keep_with_next = True
+        run = para.add_run((arg or "").upper())
+        run.font.name = BODY_FONT
+        run.font.size = Pt(16)
+        run.bold = True
+        builder._rule(para)
     elif name in ("lof", "lot"):
         # Figures and tables are numbered by this script, not by Word's SEQ
         # fields, so Word cannot collect them itself. Leave a marker here and
@@ -676,6 +697,9 @@ def handle_directive(builder: ReportBuilder, name: str, arg: str | None) -> None
         _number_format(section, "decimal", start=1)
         _page_footer(section)
         _running_header(section, "RAG Powered Knowledge System")
+        # The section break already turned the page, so the chapter heading
+        # that follows must not turn it again and leave a blank sheet.
+        builder.started = False
     elif name == "landscape":
         section = doc.add_section(WD_SECTION.NEW_PAGE)
         _setup_page(section)
@@ -740,6 +764,8 @@ def main() -> int:
     _setup_page(first)
     _number_format(first, "lowerRoman", start=1)
     _page_footer(first)
+    # The title page carries no page number, though it counts as page i.
+    first.different_first_page_header_footer = True
 
     builder = ReportBuilder(doc)
     builder.numbered = False

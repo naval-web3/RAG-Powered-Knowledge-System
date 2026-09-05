@@ -1,0 +1,63 @@
+/* Shared look for every diagram in the report.
+ *
+ * The report is printed on a monochrome laser printer and bound, so nothing
+ * here may depend on colour to be readable: fills are white or one of two
+ * greys, every shape has a black outline, and emphasis is carried by line
+ * weight and fill, never by hue. */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #fff;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+#sheet {
+  background: #fff;
+  padding: 18px 20px;
+  display: inline-block;
+}
+
+svg { display: block; }
+
+/* --- shapes ------------------------------------------------------------ */
+
+.shape { fill: #fff; stroke: #111; stroke-width: 1.6; }
+.shape.fill { fill: #ececec; }
+.shape.tint { fill: #f7f7f7; }
+.shape.heavy { stroke-width: 2.4; }
+.shape.dashed { stroke-dasharray: 6 4; }
+
+/* an open-ended data store: two rules, drawn as paths, not a box */
+.store-line { stroke: #111; stroke-width: 1.6; fill: none; }
+
+/* --- text -------------------------------------------------------------- */
+
+text { fill: #111; font-size: 14px; }
+.t { font-size: 14px; }
+.t-sm { font-size: 12px; }
+.t-xs { font-size: 10.5px; }
+.t-lg { font-size: 16px; }
+.b { font-weight: 700; }
+.i { font-style: italic; }
+.mid { text-anchor: middle; }
+.end { text-anchor: end; }
+.mono { font-family: Consolas, "Courier New", monospace; }
+
+/* a label sitting on a flow line: give it a white backing so the line does
+ * not run through the words */
+.flow-label { font-size: 12px; }
+.flow-label-bg { fill: #fff; stroke: none; }
+
+/* --- lines ------------------------------------------------------------- */
+
+.flow { stroke: #111; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+.flow.thin { stroke-width: 1.2; }
+.flow.dashed { stroke-dasharray: 5 4; }
+.flow.plain { marker-end: none; }
+.link { stroke: #111; stroke-width: 1.4; fill: none; }
+
+/* --- title ------------------------------------------------------------- */
+
+.caption { font-size: 13px; fill: #444; }

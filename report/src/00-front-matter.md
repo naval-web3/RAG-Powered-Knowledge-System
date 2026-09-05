@@ -46,16 +46,17 @@ The system is delivered as a full-stack web application: a React 18 single-page 
 Beyond the core pipeline the system implements project workspaces that scope retrieval to a chosen subset of documents, standing instructions applied to every answer, a private conversation mode that writes nothing to history, optical character recognition for scanned PDFs, and an interface translated into eleven languages. It was tested with thirty-one system test cases against a purpose-built corpus, of which thirty passed; the single partial failure is analysed in the testing chapter rather than removed from it. Mean end-to-end response time was 4.2 seconds against a local three-billion-parameter model, inside the five-second target set in the approved proposal.
 
 <!-- pagebreak -->
-
-# *Table of Contents
+<!-- plainheading Table of Contents -->
 
 <!-- toc -->
 
-# *List of Figures
+<!-- pagebreak -->
+<!-- plainheading List of Figures -->
 
 <!-- lof -->
 
-# *List of Tables
+<!-- pagebreak -->
+<!-- plainheading List of Tables -->
 
 <!-- lot -->
 
