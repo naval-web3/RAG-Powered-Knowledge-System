@@ -351,7 +351,6 @@ function AiMessage({ message, onOpenSource, mark }) {
             {sources.length > 0 && (
               <div className={`sources-wrap ${sourcesOpen ? "open" : ""}`}>
                 <button className="sources-toggle" onClick={() => setSourcesOpen((o) => !o)}>
-                  <Icon name="chev-r" className="icon-sm chev" />
                   {sources.length === 1
                     ? t("chat.sourceOne")
                     : t("chat.sourceMany", { n: sources.length })}

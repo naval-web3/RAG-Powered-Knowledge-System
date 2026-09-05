@@ -1170,14 +1170,17 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .sources-wrap { margin-top: 12px; }
 /* Alone in the block, it already has the block's own padding above it. */
 .sources-wrap:first-child { margin-top: 0; }
+/* No chevron: the count is the control. The negative left margin cancels the
+   padding so the label sits flush with the retrieval line above it, while the
+   hover plate keeps its breathing room - and that plate is now the only thing
+   saying this is clickable, so it stays. */
 .sources-toggle {
-  display: inline-flex; align-items: center; gap: 7px;
+  display: inline-flex; align-items: center;
   font-size: 12.5px; font-weight: 600; color: var(--text-2);
-  padding: 5px 10px; border-radius: var(--r-sm); transition: background .13s, color .13s;
+  padding: 5px 10px; margin-left: -10px;
+  border-radius: var(--r-sm); transition: background .13s, color .13s;
 }
 .sources-toggle:hover { background: var(--surface-2); color: var(--text); }
-.sources-toggle .chev { transition: transform .2s var(--ease); }
-.sources-wrap.open .sources-toggle .chev { transform: rotate(90deg); }
 .source-list { display: none; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
 .sources-wrap.open .source-list { display: grid; }
 .source-card {
