@@ -2,7 +2,7 @@
 
 **RAG Powered Knowledge System** — IGNOU MCA, MCSP-232
 
-Thirty-seven screens captured from the running application, in the order they are
+Thirty-nine screens captured from the running application, in the order they are
 meant to appear in the project report. All were taken at 1440×900 in Chromium.
 The three marketing pages are full-page captures; everything else is a viewport
 capture, so the figures stay a consistent size on the page.
@@ -57,6 +57,8 @@ answers shown are real answers from `llama3.2:3b` running locally, not mockups.
 | 35 | `35-mobile-private-chat.png` | Private chat on a phone | System Security |
 | 36 | `36-mobile-dark-answer.png` | The same answer, dark theme, on a phone | User Interface Design |
 | 37 | `37-mobile-dark-sidebar.png` | The drawer open, dark theme, on a phone | User Interface Design |
+| 38 | `38-landing-dark.png` | The landing page in dark theme | Introduction |
+| 39 | `39-document-source-view.png` | The reader's Source view — the extracted text itself | System Design / Testing |
 
 ## Notes for placing these in the report
 
@@ -74,6 +76,13 @@ does not depend on the reader taking your word for it.
 Figures 14 and 15 together answer the synopsis requirement for multiple LLM
 providers and for scoped retrieval, so cite them where those objectives are
 addressed.
+
+Figure 39 is more useful than it looks. The reader has two views - Reading
+renders the document, Source shows the extracted characters with line numbers -
+and Source is the one that proves the ingestion pipeline works: what the parser
+actually pulled out of the file is what the chunker chunked and the embedder
+embedded. Pair it with figure 11 (the same document in Reading view) where the
+report explains document processing.
 
 Figures 28 and 33-37 are the responsive set, all at 414x896. Between them they
 show the phone layout in both themes, the navigation drawer over the full
