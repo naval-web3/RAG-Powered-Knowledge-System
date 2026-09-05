@@ -146,8 +146,16 @@ export function DocCard({ doc, selecting, selected, onToggle, onOpen, onRemove, 
         ) : (
           <span className="doc-thumb is-blank" />
         )}
-        <span className={`doc-kind ${doc.file_type}`}>
-          {fileExt(doc.file_type, doc.original_filename).toUpperCase()}
+        {/* The sidebar has always marked a failed document; the library did
+            not, so a document that indexed to nothing looked exactly like a
+            good one and would answer exactly like an empty one. */}
+        <span className="doc-card-tags">
+          <span className={`doc-kind ${doc.file_type}`}>
+            {fileExt(doc.file_type, doc.original_filename).toUpperCase()}
+          </span>
+          {doc.processing_status === "failed" && (
+            <span className="doc-kind is-failed">{t("docs.failed")}</span>
+          )}
         </span>
       </button>
 

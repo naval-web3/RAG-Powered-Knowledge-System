@@ -265,7 +265,10 @@ input[type="checkbox"]:indeterminate::after {
 .checkbox-row input { margin-top: 2px; }
 
 /* Toggle switch */
-.switch { position: relative; width: 40px; height: 22px; flex: none; cursor: pointer; }
+/* display matters: this is a <label>, which is inline by default, and an
+   inline box ignores width and height - the admin Users toggle measured 0x0
+   and was invisible in its cell. */
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; flex: none; cursor: pointer; }
 .switch input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
 .switch .track { position: absolute; inset: 0; background: var(--border-strong); border-radius: 999px; transition: background .2s var(--ease); }
 .switch .track::after {
@@ -1448,10 +1451,15 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
    between them. */
 .conv-item .proj-menu button { width: 22px; height: 22px; border-radius: 6px; }
 .lib-card {
-  display: flex; flex-direction: column; gap: 10px; text-align: left;
-  min-height: 132px; padding: 16px 16px 14px;
   border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface);
   transition: border-color .13s, box-shadow .13s;
+}
+/* The face carries the box; the card is only the frame it sits in, so the menu
+   can be a sibling laid over the corner instead of a button inside a button. */
+.lib-card-face {
+  display: flex; flex-direction: column; gap: 10px; width: 100%; text-align: left;
+  min-height: 132px; padding: 16px 16px 14px;
+  background: none; border: 0; cursor: pointer; color: inherit; font: inherit;
 }
 .lib-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
 .lib-card-top { display: flex; align-items: flex-start; gap: 8px; }
@@ -1460,8 +1468,11 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 /* The pin sits against the end of the name, and the menu takes the far corner:
-   one of them describes the project, the other acts on it. */
-.lib-card-top .proj-menu { margin-left: auto; }
+   one of them describes the project, the other acts on it. Since the menu left
+   the row it is placed against the card, and the name is padded so a long one
+   runs out of room before it runs underneath. */
+.lib-card > .proj-menu { position: absolute; top: 14px; right: 14px; }
+.lib-card:has(> .proj-menu) .lib-card-name { padding-right: 26px; }
 /* Two lines, so every card is the same height whatever has been written in
    it. Anywhere-breaking too: instructions are free text and may well contain
    a URL with no spaces in it. */
@@ -1527,6 +1538,10 @@ body.is-resizing, body.is-resizing * { cursor: col-resize !important; user-selec
   letter-spacing: .06em; padding: 3px 6px; border-radius: 5px;
   background: var(--surface-2); color: var(--text-3);
 }
+/* A row, because the column would otherwise stack the file type and the
+   failure marker one above the other. */
+.doc-card-tags { display: flex; align-items: center; gap: 6px; }
+.doc-kind.is-failed { background: var(--red-soft); color: var(--red); }
 
 /* The remove sits half outside the corner it belongs to, as in the reference:
    inside, it would cover the first word of the name. */
@@ -2791,6 +2806,10 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 }
 .set-range { display: flex; align-items: center; gap: 12px; }
 .set-range input { width: 170px; }
+/* Accented like every other slider. The rule above names .range-row and
+   input.range, and these are bare inputs in .set-range, so they were the only
+   controls in the app still drawing in Chrome's default blue. */
+.set-range input[type=range] { accent-color: var(--accent); }
 .set-range-val {
   font-family: var(--mono); font-size: 12.5px; font-weight: 600;
   color: var(--accent); min-width: 26px; text-align: right;

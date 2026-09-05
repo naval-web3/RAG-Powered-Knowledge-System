@@ -102,33 +102,41 @@ export default function ProjectsPage() {
       ) : (
         <div className="lib-grid">
           {shown.map((p) => (
-            <button key={p.project_id} className="lib-card"
-              onClick={() => navigate(`/projects/${p.project_id}`)}>
-              <div className="lib-card-top">
-                <span className="lib-card-name">{p.name}</span>
-                {/* Pinned is worth seeing without hovering; it is why the
-                    project is at the top of the list. The menu is not. */}
-                {p.pinned && (
-                  <span className="lib-pinned" aria-label={t("common.unpin")}>
-                    <Icon name="pin" className="icon-sm" />
-                  </span>
-                )}
-                <ProjectMenu
-                  project={p}
-                  onPin={() => chat.updateProject(p.project_id, { pinned: !p.pinned })}
-                  onEdit={() => setEditing(p)}
-                  onDelete={() => setDeleting(p)}
-                />
-              </div>
-              {/* The standing instructions are what one project is actually
-                  told apart from another by, so they stand in as the blurb. */}
-              {p.instructions && <p className="lib-card-body">{p.instructions}</p>}
-              <div className="lib-card-foot">
-                {/* The last time this project was used, not the last time
-                    its settings were written. */}
-                <span className="lib-date">{timeAgo(lastTouched(p))}</span>
-              </div>
-            </button>
+            /* The face is the button and the menu is its SIBLING, layered over
+               the corner -- exactly how DocCard does it. Nested inside, the
+               menu's own button was a <button> inside a <button>: React logged
+               validateDOMNesting on every render and the browser's repair of
+               the invalid tree is what made the menu click unreliable. */
+            <div key={p.project_id} className="lib-card">
+              <button className="lib-card-face"
+                onClick={() => navigate(`/projects/${p.project_id}`)}>
+                <div className="lib-card-top">
+                  <span className="lib-card-name">{p.name}</span>
+                  {/* Pinned is worth seeing without hovering; it is why the
+                      project is at the top of the list. The menu is not. */}
+                  {p.pinned && (
+                    <span className="lib-pinned" aria-label={t("common.unpin")}>
+                      <Icon name="pin" className="icon-sm" />
+                    </span>
+                  )}
+                </div>
+                {/* The standing instructions are what one project is actually
+                    told apart from another by, so they stand in as the blurb. */}
+                {p.instructions && <p className="lib-card-body">{p.instructions}</p>}
+                <div className="lib-card-foot">
+                  {/* The last time this project was used, not the last time
+                      its settings were written. */}
+                  <span className="lib-date">{timeAgo(lastTouched(p))}</span>
+                </div>
+              </button>
+
+              <ProjectMenu
+                project={p}
+                onPin={() => chat.updateProject(p.project_id, { pinned: !p.pinned })}
+                onEdit={() => setEditing(p)}
+                onDelete={() => setDeleting(p)}
+              />
+            </div>
           ))}
         </div>
       )}
