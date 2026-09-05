@@ -2,7 +2,7 @@
 
 **RAG Powered Knowledge System** — IGNOU MCA, MCSP-232
 
-Thirty-three screens captured from the running application, in the order they are
+Thirty-seven screens captured from the running application, in the order they are
 meant to appear in the project report. All were taken at 1440×900 in Chromium.
 The three marketing pages are full-page captures; everything else is a viewport
 capture, so the figures stay a consistent size on the page.
@@ -53,6 +53,10 @@ answers shown are real answers from `llama3.2:3b` running locally, not mockups.
 | 31 | `31-sidebar-collapsed.png` | Sidebar collapsed to its rail | User Interface Design |
 | 32 | `32-sidebar-groups-folded.png` | Sidebar with all three groups folded shut | User Interface Design |
 | 33 | `33-mobile-sidebar.png` | The navigation drawer open on a phone | User Interface Design |
+| 34 | `34-mobile-answer.png` | A grounded answer on a phone | User Interface Design |
+| 35 | `35-mobile-private-chat.png` | Private chat on a phone | System Security |
+| 36 | `36-mobile-dark-answer.png` | The same answer, dark theme, on a phone | User Interface Design |
+| 37 | `37-mobile-dark-sidebar.png` | The drawer open, dark theme, on a phone | User Interface Design |
 
 ## Notes for placing these in the report
 
@@ -70,6 +74,13 @@ does not depend on the reader taking your word for it.
 Figures 14 and 15 together answer the synopsis requirement for multiple LLM
 providers and for scoped retrieval, so cite them where those objectives are
 addressed.
+
+Figures 28 and 33-37 are the responsive set, all at 414x896. Between them they
+show the phone layout in both themes, the navigation drawer over the full
+screen, a real answer with its retrieval line wrapped to two lines, and private
+mode. The report only needs a few of these to make the point that the interface
+is usable on a phone - pick the ones that carry your argument and leave the
+rest on the CD.
 
 Figures 31 and 32 are two different ways of getting the sidebar out of the way:
 31 collapses it to a rail entirely, 32 keeps it but folds Documents, Projects
