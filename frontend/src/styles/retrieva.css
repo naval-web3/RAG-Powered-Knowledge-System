@@ -1201,9 +1201,30 @@ sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translate
 .source-card .s-title { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .source-card .s-meta { font-family: var(--mono); font-size: 10.5px; color: var(--text-3); margin: 2px 0 4px; }
 .source-card .s-snip { font-size: 11.5px; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-/* Was an inline style on the element; it is a passage of prose, so it gets a
-   class like every other passage of prose. */
-.src-snippet { font-family: var(--sans); font-size: 15px; line-height: 1.7; color: var(--text); }
+/* The source passage dialog.
+   .meta-grid lost its base rule in 545b138, when the dialog it belonged to was
+   replaced; restoring the modal brought the markup back but not the styling,
+   so <b>Page</b><span>7</span> rendered inline as "Page7". Four labelled cells
+   on one plate now, the label above the value, wrapping to fewer columns when
+   there is not room. */
+.meta-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px 18px; padding: 14px 16px; margin-bottom: 18px;
+  background: var(--surface-2); border-radius: var(--r-md);
+}
+.mg { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mg b {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--text-3);
+}
+/* A section name can be long and a chunk can be a bare number: break the long
+   one rather than let it widen its column past its share. */
+.mg span { font-size: 14px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+/* The excerpt is a quotation from the document, and reads as one. */
+.src-snippet {
+  margin: 0; padding-left: 14px; border-left: 2px solid var(--border-strong);
+  font-family: var(--sans); font-size: 15px; line-height: 1.7; color: var(--text);
+}
 .msg-actions { display: flex; gap: 4px; margin-top: 10px; opacity: 0; transition: opacity .15s; }
 .msg-ai:hover .msg-actions, .msg-actions:focus-within { opacity: 1; }
 .msg-actions .btn-icon { width: 28px; height: 28px; }

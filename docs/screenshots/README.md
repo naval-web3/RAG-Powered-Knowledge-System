@@ -2,7 +2,7 @@
 
 **RAG Powered Knowledge System** — IGNOU MCA, MCSP-232
 
-Thirty screens captured from the running application, in the order they are
+Thirty-two screens captured from the running application, in the order they are
 meant to appear in the project report. All were taken at 1440×900 in Chromium.
 The three marketing pages are full-page captures; everything else is a viewport
 capture, so the figures stay a consistent size on the page.
@@ -50,6 +50,8 @@ answers shown are real answers from `llama3.2:3b` running locally, not mockups.
 | 28 | `28-mobile-chat.png` | Responsive layout at 414×896 | User Interface Design |
 | 29 | `29-search-chats.png` | Searching conversations | User Interface Design |
 | 30 | `30-dark-theme.png` | The same answer in dark theme | User Interface Design |
+| 31 | `31-sidebar-collapsed.png` | Sidebar collapsed to its rail | User Interface Design |
+| 32 | `32-sidebar-groups-folded.png` | Sidebar with all three groups folded shut | User Interface Design |
 
 ## Notes for placing these in the report
 
@@ -67,3 +69,8 @@ does not depend on the reader taking your word for it.
 Figures 14 and 15 together answer the synopsis requirement for multiple LLM
 providers and for scoped retrieval, so cite them where those objectives are
 addressed.
+
+Figures 31 and 32 are two different ways of getting the sidebar out of the way:
+31 collapses it to a rail entirely, 32 keeps it but folds Documents, Projects
+and Chats shut. Keep whichever suits the point being made and drop the other -
+two figures of an empty sidebar is one more than the report needs.
