@@ -172,6 +172,17 @@ def chat_stream(
 
         sources_payload = [s.model_dump() for s in result["sources"]]
 
+        # Stored WITH the answer, not only in query_logs: the chat reloads
+        # from messages, so without this the retrieval line can only ever
+        # render on an answer you watched arrive.
+        meta_payload = {
+            "provider": result["provider"],
+            "model": result["model"],
+            "ms": result["response_time_ms"],
+            "chunks": result["chunks_retrieved"],
+            "top_score": result.get("top_score"),
+        }
+
         if not incognito and conv_id is not None:
             own = SessionLocal()
             try:
@@ -180,7 +191,7 @@ def chat_stream(
                         conversation_id=conv_id,
                         role="assistant",
                         content=result["answer"],
-                        source_documents={"sources": sources_payload},
+                        source_documents={"sources": sources_payload, "meta": meta_payload},
                     )
                 )
                 own.add(
@@ -324,13 +335,24 @@ def chat(
 
     sources_payload = [s.model_dump() for s in result["sources"]]
 
+    # Stored WITH the answer, not only in query_logs: the chat reloads
+    # from messages, so without this the retrieval line can only ever
+    # render on an answer you watched arrive.
+    meta_payload = {
+        "provider": result["provider"],
+        "model": result["model"],
+        "ms": result["response_time_ms"],
+        "chunks": result["chunks_retrieved"],
+        "top_score": result.get("top_score"),
+    }
+
     # Store the assistant message + query log.
     db.add(
         Message(
             conversation_id=conv.conversation_id,
             role="assistant",
             content=result["answer"],
-            source_documents={"sources": sources_payload},
+            source_documents={"sources": sources_payload, "meta": meta_payload},
         )
     )
     db.add(

@@ -1156,6 +1156,48 @@ sup.cite {
   transition: background .13s, border-color .13s, transform .12s var(--ease);
 }
 sup.cite:hover { background: var(--accent); color: #FFF8F2; transform: translateY(-1px); }
+/* The rule lives on the block, not on the line: the line is conditional and a
+   bordered empty div would leave a stray rule under an uncited answer. */
+.answer-cite { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.retrieval-line {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 11px; color: var(--text-3);
+}
+.retrieval-line b { color: var(--text-2); font-weight: 600; }
+.sources-wrap { margin-top: 12px; }
+/* Alone in the block, it already has the block's own padding above it. */
+.sources-wrap:first-child { margin-top: 0; }
+.sources-toggle {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 600; color: var(--text-2);
+  padding: 5px 10px; border-radius: var(--r-sm); transition: background .13s, color .13s;
+}
+.sources-toggle:hover { background: var(--surface-2); color: var(--text); }
+.sources-toggle .chev { transition: transform .2s var(--ease); }
+.sources-wrap.open .sources-toggle .chev { transform: rotate(90deg); }
+.source-list { display: none; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
+.sources-wrap.open .source-list { display: grid; }
+.source-card {
+  display: flex; gap: 11px; align-items: flex-start; text-align: left;
+  padding: 11px 13px; border-radius: var(--r-md);
+  background: var(--surface); border: 1px solid var(--border);
+  transition: border-color .15s, box-shadow .15s;
+}
+.source-card:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+.source-card .s-idx {
+  width: 20px; height: 20px; flex: none; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+/* Flex column, not bare spans: inline children ran the title straight into
+   the meta on one line, and text-overflow needs a block box to clip. */
+.source-card .s-body { display: flex; flex-direction: column; min-width: 0; }
+.source-card .s-title { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.source-card .s-meta { font-family: var(--mono); font-size: 10.5px; color: var(--text-3); margin: 2px 0 4px; }
+.source-card .s-snip { font-size: 11.5px; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Was an inline style on the element; it is a passage of prose, so it gets a
+   class like every other passage of prose. */
+.src-snippet { font-family: var(--sans); font-size: 15px; line-height: 1.7; color: var(--text); }
 .msg-actions { display: flex; gap: 4px; margin-top: 10px; opacity: 0; transition: opacity .15s; }
 .msg-ai:hover .msg-actions, .msg-actions:focus-within { opacity: 1; }
 .msg-actions .btn-icon { width: 28px; height: 28px; }
@@ -2575,7 +2617,7 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   .land-nav .nav-links { display: none; }
 }
 @media (max-width: 640px) {
-  .sugg-grid, .demo-row, .set-card .form-row, .provider-cards, .meta-grid { grid-template-columns: 1fr; }
+  .sugg-grid, .source-list, .demo-row, .set-card .form-row, .provider-cards, .meta-grid { grid-template-columns: 1fr; }
   .kpi-grid, .stat-row { grid-template-columns: 1fr 1fr; }
   .msg-user .user-col { max-width: 92%; }
   .topbar h1 { font-size: 15px; }

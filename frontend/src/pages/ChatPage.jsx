@@ -35,6 +35,9 @@ export default function ChatPage() {
     setGreeting(greetingFor(t, user?.username, chat.freshStarts === 0));
   }, [chat.freshStarts, user?.username]);
   const fileRef = useRef(null);
+  /* One modal for the whole thread, not one per answer: only a single passage
+     is ever open, and the overlay belongs above the scroller, not inside it. */
+  const [sourceModal, setSourceModal] = useState(null);
   /* The word belongs to the silent wait only; once text is arriving the mark
      carries the state on its own. */
   const streaming = chat.messages.some((m) => m.streaming);
@@ -107,7 +110,12 @@ export default function ChatPage() {
                    newest answer once everything has settled. */
                 const mark = m.streaming ? "busy" : last && !chat.sending ? "idle" : null;
                 return (
-                  <AiMessage key={m.message_id} message={m} mark={mark} />
+                  <AiMessage
+                    key={m.message_id}
+                    message={m}
+                    onOpenSource={setSourceModal}
+                    mark={mark}
+                  />
                 );
               })}
               {chat.sending && !streaming && <Thinking />}
@@ -118,6 +126,8 @@ export default function ChatPage() {
       </div>
 
       <Composer fileRef={fileRef} rotate={empty} />
+
+      {sourceModal && <SourceModal source={sourceModal} onClose={() => setSourceModal(null)} />}
     </section>
   );
 }
@@ -273,10 +283,16 @@ function AnswerMark({ busy }) {
   );
 }
 
-function AiMessage({ message, mark }) {
+function AiMessage({ message, onOpenSource, mark }) {
   const t = useT();
   const { toast } = useToast();
   const [vote, setVote] = useState(null);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const sources = message.source_documents?.sources || [];
+  /* An answer you watched arrive carries its telemetry at the top level; one
+     loaded from history carries it inside source_documents, which is where the
+     backend stores it. Same line either way. */
+  const meta = message.meta || message.source_documents?.meta;
   /* A copy says so on the button itself. A toast for it was a second thing to
      look at, in the opposite corner, for something the pointer is already on. */
   const [copied, setCopied] = useState(false);
@@ -309,6 +325,58 @@ function AiMessage({ message, mark }) {
         </div>
         {message.stopped && <div className="stopped-note">{t("chat.stopped")}</div>}
 
+        {/* One block carries the rule above the citations. The line inside it
+            renders only when there IS telemetry: an answer restored from
+            history before this was stored has sources but no line, and an
+            empty bordered div is just a stray rule under the answer. */}
+        {(sources.length > 0 || meta?.model) && (
+          <div className="answer-cite">
+            {meta?.model && (
+              <div className="retrieval-line">
+                <span>{meta.provider} · <b>{meta.model}</b></span>
+                {meta.chunks != null && (
+                  <span>
+                    ⌁ {meta.chunks === 1
+                      ? t("chat.chunkOne")
+                      : t("chat.chunkMany", { n: meta.chunks })}
+                  </span>
+                )}
+                {meta.top_score != null && (
+                  <span>{t("chat.topMatch", { pct: (meta.top_score * 100).toFixed(1) })}</span>
+                )}
+                {meta.ms != null && <span><b>{(meta.ms / 1000).toFixed(1)}s</b></span>}
+              </div>
+            )}
+
+            {sources.length > 0 && (
+              <div className={`sources-wrap ${sourcesOpen ? "open" : ""}`}>
+                <button className="sources-toggle" onClick={() => setSourcesOpen((o) => !o)}>
+                  <Icon name="chev-r" className="icon-sm chev" />
+                  {sources.length === 1
+                    ? t("chat.sourceOne")
+                    : t("chat.sourceMany", { n: sources.length })}
+                </button>
+                <div className="source-list">
+                  {sources.map((s, i) => (
+                    <button key={i} className="source-card" onClick={() => onOpenSource(s)}>
+                      <span className="s-idx">{i + 1}</span>
+                      <span className="s-body">
+                        <span className="s-title">{s.title}</span>
+                        <span className="s-meta">
+                          {s.page_number != null && <>{t("chat.srcPage")} {s.page_number} · </>}
+                          {s.section ? s.section : t("chat.chunkLabel", { n: s.chunk_index ?? i })}
+                          {s.score != null && <> · {(s.score * 100).toFixed(0)}%</>}
+                        </span>
+                        {s.snippet && <span className="s-snip">{s.snippet}</span>}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {mark && (
           <div className="answer-foot">
             <AnswerMark busy={mark === "busy"} />
@@ -338,6 +406,39 @@ function AiMessage({ message, mark }) {
             </Tooltip>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function SourceModal({ source, onClose }) {
+  const t = useT();
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-lg" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>{source.title}</h3>
+          <button className="btn-icon" aria-label={t("common.close")} onClick={onClose}>
+            <Icon name="x" className="icon-sm" />
+          </button>
+        </div>
+        <div className="modal-body">
+          <div className="meta-grid">
+            {source.page_number != null && (
+              <div className="mg"><b>{t("chat.srcPage")}</b><span>{source.page_number}</span></div>
+            )}
+            {source.section && (
+              <div className="mg"><b>{t("chat.srcSection")}</b><span>{source.section}</span></div>
+            )}
+            {source.chunk_index != null && (
+              <div className="mg"><b>{t("chat.srcChunk")}</b><span>#{source.chunk_index}</span></div>
+            )}
+            {source.score != null && (
+              <div className="mg"><b>{t("chat.srcRelevance")}</b><span>{(source.score * 100).toFixed(1)}%</span></div>
+            )}
+          </div>
+          <p className="src-snippet">{source.snippet || t("chat.srcNoPreview")}</p>
+        </div>
       </div>
     </div>
   );

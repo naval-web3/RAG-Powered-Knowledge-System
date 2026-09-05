@@ -94,6 +94,20 @@ const en = {
   "chat.noteCloudTop": "For your toughest questions",
   "chat.noteCloudFast": "Fast cloud answers",
   "chat.sizeHelp": "A bigger model is more accurate but slower on your GPU.",
+
+  /* Citations under an answer: the disclosure, the retrieval line and
+     the passage modal. */
+  "chat.sourceOne": "1 source",
+  "chat.sourceMany": "{n} sources",
+  "chat.chunkOne": "retrieved 1 chunk",
+  "chat.chunkMany": "retrieved {n} chunks",
+  "chat.topMatch": "top match {pct}%",
+  "chat.chunkLabel": "chunk {n}",
+  "chat.srcPage": "Page",
+  "chat.srcSection": "Section",
+  "chat.srcChunk": "Chunk",
+  "chat.srcRelevance": "Relevance",
+  "chat.srcNoPreview": "This passage has no preview text.",
 };
 
 const fr = {
@@ -177,6 +191,20 @@ const fr = {
   "chat.noteCloudTop": "Pour vos questions les plus difficiles",
   "chat.noteCloudFast": "Réponses rapides dans le cloud",
   "chat.sizeHelp": "Un modèle plus grand est plus précis mais plus lent sur votre GPU.",
+
+  /* Citations under an answer: the disclosure, the retrieval line and
+     the passage modal. */
+  "chat.sourceOne": "1 source",
+  "chat.sourceMany": "{n} sources",
+  "chat.chunkOne": "1 fragment récupéré",
+  "chat.chunkMany": "{n} fragments récupérés",
+  "chat.topMatch": "meilleure correspondance {pct} %",
+  "chat.chunkLabel": "fragment {n}",
+  "chat.srcPage": "Page",
+  "chat.srcSection": "Section",
+  "chat.srcChunk": "Fragment",
+  "chat.srcRelevance": "Pertinence",
+  "chat.srcNoPreview": "Ce passage n’a pas d’aperçu.",
 };
 
 const de = {
@@ -260,6 +288,20 @@ const de = {
   "chat.noteCloudTop": "Für Ihre schwierigsten Fragen",
   "chat.noteCloudFast": "Schnelle Antworten aus der Cloud",
   "chat.sizeHelp": "Ein größeres Modell ist genauer, aber langsamer auf Ihrer GPU.",
+
+  /* Citations under an answer: the disclosure, the retrieval line and
+     the passage modal. */
+  "chat.sourceOne": "1 Quelle",
+  "chat.sourceMany": "{n} Quellen",
+  "chat.chunkOne": "1 Textblock abgerufen",
+  "chat.chunkMany": "{n} Textblöcke abgerufen",
+  "chat.topMatch": "beste Übereinstimmung {pct} %",
+  "chat.chunkLabel": "Textblock {n}",
+  "chat.srcPage": "Seite",
+  "chat.srcSection": "Abschnitt",
+  "chat.srcChunk": "Textblock",
+  "chat.srcRelevance": "Relevanz",
+  "chat.srcNoPreview": "Für diese Stelle gibt es keine Vorschau.",
 };
 
 const hi = {
@@ -343,6 +385,20 @@ const hi = {
   "chat.noteCloudTop": "आपके सबसे कठिन सवालों के लिए",
   "chat.noteCloudFast": "क्लाउड से तेज़ जवाब",
   "chat.sizeHelp": "बड़ा मॉडल ज़्यादा सटीक है, पर आपके GPU पर धीमा।",
+
+  /* Citations under an answer: the disclosure, the retrieval line and
+     the passage modal. */
+  "chat.sourceOne": "1 स्रोत",
+  "chat.sourceMany": "{n} स्रोत",
+  "chat.chunkOne": "1 अंश प्राप्त",
+  "chat.chunkMany": "{n} अंश प्राप्त",
+  "chat.topMatch": "सर्वोत्तम मिलान {pct}%",
+  "chat.chunkLabel": "अंश {n}",
+  "chat.srcPage": "पृष्ठ",
+  "chat.srcSection": "अनुभाग",
+  "chat.srcChunk": "अंश",
+  "chat.srcRelevance": "प्रासंगिकता",
+  "chat.srcNoPreview": "इस अंश का कोई पूर्वावलोकन नहीं है।",
 };
 
 const id = {
@@ -426,6 +482,20 @@ const id = {
   "chat.noteCloudTop": "Untuk pertanyaan tersulit Anda",
   "chat.noteCloudFast": "Jawaban cepat dari awan",
   "chat.sizeHelp": "Model lebih besar lebih akurat tetapi lebih lambat di GPU Anda.",
+
+  /* Citations under an answer: the disclosure, the retrieval line and
+     the passage modal. */
+  "chat.sourceOne": "1 sumber",
+  "chat.sourceMany": "{n} sumber",
+  "chat.chunkOne": "1 bagian diambil",
+  "chat.chunkMany": "{n} bagian diambil",
+  "chat.topMatch": "kecocokan terbaik {pct}%",
+  "chat.chunkLabel": "bagian {n}",
+  "chat.srcPage": "Halaman",
+  "chat.srcSection": "Bagian",
+  "chat.srcChunk": "Potongan",
+  "chat.srcRelevance": "Relevansi",
+  "chat.srcNoPreview": "Cuplikan ini tidak memiliki pratinjau.",
 };
 
 const it = {
@@ -509,6 +579,20 @@ const it = {
   "chat.noteCloudTop": "Per le tue domande più difficili",
   "chat.noteCloudFast": "Risposte rapide dal cloud",
   "chat.sizeHelp": "Un modello più grande è più preciso ma più lento sulla tua GPU.",
+
+  /* Citations under an answer: the disclosure, the retrieval line and
+     the passage modal. */
+  "chat.sourceOne": "1 fonte",
+  "chat.sourceMany": "{n} fonti",
+  "chat.chunkOne": "1 frammento recuperato",
+  "chat.chunkMany": "{n} frammenti recuperati",
+  "chat.topMatch": "corrispondenza migliore {pct}%",
+  "chat.chunkLabel": "frammento {n}",
+  "chat.srcPage": "Pagina",
+  "chat.srcSection": "Sezione",
+  "chat.srcChunk": "Frammento",
+  "chat.srcRelevance": "Pertinenza",
+  "chat.srcNoPreview": "Questo passaggio non ha un’anteprima.",
 };
 
 const ja = {
@@ -592,6 +676,20 @@ const ja = {
   "chat.noteCloudTop": "最も難しい質問に",
   "chat.noteCloudFast": "クラウドからの高速回答",
   "chat.sizeHelp": "大きなモデルほど正確ですが、GPU では遅くなります。",
+
+  /* Citations under an answer: the disclosure, the retrieval line and
+     the passage modal. */
+  "chat.sourceOne": "1 件の出典",
+  "chat.sourceMany": "{n} 件の出典",
+  "chat.chunkOne": "1 個のチャンクを取得",
+  "chat.chunkMany": "{n} 個のチャンクを取得",
+  "chat.topMatch": "最高一致度 {pct}%",
+  "chat.chunkLabel": "チャンク {n}",
+  "chat.srcPage": "ページ",
+  "chat.srcSection": "セクション",
+  "chat.srcChunk": "チャンク",
+  "chat.srcRelevance": "関連度",
+  "chat.srcNoPreview": "この箇所にはプレビューがありません。",
 };
 
 const ko = {
@@ -675,6 +773,20 @@ const ko = {
   "chat.noteCloudTop": "가장 어려운 질문에",
   "chat.noteCloudFast": "클라우드의 빠른 답변",
   "chat.sizeHelp": "큰 모델일수록 정확하지만 GPU 에서는 느립니다.",
+
+  /* Citations under an answer: the disclosure, the retrieval line and
+     the passage modal. */
+  "chat.sourceOne": "출처 1개",
+  "chat.sourceMany": "출처 {n}개",
+  "chat.chunkOne": "청크 1개 검색됨",
+  "chat.chunkMany": "청크 {n}개 검색됨",
+  "chat.topMatch": "최고 일치도 {pct}%",
+  "chat.chunkLabel": "청크 {n}",
+  "chat.srcPage": "페이지",
+  "chat.srcSection": "섹션",
+  "chat.srcChunk": "청크",
+  "chat.srcRelevance": "관련도",
+  "chat.srcNoPreview": "이 구절에는 미리보기가 없습니다.",
 };
 
 const pt = {
@@ -758,6 +870,20 @@ const pt = {
   "chat.noteCloudTop": "Para as suas perguntas mais difíceis",
   "chat.noteCloudFast": "Respostas rápidas da nuvem",
   "chat.sizeHelp": "Um modelo maior é mais preciso, mas mais lento na sua GPU.",
+
+  /* Citations under an answer: the disclosure, the retrieval line and
+     the passage modal. */
+  "chat.sourceOne": "1 fonte",
+  "chat.sourceMany": "{n} fontes",
+  "chat.chunkOne": "1 trecho recuperado",
+  "chat.chunkMany": "{n} trechos recuperados",
+  "chat.topMatch": "melhor correspondência {pct}%",
+  "chat.chunkLabel": "trecho {n}",
+  "chat.srcPage": "Página",
+  "chat.srcSection": "Seção",
+  "chat.srcChunk": "Trecho",
+  "chat.srcRelevance": "Relevância",
+  "chat.srcNoPreview": "Este trecho não tem pré-visualização.",
 };
 
 const es419 = {
@@ -841,6 +967,20 @@ const es419 = {
   "chat.noteCloudTop": "Para tus preguntas más difíciles",
   "chat.noteCloudFast": "Respuestas rápidas desde la nube",
   "chat.sizeHelp": "Un modelo más grande es más preciso pero más lento en tu GPU.",
+
+  /* Citations under an answer: the disclosure, the retrieval line and
+     the passage modal. */
+  "chat.sourceOne": "1 fuente",
+  "chat.sourceMany": "{n} fuentes",
+  "chat.chunkOne": "1 fragmento recuperado",
+  "chat.chunkMany": "{n} fragmentos recuperados",
+  "chat.topMatch": "mejor coincidencia {pct}%",
+  "chat.chunkLabel": "fragmento {n}",
+  "chat.srcPage": "Página",
+  "chat.srcSection": "Sección",
+  "chat.srcChunk": "Fragmento",
+  "chat.srcRelevance": "Relevancia",
+  "chat.srcNoPreview": "Este fragmento no tiene vista previa.",
 };
 
 const esES = {
