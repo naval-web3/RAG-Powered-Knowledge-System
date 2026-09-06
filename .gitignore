@@ -45,6 +45,6 @@ backend/runtime_settings.json
 # Built report artefacts: regenerate with build.py and export-pdf.ps1
 report/report.docx
 report/report.pdf
-report/report-bordered.docx
-report/report-bordered.pdf
+report/report-plain.docx
+report/report-plain.pdf
 report/~$*.docx

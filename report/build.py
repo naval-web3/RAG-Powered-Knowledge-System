@@ -49,13 +49,14 @@ from docx.shared import Emu, Inches, Pt, RGBColor
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "src"
 OUT = HERE / "report.docx"
-OUT_BORDERED = HERE / "report-bordered.docx"
+OUT_PLAIN = HERE / "report-plain.docx"
 
-# Set by --border. A decorative page border on every sheet, matching the one on
-# the approved synopsis exactly: a 3pt double rule 24pt in from the page edge,
-# thin-then-thick along the top and left and thick-then-thin along the bottom
-# and right, which is what gives it its raised look.
-BORDER = False
+# A decorative page border on every sheet, matching the one on the approved
+# synopsis exactly: a 3pt double rule 24pt in from the page edge, thin-then-thick
+# along the top and left and thick-then-thin along the bottom and right, which is
+# what gives it its raised look. On by default; --no-border builds the plain
+# variant to report-plain.docx for comparison.
+BORDER = True
 _BORDER_SIDES = (
     ("top", "thinThickSmallGap"),
     ("left", "thinThickSmallGap"),
@@ -898,8 +899,8 @@ def fill_lists(builder: ReportBuilder) -> None:
 
 def main() -> int:
     global BORDER
-    BORDER = "--border" in sys.argv
-    out = OUT_BORDERED if BORDER else OUT
+    BORDER = "--no-border" not in sys.argv
+    out = OUT if BORDER else OUT_PLAIN
     sources = sorted(SRC.glob("*.md"))
     if not sources:
         print("no chapters in %s" % SRC, file=sys.stderr)
