@@ -296,7 +296,42 @@ Register-ScheduledTask -TaskName 'RAG knowledge system backup' `
 Adjust the path if the project is installed elsewhere. Check it afterwards with
 `Get-ScheduledTaskInfo -TaskName 'RAG knowledge system backup'`.
 
-## 11. Troubleshooting
+## 11. Serving other people, over HTTPS
+
+Everything above is the single-machine deployment: the application serves itself
+on the loopback interface, over HTTP, which is correct there. Nothing leaves the
+machine, so there is no traffic for TLS to protect.
+
+The moment the system serves anybody else, that stops being true, and the
+proposal's requirement that all API communication run over HTTPS/TLS becomes the
+right requirement. `docker-compose.tls.yml` is that deployment:
+
+```
+# set the name the system will answer to
+echo SITE_ADDRESS=rag.example.org > .env
+
+docker compose -f docker-compose.tls.yml up -d
+```
+
+It differs from `docker-compose.yml` in the way that matters: **Caddy is the
+only service that publishes a port.** The backend, the front end and PostgreSQL
+expose nothing to the host, so there is no way to reach Uvicorn without going
+through TLS first. Caddy obtains and renews the certificate itself, so there is
+no cron job to forget and no expiry to be surprised by, which is how
+self-managed TLS usually fails.
+
+For a name that only resolves on your own network, set
+`SITE_ADDRESS=https://rag.internal` and uncomment `tls internal` in
+`deploy/Caddyfile`. Caddy then issues its own certificate from a local
+authority; install its root certificate once on the client machines and browsers
+trust it.
+
+> Use one file or the other, not both. `docker-compose.tls.yml` is a complete
+> deployment rather than an overlay, because an overlay would have to remove the
+> published ports from the base file and Compose merges port lists rather than
+> replacing them.
+
+## 12. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -319,7 +354,7 @@ Get-NetTCPConnection -LocalPort 8000 -State Listen |
 
 ---
 
-## 12. Running without Ollama (cloud models only)
+## 13. Running without Ollama (cloud models only)
 
 If the machine cannot run a local model, the application also works with
 OpenAI. Put a key in `backend\.env`:

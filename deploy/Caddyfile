@@ -1,0 +1,55 @@
+# TLS termination for a networked deployment.
+#
+# The reference deployment is one machine serving itself on the loopback
+# interface, where HTTP is correct and a certificate would be ceremony. This
+# file is for the other case: a host serving other people on a network, where
+# the proposal's requirement that all API communication run over HTTPS/TLS is
+# the right requirement.
+#
+# Caddy is here rather than nginx because it obtains and renews the certificate
+# itself. There is no cron job to forget and no expiry to be surprised by, which
+# is the way most self-managed TLS actually fails.
+#
+# Two modes:
+#
+#   SITE_ADDRESS=rag.example.org   a real name that resolves from the internet.
+#                                  Caddy gets a public certificate from Let's
+#                                  Encrypt automatically, on first request.
+#
+#   SITE_ADDRESS=https://rag.internal   a name that only resolves on your own
+#                                  network. Uncomment "tls internal" below and
+#                                  Caddy issues its own certificate from a local
+#                                  authority; install deploy/root.crt on the
+#                                  client machines once and browsers trust it.
+
+{$SITE_ADDRESS} {
+	# tls internal
+
+	encode gzip
+
+	# The API. Everything under /api goes to Uvicorn.
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else is the single-page application.
+	handle {
+		reverse_proxy frontend:5173
+	}
+
+	header {
+		# Tell browsers to refuse plain HTTP to this host for a year. Only
+		# meaningful once the certificate works, which is why it is here and
+		# not in the application: turning it on against a broken certificate
+		# locks the site out of every browser that has seen the header.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

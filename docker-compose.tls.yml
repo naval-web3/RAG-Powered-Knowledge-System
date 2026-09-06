@@ -1,0 +1,92 @@
+# A networked deployment, with TLS.
+#
+#   docker compose -f docker-compose.tls.yml up -d
+#
+# Use this instead of docker-compose.yml, not alongside it. It is a complete
+# file rather than an overlay on purpose: an overlay would have to *remove* the
+# published ports from the base file, and Compose merges port lists rather than
+# replacing them, so the removal depends on a "!reset" tag that older Compose
+# versions do not understand. A second complete file cannot half-apply.
+#
+# The difference from docker-compose.yml is the whole point of it:
+#
+#   * Caddy terminates HTTPS on 443 and is the only thing published;
+#   * the backend and the front end expose no host ports at all, so nothing
+#     outside this machine can reach Uvicorn without going through TLS first;
+#   * the front end is told its own public origin, so CORS matches.
+#
+# Set SITE_ADDRESS in a .env file beside this one:
+#   SITE_ADDRESS=rag.example.org        a public name; the certificate is
+#                                       obtained and renewed automatically
+#   SITE_ADDRESS=https://rag.internal   an internal name; also uncomment
+#                                       "tls internal" in deploy/Caddyfile
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rag
+      POSTGRES_DB: rag_knowledge
+    # No published port. The database is reachable only from this network.
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rag
+      POSTGRES_DB: rag_knowledge
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      CHROMA_PERSIST_DIR: /app/chroma_db
+      UPLOAD_DIR: /app/uploads
+      FRONTEND_ORIGIN: ${SITE_ADDRESS:-https://localhost}
+    env_file:
+      - ./backend/.env
+    volumes:
+      - backend_storage:/app/uploads
+      - chroma_storage:/app/chroma_db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-https://localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # certificates and keys; losing this re-issues them
+      - caddy_config:/config
+
+volumes:
+  pg_data:
+  backend_storage:
+  chroma_storage:
+  caddy_data:
+  caddy_config:
