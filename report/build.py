@@ -48,6 +48,25 @@ from docx.shared import Emu, Inches, Pt, RGBColor
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "src"
 OUT = HERE / "report.docx"
+OUT_BORDERED = HERE / "report-bordered.docx"
+
+# Set by --border. A decorative page border on every sheet, matching the one on
+# the approved synopsis exactly: a 3pt double rule 24pt in from the page edge,
+# thin-then-thick along the top and left and thick-then-thin along the bottom
+# and right, which is what gives it its raised look.
+BORDER = False
+_BORDER_SIDES = (
+    ("top", "thinThickSmallGap"),
+    ("left", "thinThickSmallGap"),
+    ("bottom", "thickThinSmallGap"),
+    ("right", "thickThinSmallGap"),
+)
+# Everything Word allows after <w:pgBorders> inside <w:sectPr>.
+_AFTER_PGBORDERS = (
+    "w:lnNumType", "w:pgNumType", "w:cols", "w:formProt", "w:vAlign",
+    "w:noEndnote", "w:titlePg", "w:textDirection", "w:bidi", "w:rtlGutter",
+    "w:docGrid", "w:printerSettings", "w:sectPrChange",
+)
 
 BODY_FONT = "Times New Roman"
 CODE_FONT = "Consolas"
@@ -198,6 +217,23 @@ def _column_widths(rows: list[list[str]], cols: int) -> list:
     return [Inches(TEXT_WIDTH_IN * w / total) for w in weights]
 
 
+def _page_border(section) -> None:
+    """The synopsis's page border, on this section."""
+    sectPr = section._sectPr
+    for existing in sectPr.findall(qn("w:pgBorders")):
+        sectPr.remove(existing)
+    borders = OxmlElement("w:pgBorders")
+    borders.set(qn("w:offsetFrom"), "page")
+    for side, style in _BORDER_SIDES:
+        edge = OxmlElement("w:%s" % side)
+        edge.set(qn("w:val"), style)
+        edge.set(qn("w:sz"), "24")       # eighths of a point, so 3pt
+        edge.set(qn("w:space"), "24")    # points in from the page edge
+        edge.set(qn("w:color"), "auto")
+        borders.append(edge)
+    sectPr.insert_element_before(borders, *_AFTER_PGBORDERS)
+
+
 def _setup_page(section) -> None:
     section.page_width = Inches(8.27)
     section.page_height = Inches(11.69)
@@ -207,6 +243,8 @@ def _setup_page(section) -> None:
     section.bottom_margin = Inches(1.0)
     section.header_distance = Inches(0.5)
     section.footer_distance = Inches(0.5)
+    if BORDER:
+        _page_border(section)
 
 
 # ---------------------------------------------------------------------------
@@ -855,6 +893,9 @@ def fill_lists(builder: ReportBuilder) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> int:
+    global BORDER
+    BORDER = "--border" in sys.argv
+    out = OUT_BORDERED if BORDER else OUT
     sources = sorted(SRC.glob("*.md"))
     if not sources:
         print("no chapters in %s" % SRC, file=sys.stderr)
@@ -884,8 +925,8 @@ def main() -> int:
         print("  tables  %d" % len(builder.tables))
         return 0
 
-    doc.save(OUT)
-    print("\n  wrote %s" % OUT)
+    doc.save(out)
+    print("\n  wrote %s" % out)
     print("  %d words, %d figures, %d tables, %d chapters"
           % (builder.words, len(builder.figures), len(builder.tables), builder.chapter))
     return 0

@@ -41,3 +41,10 @@ Thumbs.db
 
 # Runtime settings overrides (per-environment)
 backend/runtime_settings.json
+
+# Built report artefacts: regenerate with build.py and export-pdf.ps1
+report/report.docx
+report/report.pdf
+report/report-bordered.docx
+report/report-bordered.pdf
+report/~$*.docx
