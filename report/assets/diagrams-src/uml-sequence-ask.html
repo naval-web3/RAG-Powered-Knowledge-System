@@ -5,6 +5,10 @@
 <link rel="stylesheet" href="_diagram.css">
 <title>Sequence diagram - asking a question</title>
 <style>
+  /* The sheet is kept deliberately short. A landscape plate in the report is
+     9.44in wide by about 6in tall, so a sequence diagram taller than roughly
+     700 units has to be scaled down to fit the height, and its labels stop
+     being readable on paper. Everything below is spaced to that budget. */
   .head { font-size: 12.5px; font-weight: 700; }
   .head-sub { font-size: 10px; fill: #444; font-style: italic; }
   .life { stroke: #111; stroke-width: 1.2; stroke-dasharray: 5 5; fill: none; }
@@ -18,13 +22,11 @@
   .frame-tab { fill: #fff; stroke: #111; stroke-width: 1.4; }
   .frame-op { font-size: 11px; font-weight: 700; }
   .guard { font-size: 11px; font-style: italic; }
-  .note { fill: #f7f7f7; stroke: #111; stroke-width: 1.2; }
-  .note-t { font-size: 10.5px; }
 </style>
 </head>
 <body>
 <div id="sheet">
-<svg width="1100" height="880" viewBox="0 0 1100 880" xmlns="http://www.w3.org/2000/svg">
+<svg width="1100" height="700" viewBox="0 0 1100 700" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="solid" viewBox="0 0 10 10" refX="9" refY="5"
             markerWidth="7" markerHeight="7" orient="auto">
@@ -37,126 +39,123 @@
   </defs>
 
   <!-- ===================== lifeline heads ===================== -->
-  <!-- the user is an actor, so a stick figure rather than a box -->
-  <circle class="shape" cx="50" cy="34" r="10"/>
-  <path class="shape" d="M 50 44 L 50 68 M 34 52 L 66 52 M 50 68 L 40 84 M 50 68 L 60 84"/>
-  <text class="head mid" x="50" y="100">User</text>
+  <circle class="shape" cx="50" cy="26" r="9"/>
+  <path class="shape" d="M 50 35 L 50 54 M 36 42 L 64 42 M 50 54 L 41 68 M 50 54 L 59 68"/>
+  <text class="head mid" x="50" y="84">User</text>
 
-  <rect class="shape fill" x="105" y="30" width="140" height="52"/>
-  <text class="head mid" x="175" y="52">Browser client</text>
-  <text class="head-sub mid" x="175" y="68">React, Chat view</text>
+  <rect class="shape fill" x="105" y="20" width="140" height="46"/>
+  <text class="head mid" x="175" y="40">Browser client</text>
+  <text class="head-sub mid" x="175" y="55">React, Chat view</text>
 
-  <rect class="shape fill" x="270" y="30" width="140" height="52"/>
-  <text class="head mid" x="340" y="52">api.chat</text>
-  <text class="head-sub mid" x="340" y="68">FastAPI router</text>
+  <rect class="shape fill" x="270" y="20" width="140" height="46"/>
+  <text class="head mid" x="340" y="40">api.chat</text>
+  <text class="head-sub mid" x="340" y="55">FastAPI router</text>
 
-  <rect class="shape fill" x="440" y="30" width="140" height="52"/>
-  <text class="head mid" x="510" y="52">PostgreSQL</text>
-  <text class="head-sub mid" x="510" y="68">through the ORM</text>
+  <rect class="shape fill" x="440" y="20" width="140" height="46"/>
+  <text class="head mid" x="510" y="40">PostgreSQL</text>
+  <text class="head-sub mid" x="510" y="55">through the ORM</text>
 
-  <rect class="shape fill" x="615" y="30" width="140" height="52"/>
-  <text class="head mid" x="685" y="52">rag_engine</text>
-  <text class="head-sub mid" x="685" y="68">answer_query()</text>
+  <rect class="shape fill" x="615" y="20" width="140" height="46"/>
+  <text class="head mid" x="685" y="40">rag_engine</text>
+  <text class="head-sub mid" x="685" y="55">answer_query()</text>
 
-  <rect class="shape fill" x="790" y="30" width="140" height="52"/>
-  <text class="head mid" x="860" y="52">vector_store</text>
-  <text class="head-sub mid" x="860" y="68">Chroma behind it</text>
+  <rect class="shape fill" x="790" y="20" width="140" height="46"/>
+  <text class="head mid" x="860" y="40">vector_store</text>
+  <text class="head-sub mid" x="860" y="55">Chroma behind it</text>
 
-  <rect class="shape fill" x="955" y="30" width="140" height="52"/>
-  <text class="head mid" x="1025" y="52">LLM provider</text>
-  <text class="head-sub mid" x="1025" y="68">Ollama or OpenAI</text>
+  <rect class="shape fill" x="955" y="20" width="140" height="46"/>
+  <text class="head mid" x="1025" y="40">LLM provider</text>
+  <text class="head-sub mid" x="1025" y="55">Ollama or OpenAI</text>
 
   <!-- ===================== lifelines ===================== -->
-  <path class="life" d="M 50 108 L 50 862"/>
-  <path class="life" d="M 175 82 L 175 862"/>
-  <path class="life" d="M 340 82 L 340 862"/>
-  <path class="life" d="M 510 82 L 510 862"/>
-  <path class="life" d="M 685 82 L 685 862"/>
-  <path class="life" d="M 860 82 L 860 862"/>
-  <path class="life" d="M 1025 82 L 1025 862"/>
+  <path class="life" d="M 50 92 L 50 690"/>
+  <path class="life" d="M 175 66 L 175 690"/>
+  <path class="life" d="M 340 66 L 340 690"/>
+  <path class="life" d="M 510 66 L 510 690"/>
+  <path class="life" d="M 685 66 L 685 690"/>
+  <path class="life" d="M 860 66 L 860 690"/>
+  <path class="life" d="M 1025 66 L 1025 690"/>
 
   <!-- ===================== activation bars ===================== -->
-  <rect class="bar" x="170" y="126" width="10" height="706"/>
-  <rect class="bar" x="335" y="156" width="10" height="640"/>
-  <rect class="bar" x="680" y="292" width="10" height="428"/>
-  <rect class="bar" x="855" y="392" width="10" height="102"/>
-  <rect class="bar" x="1020" y="326" width="10" height="34"/>
-  <rect class="bar" x="1020" y="632" width="10" height="46"/>
+  <rect class="bar" x="170" y="102" width="10" height="576"/>
+  <rect class="bar" x="335" y="134" width="10" height="516"/>
+  <rect class="bar" x="680" y="250" width="10" height="342"/>
+  <rect class="bar" x="855" y="332" width="10" height="86"/>
+  <rect class="bar" x="1020" y="278" width="10" height="26"/>
+  <rect class="bar" x="1020" y="526" width="10" height="30"/>
 
   <!-- ===================== the alt fragment ===================== -->
-  <rect class="frame" x="250" y="512" width="840" height="182"/>
-  <path class="frame-tab" d="M 250 512 L 298 512 L 298 526 L 290 534 L 250 534 Z"/>
-  <text class="frame-op" x="258" y="527">alt</text>
-  <path class="frame-div" d="M 250 600 L 1090 600"/>
-  <text class="guard" x="356" y="528">[ best score &lt; 0.15 &#8212; nothing in the library is close enough ]</text>
-  <text class="guard" x="258" y="618">[ else ]</text>
+  <rect class="frame" x="250" y="432" width="840" height="138"/>
+  <path class="frame-tab" d="M 250 432 L 298 432 L 298 444 L 290 452 L 250 452 Z"/>
+  <text class="frame-op" x="258" y="446">alt</text>
+  <path class="frame-div" d="M 250 494 L 1090 494"/>
+  <text class="guard" x="356" y="447">[ best score &lt; 0.15 &#8212; nothing in the library is close enough ]</text>
+  <text class="guard" x="258" y="512">[ else ]</text>
 
   <!-- ===================== messages ===================== -->
-  <path class="call" d="M 62 126 L 168 126"/>
-  <text class="msg" x="66" y="120">types a question and presses Enter</text>
+  <path class="call" d="M 62 102 L 168 102"/>
+  <text class="msg" x="66" y="96">types a question and presses Enter</text>
 
-  <path class="call" d="M 182 156 L 333 156"/>
-  <text class="msg" x="186" y="136">POST /api/chat</text>
-  <text class="msg" x="186" y="150">{ query, conversation_id, project_id, provider, model }</text>
+  <path class="call" d="M 182 134 L 333 134"/>
+  <text class="msg" x="186" y="114">POST /api/chat</text>
+  <text class="msg" x="186" y="128">{ query, conversation_id, project_id, provider, model }</text>
 
-  <path class="call" d="M 347 192 L 508 192"/>
-  <text class="msg" x="351" y="186">does the user own any document? project scope and instructions</text>
+  <path class="call" d="M 347 166 L 508 166"/>
+  <text class="msg" x="351" y="160">does the user own any document? project scope and instructions</text>
 
-  <path class="ret" d="M 508 224 L 347 224"/>
-  <text class="msg" x="351" y="218">has_documents, document_ids, instructions</text>
+  <path class="ret" d="M 508 194 L 347 194"/>
+  <text class="msg" x="351" y="188">has_documents, document_ids, instructions</text>
 
-  <path class="call" d="M 347 260 L 508 260"/>
-  <text class="msg" x="351" y="254">INSERT the conversation if this is a new chat, then the user message</text>
+  <path class="call" d="M 347 222 L 508 222"/>
+  <text class="msg" x="351" y="216">INSERT the conversation if this is a new chat, then the user message</text>
 
-  <path class="call" d="M 347 292 L 678 292"/>
-  <text class="msg" x="351" y="286">answer_query(query, user_id, scope, instructions, history)</text>
+  <path class="call" d="M 347 250 L 678 250"/>
+  <text class="msg" x="351" y="244">answer_query(query, user_id, scope, instructions, history)</text>
 
-  <path class="call" d="M 692 326 L 1018 326"/>
-  <text class="msg" x="696" y="320">is the chosen provider reachable and configured?</text>
+  <path class="call" d="M 692 278 L 1018 278"/>
+  <text class="msg" x="696" y="272">is the chosen provider reachable and configured?</text>
 
-  <path class="ret" d="M 1018 360 L 692 360"/>
-  <text class="msg" x="696" y="354">ready &#8212; otherwise the user is told exactly which provider failed</text>
+  <path class="ret" d="M 1018 304 L 692 304"/>
+  <text class="msg" x="696" y="298">ready &#8212; otherwise the user is told exactly which provider failed</text>
 
-  <path class="call" d="M 692 392 L 853 392"/>
-  <text class="msg" x="696" y="386">similarity_search(query, user_id, document_ids)</text>
+  <path class="call" d="M 692 332 L 853 332"/>
+  <text class="msg" x="696" y="326">similarity_search(query, user_id, document_ids)</text>
 
-  <!-- vector_store does two things to itself -->
-  <path class="call" d="M 855 416 L 815 416 L 815 438 L 852 438"/>
-  <text class="msg end" x="807" y="412">embed the question</text>
-  <text class="msg end" x="807" y="426">into 384 numbers</text>
+  <path class="call" d="M 855 352 L 815 352 L 815 370 L 852 370"/>
+  <text class="msg end" x="807" y="350">embed the question</text>
+  <text class="msg end" x="807" y="364">into 384 numbers</text>
 
-  <path class="call" d="M 855 456 L 815 456 L 815 478 L 852 478"/>
-  <text class="msg end" x="807" y="452">cosine search over</text>
-  <text class="msg end" x="807" y="466">this user&#8217;s chunks</text>
+  <path class="call" d="M 855 384 L 815 384 L 815 402 L 852 402"/>
+  <text class="msg end" x="807" y="382">cosine search over</text>
+  <text class="msg end" x="807" y="396">this user&#8217;s chunks</text>
 
-  <path class="ret" d="M 853 494 L 692 494"/>
-  <text class="msg" x="696" y="488">passages with score, page and section</text>
+  <path class="ret" d="M 853 418 L 692 418"/>
+  <text class="msg" x="696" y="412">passages with score, page and section</text>
 
   <!-- alt: branch one, the model is never called -->
-  <path class="ret" d="M 678 566 L 347 566"/>
-  <text class="msg" x="351" y="560">&#8220;I couldn&#8217;t find anything about that in your documents&#8221;</text>
-  <text class="msg i" x="351" y="580">the model is not called at all, which is why this answer comes back fastest</text>
+  <path class="ret" d="M 678 470 L 347 470"/>
+  <text class="msg" x="351" y="464">&#8220;I couldn&#8217;t find anything about that in your documents&#8221;</text>
+  <text class="msg i" x="351" y="486">the model is not called at all, which is why this answer comes back fastest</text>
 
   <!-- alt: branch two, the grounded answer -->
-  <path class="call" d="M 692 632 L 1018 632"/>
-  <text class="msg" x="696" y="626">prompt: grounding rules + numbered passages + question</text>
+  <path class="call" d="M 692 526 L 1018 526"/>
+  <text class="msg" x="696" y="520">prompt: grounding rules + numbered passages + question</text>
 
-  <path class="ret" d="M 1018 678 L 692 678"/>
-  <text class="msg" x="696" y="658">generated answer text, citing the passages</text>
-  <text class="msg" x="696" y="672">by the numbers they were given</text>
+  <path class="ret" d="M 1018 556 L 692 556"/>
+  <text class="msg" x="696" y="550">generated answer text, citing the passages by their numbers</text>
 
   <!-- back out -->
-  <path class="ret" d="M 678 720 L 347 720"/>
-  <text class="msg" x="351" y="714">answer, sources, provider, model, response time, chunk count</text>
+  <path class="ret" d="M 678 592 L 347 592"/>
+  <text class="msg" x="351" y="586">answer, sources, provider, model, response time, chunk count</text>
 
-  <path class="call" d="M 347 756 L 508 756"/>
-  <text class="msg" x="351" y="750">INSERT the assistant message with its sources, and one query_logs row</text>
+  <path class="call" d="M 347 620 L 508 620"/>
+  <text class="msg" x="351" y="614">INSERT the assistant message with its sources, and one query_logs row</text>
 
-  <path class="ret" d="M 333 796 L 182 796"/>
-  <text class="msg" x="186" y="790">200 ChatResponse</text>
+  <path class="ret" d="M 333 650 L 182 650"/>
+  <text class="msg" x="186" y="644">200 ChatResponse</text>
 
-  <path class="ret" d="M 168 832 L 62 832"/>
-  <text class="msg" x="66" y="826">the answer, the retrieval line and the five sources</text>
+  <path class="ret" d="M 168 678 L 62 678"/>
+  <text class="msg" x="66" y="672">the answer, the retrieval line and the five sources</text>
 </svg>
 </div>
 </body>

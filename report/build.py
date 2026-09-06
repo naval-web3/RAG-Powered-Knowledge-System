@@ -185,6 +185,19 @@ def _running_header(section, text: str) -> None:
     para._p.get_or_add_pPr().append(borders)
 
 
+def _column_widths(rows: list[list[str]], cols: int) -> list:
+    """Column widths that add up to the text width, weighted by content."""
+    weights = []
+    for c in range(cols):
+        longest = max((len(r[c]) for r in rows if c < len(r)), default=1)
+        # A very long prose column is capped before the weighting, so that one
+        # 200-character description cannot squeeze a "Default" header until it
+        # breaks across two lines.
+        weights.append(max(4.5, min(longest, 110) ** 0.7 + 1.4))
+    total = sum(weights)
+    return [Inches(TEXT_WIDTH_IN * w / total) for w in weights]
+
+
 def _setup_page(section) -> None:
     section.page_width = Inches(8.27)
     section.page_height = Inches(11.69)
@@ -409,15 +422,28 @@ class ReportBuilder:
         _bookmark(cap, mark)
         self.tables.append(("Table %s: %s" % (number, title), mark))
 
-        table = self.doc.add_table(rows=0, cols=len(rows[0]))
+        cols = len(rows[0])
+        table = self.doc.add_table(rows=0, cols=cols)
         table.alignment = WD_TABLE_ALIGNMENT.CENTER
-        table.autofit = True
+        # Share the text width between the columns in proportion to their
+        # longest cell, compressed by a 0.7 power so that one long prose column
+        # does not starve the rest. Without this every column is the same width
+        # and an "Id" column holding "FR-13" takes half the page while the
+        # requirement beside it wraps over four lines.
+        widths = _column_widths(rows, cols)
+        table.autofit = False
+        layout = OxmlElement("w:tblLayout")
+        layout.set(qn("w:type"), "fixed")
+        table._tbl.tblPr.append(layout)
+        for c, width in enumerate(widths):
+            table.columns[c].width = width
         for r, source in enumerate(rows):
             cells = table.add_row().cells
             for c, text in enumerate(source):
                 if c >= len(cells):
                     break
                 cell = cells[c]
+                cell.width = widths[c]
                 cell.text = ""
                 p = cell.paragraphs[0]
                 p.paragraph_format.space_before = Pt(2)

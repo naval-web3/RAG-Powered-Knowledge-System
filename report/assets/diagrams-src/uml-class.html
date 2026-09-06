@@ -23,23 +23,23 @@
     border-bottom: 1.6px solid #111; padding: 3px 8px 4px; background: #ececec;
     text-align: center;
   }
-  .cls > .hd .st { display: block; font-size: 10px; font-style: italic; color: #333; line-height: 12px; }
-  .cls > .hd .nm { display: block; font-size: 13px; font-weight: 700; line-height: 16px; }
+  .cls > .hd .st { display: block; font-size: 11px; font-style: italic; color: #333; line-height: 12px; }
+  .cls > .hd .nm { display: block; font-size: 14px; font-weight: 700; line-height: 16px; }
   .cls > .hd .nm.abs { font-style: italic; }
   .cls .sec { padding: 3px 8px; }
   .cls .sec + .sec { border-top: 1.6px solid #111; }
-  .cls .m { font-size: 11px; line-height: 15px; white-space: nowrap; }
+  .cls .m { font-size: 12px; line-height: 16px; white-space: nowrap; }
   .cls .m.abs { font-style: italic; }
   .cls .m.dim { color: #555; }
 
   svg.wires { position: absolute; left: 0; top: 0; }
   .rule { stroke: #bbb; stroke-width: 1.2; stroke-dasharray: 5 5; }
-  .band { font-size: 11.5px; fill: #555; font-style: italic; }
+  .band { font-size: 12.5px; fill: #555; font-style: italic; }
   .use  { stroke: #111; stroke-width: 1.3; fill: none; stroke-dasharray: 6 4; marker-end: url(#open); }
   .gen  { stroke: #111; stroke-width: 1.5; fill: none; }
   .assoc{ stroke: #111; stroke-width: 1.4; fill: none; }
   .tri  { stroke: #111; stroke-width: 1.5; fill: #fff; }
-  .lbl  { font-size: 10.5px; fill: #333; font-style: italic; }
+  .lbl  { font-size: 11.5px; fill: #333; font-style: italic; }
 </style>
 </head>
 <body>
@@ -197,8 +197,8 @@
     <text class="band" x="24" y="652">persistence</text>
 
     <!-- routers depend on services -->
-    <path class="use" d="M 155 143 L 155 208"/>
-    <path class="use" d="M 435 143 L 435 166 L 720 166 L 720 208"/>
+    <path class="use" d="M 155 146 L 155 208"/>
+    <path class="use" d="M 435 146 L 435 168 L 720 168 L 720 208"/>
 
     <!-- the pipeline writes chunks; the engine searches them -->
     <path class="use" d="M 288 250 L 334 250"/>
@@ -207,7 +207,7 @@
     <text class="lbl mid" x="607" y="202">searches</text>
 
     <!-- the vector store embeds through the factory -->
-    <path class="use" d="M 429 316 L 429 398"/>
+    <path class="use" d="M 429 320 L 429 398"/>
     <text class="lbl" x="437" y="352">embeds through</text>
 
     <!-- the factory hands back whichever backend is configured -->
@@ -215,22 +215,22 @@
     <text class="lbl mid" x="316" y="392">returns one of</text>
 
     <!-- Embeddings realisations -->
-    <path class="tri" d="M 178 478 L 168 498 L 188 498 Z"/>
-    <path class="gen" d="M 125 545 L 125 498 L 178 498"/>
-    <path class="gen" d="M 348 545 L 348 498 L 178 498"/>
+    <path class="tri" d="M 178 480 L 168 500 L 188 500 Z"/>
+    <path class="gen" d="M 125 545 L 125 500 L 178 500"/>
+    <path class="gen" d="M 348 545 L 348 500 L 178 500"/>
 
     <!-- the engine asks whichever provider the request named -->
-    <path class="use" d="M 818 331 L 818 398"/>
+    <path class="use" d="M 818 336 L 818 398"/>
     <text class="lbl" x="826" y="346">asks the</text>
     <text class="lbl" x="826" y="360">chosen provider</text>
 
     <!-- LLMProvider subclasses -->
-    <path class="tri" d="M 818 515 L 808 535 L 828 535 Z"/>
-    <path class="gen" d="M 725 545 L 725 535 L 818 535"/>
-    <path class="gen" d="M 935 545 L 935 535 L 818 535"/>
+    <path class="tri" d="M 818 519 L 808 537 L 828 537 Z"/>
+    <path class="gen" d="M 725 545 L 725 537 L 818 537"/>
+    <path class="gen" d="M 935 545 L 935 537 L 818 537"/>
 
     <!-- the vector store owns the Chroma collection -->
-    <path class="assoc" d="M 560 316 L 560 644 L 190 644 L 190 658"/>
+    <path class="assoc" d="M 560 320 L 560 644 L 190 644 L 190 658"/>
     <text class="lbl" x="568" y="470">persists vectors into</text>
 
     <!-- rows go through the ORM -->
