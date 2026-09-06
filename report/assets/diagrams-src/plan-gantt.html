@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_diagram.css">
+<title>Gantt chart</title>
+<style>
+  .grid { stroke: #c8c8c8; stroke-width: 1; }
+  .grid.month { stroke: #777; stroke-width: 1.2; }
+  .frame { fill: none; stroke: #111; stroke-width: 1.6; }
+  .band { fill: #ececec; stroke: #111; stroke-width: 1.2; }
+  .hd { font-size: 11.5px; font-weight: 700; }
+  .wk { font-size: 10.5px; fill: #333; }
+  .row-alt { fill: #f7f7f7; }
+  .task { font-size: 11.5px; }
+  .task-l { font-size: 11.5px; font-weight: 700; }
+  .bar { fill: #ececec; stroke: #111; stroke-width: 1.4; }
+  .bar.crit { fill: #9a9a9a; stroke-width: 1.8; }
+  .days { font-size: 10px; fill: #333; }
+  .ms { stroke: #111; stroke-width: 1.4; stroke-dasharray: 5 4; fill: none; }
+  .ms-t { font-size: 10.5px; font-weight: 700; }
+  .key { font-size: 10.5px; }
+</style>
+</head>
+<body>
+<div id="sheet">
+<svg width="1180" height="530" viewBox="0 0 1180 530" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- alternating row tints, drawn first so everything sits on top -->
+  <rect class="row-alt" x="40" y="134" width="1094" height="30"/>
+  <rect class="row-alt" x="40" y="194" width="1094" height="30"/>
+  <rect class="row-alt" x="40" y="254" width="1094" height="30"/>
+  <rect class="row-alt" x="40" y="314" width="1094" height="30"/>
+  <rect class="row-alt" x="40" y="374" width="1094" height="30"/>
+  <rect class="row-alt" x="40" y="434" width="1094" height="30"/>
+
+  <!-- ===================== calendar header ===================== -->
+  <rect class="band" x="380" y="56" width="754" height="22"/>
+  <rect class="band" x="380" y="78" width="754" height="22"/>
+  <text class="hd mid" x="417" y="72">June</text>
+  <text class="hd mid" x="583" y="72">July</text>
+  <text class="hd mid" x="840" y="72">August</text>
+  <text class="hd mid" x="1024" y="72">September</text>
+  <path class="grid month" d="M 455 56 L 455 464 M 711 56 L 711 464 M 968 56 L 968 464"/>
+
+  <text class="wk mid" x="409"  y="94">22</text>
+  <text class="wk mid" x="467"  y="94">29</text>
+  <text class="wk mid" x="525"  y="94">6</text>
+  <text class="wk mid" x="583"  y="94">13</text>
+  <text class="wk mid" x="641"  y="94">20</text>
+  <text class="wk mid" x="699"  y="94">27</text>
+  <text class="wk mid" x="757"  y="94">3</text>
+  <text class="wk mid" x="815"  y="94">10</text>
+  <text class="wk mid" x="873"  y="94">17</text>
+  <text class="wk mid" x="931"  y="94">24</text>
+  <text class="wk mid" x="989"  y="94">31</text>
+  <text class="wk mid" x="1047" y="94">7</text>
+  <text class="wk mid" x="1105" y="94">14</text>
+
+  <path class="grid" d="M 438 100 L 438 464 M 496 100 L 496 464 M 554 100 L 554 464
+                        M 612 100 L 612 464 M 670 100 L 670 464 M 728 100 L 728 464
+                        M 786 100 L 786 464 M 844 100 L 844 464 M 902 100 L 902 464
+                        M 960 100 L 960 464 M 1018 100 L 1018 464 M 1076 100 L 1076 464"/>
+
+  <rect class="frame" x="380" y="56" width="754" height="408"/>
+  <path class="grid" d="M 40 104 L 1134 104"/>
+  <text class="hd" x="44" y="94">week beginning</text>
+
+  <!-- ===================== rows ===================== -->
+  <text class="task-l" x="44" y="124">A</text>
+  <text class="task"   x="68" y="124">Requirement study and synopsis approval</text>
+  <rect class="bar crit" x="380.0" y="111" width="33.1" height="16"/>
+  <text class="days" x="419" y="123">4 d</text>
+
+  <text class="task-l" x="44" y="154">B</text>
+  <text class="task"   x="68" y="154">Environment and technology trial</text>
+  <rect class="bar crit" x="413.1" y="141" width="49.8" height="16"/>
+  <text class="days" x="469" y="153">6 d</text>
+
+  <text class="task-l" x="44" y="184">C</text>
+  <text class="task"   x="68" y="184">Database schema and ORM models</text>
+  <rect class="bar crit" x="462.9" y="171" width="33.1" height="16"/>
+  <text class="days" x="502" y="183">4 d</text>
+
+  <text class="task-l" x="44" y="214">D</text>
+  <text class="task"   x="68" y="214">Authentication and access control</text>
+  <rect class="bar" x="496.0" y="201" width="49.7" height="16"/>
+  <text class="days" x="552" y="213">6 d</text>
+
+  <text class="task-l" x="44" y="244">E</text>
+  <text class="task"   x="68" y="244">Upload, extraction, OCR and chunking</text>
+  <rect class="bar crit" x="496.0" y="231" width="107.7" height="16"/>
+  <text class="days mid" x="550" y="243">13 d</text>
+
+  <text class="task-l" x="44" y="274">F</text>
+  <text class="task"   x="68" y="274">Embedding and vector indexing</text>
+  <rect class="bar crit" x="603.7" y="261" width="49.7" height="16"/>
+  <text class="days" x="659" y="273">6 d</text>
+
+  <text class="task-l" x="44" y="304">G</text>
+  <text class="task"   x="68" y="304">Retrieval and the RAG engine</text>
+  <rect class="bar crit" x="653.4" y="291" width="99.5" height="16"/>
+  <text class="days mid" x="703" y="303">12 d</text>
+
+  <text class="task-l" x="44" y="334">H</text>
+  <text class="task"   x="68" y="334">Chat, conversations and citations</text>
+  <rect class="bar crit" x="752.9" y="321" width="99.4" height="16"/>
+  <text class="days mid" x="803" y="333">12 d</text>
+
+  <text class="task-l" x="44" y="364">I</text>
+  <text class="task"   x="68" y="364">Projects, settings and eleven languages</text>
+  <rect class="bar crit" x="852.3" y="351" width="99.4" height="16"/>
+  <text class="days mid" x="902" y="363">12 d</text>
+
+  <text class="task-l" x="44" y="394">J</text>
+  <text class="task"   x="68" y="394">Admin dashboard and usage figures</text>
+  <rect class="bar" x="852.3" y="381" width="33.1" height="16"/>
+  <text class="days" x="891" y="393">4 d</text>
+
+  <text class="task-l" x="44" y="424">K</text>
+  <text class="task"   x="68" y="424">Testing and defect fixing</text>
+  <rect class="bar crit" x="951.7" y="411" width="41.4" height="16"/>
+  <text class="days" x="999" y="423">5 d</text>
+
+  <text class="task-l" x="44" y="454">L</text>
+  <text class="task"   x="68" y="454">Screen captures, manual and project report</text>
+  <rect class="bar crit" x="993.1" y="441" width="91.2" height="16"/>
+  <text class="days mid" x="1039" y="453">11 d</text>
+
+  <!-- ===================== the date it has to be posted ===================== -->
+  <path class="ms" d="M 1084.3 56 L 1084.3 486"/>
+  <path class="bar" d="M 1084.3 484 L 1092 492 L 1084.3 500 L 1076.6 492 Z"/>
+  <text class="ms-t end" x="1068" y="496">posted by 15 September 2026</text>
+
+  <!-- ===================== key ===================== -->
+  <rect class="bar crit" x="44" y="484" width="34" height="14"/>
+  <text class="key" x="86" y="496">on the critical path</text>
+  <rect class="bar" x="220" y="484" width="34" height="14"/>
+  <text class="key" x="262" y="496">has slack</text>
+  <text class="key" x="380" y="496">Durations are the expected times t&#8337; from the PERT estimate; the chain runs 85 days.</text>
+</svg>
+</div>
+</body>
+</html>

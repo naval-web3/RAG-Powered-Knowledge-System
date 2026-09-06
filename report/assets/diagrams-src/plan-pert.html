@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_diagram.css">
+<title>PERT network</title>
+<style>
+  .ev { fill: #fff; stroke: #111; stroke-width: 1.6; }
+  .ev.crit { stroke-width: 3; fill: #ececec; }
+  .ltr { font-size: 17px; font-weight: 700; }
+  .dur { font-size: 11px; fill: #333; }
+  .arc { stroke: #111; stroke-width: 1.4; fill: none; marker-end: url(#arrow); }
+  .arc.crit { stroke-width: 2.6; }
+  .key-h { font-size: 11.5px; font-weight: 700; }
+  .key { font-size: 11.5px; }
+  .key-d { font-size: 11.5px; fill: #333; }
+  .cap { font-size: 12px; font-weight: 700; }
+  .rule { stroke: #bbb; stroke-width: 1.2; }
+</style>
+</head>
+<body>
+<div id="sheet">
+<svg width="1180" height="600" viewBox="0 0 1180 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+    </marker>
+  </defs>
+
+  <!-- ===================== the network ===================== -->
+  <circle class="ev crit" cx="70"  cy="180" r="30"/>
+  <text class="ltr mid" x="70"  y="180">A</text>
+  <text class="dur mid" x="70"  y="196">4 d</text>
+
+  <circle class="ev crit" cx="170" cy="180" r="30"/>
+  <text class="ltr mid" x="170" y="180">B</text>
+  <text class="dur mid" x="170" y="196">6 d</text>
+
+  <circle class="ev crit" cx="270" cy="180" r="30"/>
+  <text class="ltr mid" x="270" y="180">C</text>
+  <text class="dur mid" x="270" y="196">4 d</text>
+
+  <circle class="ev" cx="370" cy="80" r="30"/>
+  <text class="ltr mid" x="370" y="80">D</text>
+  <text class="dur mid" x="370" y="96">6 d</text>
+
+  <circle class="ev crit" cx="370" cy="280" r="30"/>
+  <text class="ltr mid" x="370" y="280">E</text>
+  <text class="dur mid" x="370" y="296">13 d</text>
+
+  <circle class="ev crit" cx="470" cy="280" r="30"/>
+  <text class="ltr mid" x="470" y="280">F</text>
+  <text class="dur mid" x="470" y="296">6 d</text>
+
+  <circle class="ev crit" cx="570" cy="280" r="30"/>
+  <text class="ltr mid" x="570" y="280">G</text>
+  <text class="dur mid" x="570" y="296">12 d</text>
+
+  <circle class="ev crit" cx="670" cy="180" r="30"/>
+  <text class="ltr mid" x="670" y="180">H</text>
+  <text class="dur mid" x="670" y="196">12 d</text>
+
+  <circle class="ev crit" cx="770" cy="120" r="30"/>
+  <text class="ltr mid" x="770" y="120">I</text>
+  <text class="dur mid" x="770" y="136">12 d</text>
+
+  <circle class="ev" cx="770" cy="240" r="30"/>
+  <text class="ltr mid" x="770" y="240">J</text>
+  <text class="dur mid" x="770" y="256">4 d</text>
+
+  <circle class="ev crit" cx="870" cy="180" r="30"/>
+  <text class="ltr mid" x="870" y="180">K</text>
+  <text class="dur mid" x="870" y="196">5 d</text>
+
+  <circle class="ev crit" cx="970" cy="180" r="30"/>
+  <text class="ltr mid" x="970" y="180">L</text>
+  <text class="dur mid" x="970" y="196">11 d</text>
+
+  <!-- ===================== arcs ===================== -->
+  <path class="arc crit" d="M 100 180 L 138 180"/>
+  <path class="arc crit" d="M 200 180 L 238 180"/>
+  <path class="arc"      d="M 291 159 L 350 100"/>
+  <path class="arc crit" d="M 291 201 L 350 260"/>
+  <path class="arc"      d="M 370 50 L 370 40 L 670 40 L 670 148"/>
+  <path class="arc crit" d="M 400 280 L 438 280"/>
+  <path class="arc crit" d="M 500 280 L 538 280"/>
+  <path class="arc crit" d="M 591 259 L 650 200"/>
+  <path class="arc crit" d="M 695 165 L 745 135"/>
+  <path class="arc"      d="M 695 195 L 745 225"/>
+  <path class="arc crit" d="M 795 135 L 845 165"/>
+  <path class="arc"      d="M 795 225 L 845 195"/>
+  <path class="arc crit" d="M 900 180 L 938 180"/>
+
+  <!-- ===================== what the notation means ===================== -->
+  <path class="arc crit" style="marker-end:none" d="M 1020 96 L 1070 96"/>
+  <text class="key" x="1078" y="100">critical path</text>
+  <path class="arc" style="marker-end:none" d="M 1020 126 L 1070 126"/>
+  <text class="key" x="1078" y="130">has slack</text>
+  <text class="key-d" x="1020" y="170">t&#8337; = (o + 4m + p) / 6,</text>
+  <text class="key-d" x="1020" y="186">rounded to whole days</text>
+
+  <text class="cap" x="60" y="352">Expected duration along the critical path A &#8594; B &#8594; C &#8594; E &#8594; F &#8594; G &#8594; H &#8594; I &#8594; K &#8594; L: 85 days</text>
+
+  <!-- ===================== the activity key ===================== -->
+  <path class="rule" d="M 60 368 L 1120 368"/>
+  <text class="key-h" x="60"  y="390">activity</text>
+  <text class="key-h end" x="482" y="390">o &#8211; m &#8211; p</text>
+  <text class="key-h end" x="540" y="390">t&#8337;</text>
+  <text class="key-h" x="600" y="390">activity</text>
+  <text class="key-h end" x="1022" y="390">o &#8211; m &#8211; p</text>
+  <text class="key-h end" x="1080" y="390">t&#8337;</text>
+  <path class="rule" d="M 60 398 L 1120 398"/>
+
+  <text class="key b" x="60" y="420">A</text>
+  <text class="key" x="84" y="420">Requirement study and synopsis approval</text>
+  <text class="key-d end" x="482" y="420">2 &#8211; 4 &#8211; 6</text>
+  <text class="key end" x="540" y="420">4</text>
+
+  <text class="key b" x="60" y="444">B</text>
+  <text class="key" x="84" y="444">Environment and technology trial</text>
+  <text class="key-d end" x="482" y="444">4 &#8211; 6 &#8211; 9</text>
+  <text class="key end" x="540" y="444">6</text>
+
+  <text class="key b" x="60" y="468">C</text>
+  <text class="key" x="84" y="468">Database schema and ORM models</text>
+  <text class="key-d end" x="482" y="468">3 &#8211; 4 &#8211; 6</text>
+  <text class="key end" x="540" y="468">4</text>
+
+  <text class="key b" x="60" y="492">D</text>
+  <text class="key" x="84" y="492">Authentication and access control</text>
+  <text class="key-d end" x="482" y="492">4 &#8211; 6 &#8211; 9</text>
+  <text class="key end" x="540" y="492">6</text>
+
+  <text class="key b" x="60" y="516">E</text>
+  <text class="key" x="84" y="516">Upload, extraction, OCR and chunking</text>
+  <text class="key-d end" x="482" y="516">10 &#8211; 13 &#8211; 18</text>
+  <text class="key end" x="540" y="516">13</text>
+
+  <text class="key b" x="60" y="540">F</text>
+  <text class="key" x="84" y="540">Embedding and vector indexing</text>
+  <text class="key-d end" x="482" y="540">4 &#8211; 6 &#8211; 9</text>
+  <text class="key end" x="540" y="540">6</text>
+
+  <text class="key b" x="600" y="420">G</text>
+  <text class="key" x="624" y="420">Retrieval and the RAG engine</text>
+  <text class="key-d end" x="1022" y="420">9 &#8211; 12 &#8211; 17</text>
+  <text class="key end" x="1080" y="420">12</text>
+
+  <text class="key b" x="600" y="444">H</text>
+  <text class="key" x="624" y="444">Chat, conversations and citations</text>
+  <text class="key-d end" x="1022" y="444">9 &#8211; 12 &#8211; 16</text>
+  <text class="key end" x="1080" y="444">12</text>
+
+  <text class="key b" x="600" y="468">I</text>
+  <text class="key" x="624" y="468">Projects, settings and eleven languages</text>
+  <text class="key-d end" x="1022" y="468">9 &#8211; 12 &#8211; 16</text>
+  <text class="key end" x="1080" y="468">12</text>
+
+  <text class="key b" x="600" y="492">J</text>
+  <text class="key" x="624" y="492">Admin dashboard and usage figures</text>
+  <text class="key-d end" x="1022" y="492">3 &#8211; 4 &#8211; 6</text>
+  <text class="key end" x="1080" y="492">4</text>
+
+  <text class="key b" x="600" y="516">K</text>
+  <text class="key" x="624" y="516">Testing and defect fixing</text>
+  <text class="key-d end" x="1022" y="516">4 &#8211; 5 &#8211; 8</text>
+  <text class="key end" x="1080" y="516">5</text>
+
+  <text class="key b" x="600" y="540">L</text>
+  <text class="key" x="624" y="540">Screen captures, manual and report</text>
+  <text class="key-d end" x="1022" y="540">8 &#8211; 11 &#8211; 15</text>
+  <text class="key end" x="1080" y="540">11</text>
+
+  <path class="rule" d="M 60 556 L 1120 556"/>
+</svg>
+</div>
+</body>
+</html>
