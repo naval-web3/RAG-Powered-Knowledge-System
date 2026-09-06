@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import client from "../api/client";
+import client, { getToken, refreshAccessToken } from "../api/client";
 import { useLocale } from "../i18n";
 import { useToast } from "./ToastContext";
 import { fmtBytes } from "../utils";
@@ -456,24 +456,36 @@ export function ChatProvider({ children }) {
       try {
         const controller = new AbortController();
         abortRef.current = controller;
-        const res = await fetch("/api/chat/stream", {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-          },
-          body: JSON.stringify({
-            query,
-            conversation_id: privateMode ? null : activeId,
-            provider,
-            model,
-            incognito: privateMode,
-            scope_document_id: scopeDocId || null,
-            project_id: activeProjectRef.current,
-            language: locale,
-          }),
+        // Streaming needs the browser's own fetch, so this one request misses
+        // the axios interceptor that renews an expired token everywhere else.
+        // It has to do that part itself, or an hour-old tab would answer a
+        // question with "Request failed (401)".
+        const body = JSON.stringify({
+          query,
+          conversation_id: privateMode ? null : activeId,
+          provider,
+          model,
+          incognito: privateMode,
+          scope_document_id: scopeDocId || null,
+          project_id: activeProjectRef.current,
+          language: locale,
         });
+        const send = (token) =>
+          fetch("/api/chat/stream", {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token || ""}`,
+            },
+            body,
+          });
+
+        let res = await send(getToken());
+        if (res.status === 401) {
+          const fresh = await refreshAccessToken();
+          if (fresh) res = await send(fresh);
+        }
         if (!res.ok || !res.body) {
           const detail = await res.text().catch(() => "");
           throw new Error(detail || `Request failed (${res.status})`);

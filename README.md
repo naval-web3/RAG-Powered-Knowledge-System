@@ -18,11 +18,11 @@ with source citations.
 | Embeddings       | sentence-transformers (local) **or** OpenAI embeddings  |
 | Vector store     | ChromaDB (persistent / embedded, cosine similarity)     |
 | Relational DB    | PostgreSQL 16                                           |
-| Auth             | JWT (python-jose) + bcrypt password hashing             |
+| Auth             | JWT access tokens + rotating refresh tokens, bcrypt      |
 
 ## Modules (per synopsis)
 
-1. **Authentication** — register/login, JWT, bcrypt, role-based access (user/admin)
+1. **Authentication** — register/login, JWT with refresh tokens, bcrypt, role-based access (user/admin)
 2. **Document Management** — upload, validate, store, list, delete
 3. **Document Processing Pipeline** — extract → chunk (1000/200) → embed → store in Chroma
 4. **RAG Query Engine** — semantic search (top-k) → augmented prompt → LLM → answer + citations
@@ -82,8 +82,10 @@ Key settings (see `backend/.env.example` for the full list):
 
 | Method | Endpoint                          | Description                       |
 |--------|-----------------------------------|-----------------------------------|
-| POST   | `/api/auth/register`              | Register, returns JWT             |
-| POST   | `/api/auth/login`                 | Login, returns JWT                |
+| POST   | `/api/auth/register`              | Register, returns a token pair    |
+| POST   | `/api/auth/login`                 | Login, returns a token pair       |
+| POST   | `/api/auth/refresh`               | Renew the access token (rotating) |
+| POST   | `/api/auth/logout`                | Withdraw a refresh token          |
 | GET    | `/api/auth/me`                    | Current user                      |
 | POST   | `/api/documents`                  | Upload a document (multipart)     |
 | GET    | `/api/documents`                  | List my documents                 |

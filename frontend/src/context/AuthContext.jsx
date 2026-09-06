@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from "react";
-import client from "../api/client";
+import client, { clearSession, storeSession } from "../api/client";
 
 const AuthContext = createContext(null);
 
@@ -9,15 +9,16 @@ export function AuthProvider({ children }) {
     return raw ? JSON.parse(raw) : null;
   });
 
-  function persist(token, userObj) {
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(userObj));
-    setUser(userObj);
+  function persist(data) {
+    // Both halves of the session, and the cached user, are written together in
+    // one place so a login can never leave a token without its refresh token.
+    storeSession(data);
+    setUser(data.user);
   }
 
   async function login(email, password) {
     const { data } = await client.post("/api/auth/login", { email, password });
-    persist(data.access_token, data.user);
+    persist(data);
     return data.user;
   }
 
@@ -27,14 +28,26 @@ export function AuthProvider({ children }) {
       email,
       password,
     });
-    persist(data.access_token, data.user);
+    persist(data);
     return data.user;
   }
 
   function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    // Clearing this browser is instant, because every caller navigates away on
+    // the next line and must not be made to wait for a network round trip.
+    // Withdrawing the refresh token on the server follows, unawaited: the
+    // endpoint takes the token in its body rather than in a header, so it does
+    // not mind that we have already thrown the access token away. Without that
+    // call, signing out here would leave the refresh token good for a month
+    // wherever else it had been copied.
+    const refresh = localStorage.getItem("refresh_token");
+    clearSession();
     setUser(null);
+    if (refresh) {
+      client.post("/api/auth/logout", { refresh_token: refresh }).catch(() => {
+        // An unreachable server is not a reason to stay signed in here.
+      });
+    }
   }
 
   /** Update the cached user object in place (after a profile change). */

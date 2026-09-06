@@ -191,6 +191,46 @@ class PasswordResetToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class RefreshToken(Base):
+    """A long-lived credential that buys a new access token without a password.
+
+    The access token itself is a signed JWT: nothing on the server records that
+    it was issued, which is what makes it cheap to check on every request and
+    also what makes it impossible to take back. The answer is to keep it
+    short-lived and to hand out a second credential, recorded here, that can be
+    revoked. A signed-out session, a changed password or a stolen token then
+    stops working within the access token's lifetime rather than within its own.
+
+    Only a SHA-256 hash of the token is stored, so the table is worthless to
+    anyone who reads it. A hash rather than bcrypt because the token is 64 bytes
+    of randomness the server generated, not a password a person chose: there is
+    no dictionary to slow an attacker down with, and this hash is checked on
+    every refresh.
+
+    Rotation: each refresh revokes the token it was given and records the one
+    that replaced it. Presenting a token that has already been rotated is the
+    signature of a copy being used somewhere, so it revokes the whole family.
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    token_id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # The token issued in exchange for this one, if it has been rotated. Kept
+    # for the reuse check, not for lookup.
+    replaced_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class Project(Base):
     """A workspace that pins its own instructions and its own set of documents.
 

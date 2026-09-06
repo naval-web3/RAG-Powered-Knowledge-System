@@ -45,6 +45,10 @@ CREDENTIAL_PATHS = (
     "/api/auth/forgot-password",
     "/api/auth/reset-password",
     "/api/auth/change-password",
+    # A refresh token is a credential like any other, and guessing one is worth
+    # as much as guessing a password. A real client refreshes once an hour, so
+    # the strict limit costs it nothing.
+    "/api/auth/refresh",
 )
 
 # Never limited: the readiness probe, and the interactive docs, neither of which

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import client from "../api/client";
+import client, { storeSession } from "../api/client";
 import { CHAT_FONTS, getChatFont, setChatFont } from "../chatFont";
 import { useAuth } from "../context/AuthContext";
 import { useChat } from "../context/ChatContext";
@@ -301,7 +301,11 @@ export default function SettingsDialog({ onClose, initialSection = "general" }) 
   async function changePassword() {
     if (newPass.length < 6) { toast(t("settings.passwordTooShort"), "warn"); return; }
     try {
-      await client.post("/api/auth/change-password", { current_password: oldPass, new_password: newPass });
+      // Changing the password ends every session the account had, this one
+      // included. The reply carries a replacement pair, so the person who made
+      // the change stays signed in while everyone else is signed out.
+      const { data } = await client.post("/api/auth/change-password", { current_password: oldPass, new_password: newPass });
+      storeSession(data);
       setOldPass(""); setNewPass("");
       toast(t("settings.passwordUpdated"), "ok");
     } catch (err) {

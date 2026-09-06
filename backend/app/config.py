@@ -25,7 +25,13 @@ class Settings(BaseSettings):
 
     # ---- Security / JWT ----
     SECRET_KEY: str = "change-me"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    # Short, because the access token cannot be revoked once signed. A session
+    # outlives it by refreshing: see REFRESH_TOKEN_EXPIRE_DAYS below and
+    # POST /api/auth/refresh. Raising this weakens sign-out and password
+    # changes, which only take effect when the current access token expires.
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    # How long a session can go unused before it asks for the password again.
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     ALGORITHM: str = "HS256"
 
     # ---- PostgreSQL ----

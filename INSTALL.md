@@ -145,6 +145,22 @@ as `SECRET_KEY`:
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
+That key signs every access token, so changing it later signs everyone out.
+
+Two settings below it decide how long a session lasts, and the defaults suit
+most installations:
+
+```ini
+ACCESS_TOKEN_EXPIRE_MINUTES=60     # how long a signed token is accepted
+REFRESH_TOKEN_EXPIRE_DAYS=30       # how long a session can sit unused
+```
+
+The first is short because a signed token cannot be withdrawn: signing out, or
+changing a password, only stops the old token once it expires. Sessions outlive
+it by renewing quietly in the background, so a user is not asked to sign in
+every hour. Raise the first number and you widen the window in which a
+withdrawn session still works; lower the second and people sign in more often.
+
 Everything else in the file has a working default. Leave `OPENAI_API_KEY`
 empty unless you want to use cloud models — the application runs fully on
 local models without it.
@@ -251,6 +267,19 @@ Work through this list. If all five pass, the installation is correct.
 Point 5 is the real test — it exercises the entire RAG pipeline: embedding
 the question, searching the vector store, building the prompt, and running
 the language model.
+
+Sessions renew themselves in the background, which by its nature shows nothing
+on screen when it works. To confirm that half, with the servers running:
+
+```powershell
+cd <project>\backend
+.venv\Scripts\Activate.ps1
+python -m scripts.check_refresh_flow --base http://127.0.0.1:8000
+```
+
+It creates a throwaway account, puts it through signing in, renewing, signing
+out and changing a password, and deletes the account again. It prints `Every
+check passed.` when the session handling is correct.
 
 ---
 

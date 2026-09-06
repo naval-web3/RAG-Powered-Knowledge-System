@@ -38,7 +38,17 @@ class UserOut(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    # Opaque, and the only part of this response worth storing beyond the hour:
+    # it is what POST /api/auth/refresh trades for a new access token.
+    refresh_token: str
+    # Seconds the access token has left, so a client can renew before a request
+    # fails rather than after.
+    expires_in: int
     user: UserOut
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 # ---------- Documents ----------

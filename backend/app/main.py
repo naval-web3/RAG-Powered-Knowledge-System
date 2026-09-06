@@ -92,6 +92,11 @@ def on_startup() -> None:
         conn.execute(
             text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS last_opened_at TIMESTAMPTZ")
         )
+        # refresh_tokens is a new table, so create_all above makes it and there
+        # is nothing to do here. Existing installs keep working: a browser that
+        # holds an access token but no refresh token behaves as it did before,
+        # and asks for the password once the access token runs out.
+        #
         # projects / project_documents are new tables, so create_all makes them;
         # conversations already exists, so its new column needs adding by hand.
         conn.execute(

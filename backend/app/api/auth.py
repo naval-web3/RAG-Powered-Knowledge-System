@@ -12,20 +12,28 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import PasswordResetToken, QueryLog, User
+from app.models import PasswordResetToken, QueryLog, RefreshToken, User
 from app.services.rag_engine import WORK_ROLES
 from app.schemas import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     PasswordChange,
     ProfileUpdate,
+    RefreshRequest,
     ResetPasswordRequest,
     Token,
     UserLogin,
     UserOut,
     UserRegister,
 )
-from app.security import create_access_token, hash_password, verify_password
+from app.security import (
+    create_access_token,
+    hash_password,
+    hash_refresh_token,
+    new_refresh_token,
+    refresh_token_expiry,
+    verify_password,
+)
 from app.services import vector_store
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -38,6 +46,63 @@ _RESET_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
 def _generate_reset_code() -> str:
     return "".join(secrets.choice(_RESET_ALPHABET) for _ in range(6))
+
+
+def _revoke_all(db: Session, user_id) -> None:
+    """Withdraw every live session a user has.
+
+    Called when the password changes and when a rotated token is presented a
+    second time. Both mean the same thing: whatever else is holding a token for
+    this account should stop working now.
+    """
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == user_id,
+        RefreshToken.revoked.is_(False),
+    ).update({"revoked": True})
+
+
+def _prune_expired(db: Session, user_id) -> None:
+    """Drop this user's dead rows. Cheap, and it keeps the table from growing
+    by one row an hour forever."""
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == user_id,
+        RefreshToken.expires_at < datetime.now(timezone.utc),
+    ).delete(synchronize_session=False)
+
+
+def _mint_session(db: Session, user: User) -> tuple[Token, RefreshToken]:
+    """Mint an access/refresh pair and stage the refresh half for writing.
+
+    Every route that starts or continues a session ends here, so there is one
+    place that decides what a session is worth. It flushes rather than commits,
+    which is what lets a refresh revoke the old token and write the new one in
+    the same transaction: either both happen or neither does, and there is no
+    instant when a rotated token and its replacement are both live.
+    """
+    raw = new_refresh_token()
+    row = RefreshToken(
+        user_id=user.user_id,
+        token_hash=hash_refresh_token(raw),
+        expires_at=refresh_token_expiry(),
+    )
+    db.add(row)
+    db.flush()  # assigns token_id, without ending the transaction
+    return (
+        Token(
+            access_token=create_access_token(subject=str(user.user_id), role=user.role),
+            refresh_token=raw,
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=UserOut.model_validate(user),
+        ),
+        row,
+    )
+
+
+def _issue_session(db: Session, user: User) -> Token:
+    """Mint a pair and commit it. For the routes that have nothing else to say."""
+    token, _ = _mint_session(db, user)
+    db.commit()
+    return token
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
@@ -60,8 +125,7 @@ def register(payload: UserRegister, db: Session = Depends(get_db)) -> Token:
     db.commit()
     db.refresh(user)
 
-    token = create_access_token(subject=str(user.user_id), role=user.role)
-    return Token(access_token=token, user=UserOut.model_validate(user))
+    return _issue_session(db, user)
 
 
 @router.post("/login", response_model=Token)
@@ -73,11 +137,73 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account is disabled")
 
     user.last_login = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(user)
+    _prune_expired(db, user.user_id)
+    return _issue_session(db, user)
 
-    token = create_access_token(subject=str(user.user_id), role=user.role)
-    return Token(access_token=token, user=UserOut.model_validate(user))
+
+@router.post("/refresh", response_model=Token)
+def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> Token:
+    """Trade a refresh token for a new access token, and a new refresh token.
+
+    The old one is spent in the process. Rotating on every use is what makes a
+    stolen token detectable: the real client and the thief cannot both keep
+    refreshing, and whichever presents the spent token second gives the theft
+    away. When that happens every session for the account is withdrawn, which
+    is heavy-handed on purpose. Losing a session is a nuisance; leaving a copied
+    token working for a month is not.
+    """
+    invalid = HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired refresh token")
+
+    row = (
+        db.query(RefreshToken)
+        .filter(RefreshToken.token_hash == hash_refresh_token(payload.refresh_token))
+        .first()
+    )
+    if row is None:
+        raise invalid
+
+    if row.revoked:
+        # Revoked for two quite different reasons, and only one of them is
+        # alarming. A token with a successor was spent in a rotation and is now
+        # being presented a second time, which means two clients hold it: end
+        # everything. A token with no successor was withdrawn on purpose, by a
+        # sign-out or a password change, and meeting it again is just a stale
+        # tab. Treating the second case as theft would let signing out of one
+        # tab sign the user out of every device they own.
+        if row.replaced_by is not None:
+            _revoke_all(db, row.user_id)
+            db.commit()
+        raise invalid
+
+    if row.expires_at < datetime.now(timezone.utc):
+        raise invalid
+
+    user = db.get(User, row.user_id)
+    if user is None or not user.is_active:
+        raise invalid
+
+    token, successor = _mint_session(db, user)
+    row.revoked = True
+    row.last_used_at = datetime.now(timezone.utc)
+    row.replaced_by = successor.token_id
+    db.commit()
+    return token
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(payload: RefreshRequest, db: Session = Depends(get_db)) -> None:
+    """End a session on the server as well as in the browser.
+
+    Clearing the browser's copy was all sign-out could do while the access token
+    was the whole session. Now the refresh token is the part that outlives the
+    tab, so signing out has to reach the server to be worth anything. No
+    authentication is required: presenting the token is the proof, and a request
+    to throw a credential away is not one worth refusing.
+    """
+    db.query(RefreshToken).filter(
+        RefreshToken.token_hash == hash_refresh_token(payload.refresh_token)
+    ).update({"revoked": True})
+    db.commit()
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
@@ -139,6 +265,8 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
 
     user.password_hash = hash_password(payload.new_password)
     token.used = True
+    # Whoever knew the old password may still be holding a session.
+    _revoke_all(db, user.user_id)
     db.commit()
 
 
@@ -178,17 +306,25 @@ def update_profile(
     return UserOut.model_validate(current_user)
 
 
-@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/change-password", response_model=Token)
 def change_password(
     payload: PasswordChange,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> None:
-    """Change the current user's password after verifying the old one."""
+) -> Token:
+    """Change the current user's password after verifying the old one.
+
+    Every session the account had is withdrawn, including this one, and a new
+    pair is issued to the caller. So a password changed because it may have
+    leaked ends every other sign-in on every other machine, while the person who
+    changed it carries on without being thrown back to the login screen.
+    """
     if not verify_password(payload.current_password, current_user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
     current_user.password_hash = hash_password(payload.new_password)
+    _revoke_all(db, current_user.user_id)
     db.commit()
+    return _issue_session(db, current_user)
 
 
 @router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
