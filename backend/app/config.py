@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIR: str = "./chroma_db"
     CHROMA_COLLECTION: str = "knowledge_base"
 
+    # ---- Rate limiting ----
+    # A generous ceiling for everything, high enough that the library page's
+    # once-a-second polling during an upload cannot reach it, and a strict one
+    # for the endpoints where a wrong guess is worth something.
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_PER_MINUTE: int = 300
+    RATE_LIMIT_AUTH_PER_MINUTE: int = 10
+
     # ---- File storage ----
     UPLOAD_DIR: str = "./uploads"
     MAX_UPLOAD_MB: int = 25

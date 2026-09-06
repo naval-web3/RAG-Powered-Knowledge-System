@@ -15,6 +15,7 @@ from app.api import settings as settings_api
 from app.config import settings
 from app import runtime_settings
 from app.database import Base, SessionLocal, engine
+from app.ratelimit import rate_limit_middleware
 from app.models import Document
 
 app = FastAPI(
@@ -22,6 +23,11 @@ app = FastAPI(
     version="1.0.0",
     description="Retrieval-Augmented Generation knowledge base with multi-LLM support.",
 )
+
+# Registered before CORS so that a rejected request still comes back with the
+# CORS headers the browser needs to read the 429 rather than reporting it as a
+# network error the user cannot act on.
+app.middleware("http")(rate_limit_middleware)
 
 app.add_middleware(
     CORSMiddleware,
