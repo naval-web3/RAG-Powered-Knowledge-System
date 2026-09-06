@@ -31,6 +31,22 @@ Four constraints follow from that statement, and they shaped the whole design:
 - **Attribution must be part of the answer, not an afterthought.** Every retrieved passage must carry enough metadata — document, page, section — to be shown to the user and opened.
 - **The organisation's documents must not have to leave the building.** A knowledge system holding an HR handbook or patient policies cannot be built on the assumption that every query may be sent to a third-party API. Local inference must be a first-class option, not a fallback.
 
+## Literature Reviewed
+
+Five pieces of published work decided how this system is built, and each is named here with what was taken from it rather than summarised in general terms.
+
+**Lewis and colleagues (2020)** introduced retrieval-augmented generation at Facebook AI Research. Their result is the one the whole architecture rests on: a model that is given retrieved passages at inference time answers factual questions more accurately than the same model answering from its weights, and the retrieved passages can be shown to the user. This project implements their separation of a retriever from a generator, with the addition that the retrieval decision is tested numerically before the generator is called at all.
+
+**Reimers and Gurevych (2019)** made sentence-level embeddings practical with Sentence-BERT. Their siamese training produces vectors that can be compared with cosine similarity directly, which is what makes a question and a passage comparable at all. The model this system uses by default, `all-MiniLM-L6-v2`, is a distilled descendant of that work, and its 384 dimensions are the reason a library of a few hundred documents fits in tens of megabytes.
+
+**Karpukhin and colleagues (2020)** showed with Dense Passage Retrieval that dense vectors beat sparse keyword retrieval on questions worded differently from the text that answers them. That finding is the justification for §1.2's first constraint, and it is also why §9.2 proposes adding keyword search back alongside the vectors rather than instead of them: the two fail in different places.
+
+**Malkov and Yashunin (2018)** described the Hierarchical Navigable Small World graph, which is the index ChromaDB uses. Reading it was not optional curiosity. HNSW keeps state in memory, and that fact is the direct explanation of defect D4 in §5.6, where a second process opening the index desynchronised the one the backend was holding.
+
+**Ji and colleagues (2023)** surveyed hallucination in natural language generation. Their taxonomy separates a model contradicting its source from a model inventing content with no source at all, and this system is built against the second: the relevance floor exists so that when there is no source, no generation happens.
+
+Two further sources shaped the process rather than the architecture. **Pressman and Maxim (2020)** supplied the iterative and incremental model applied in §2.4 and the three-point estimation method used in §2.3, and **Elmasri and Navathe (2016)** supplied the normalisation argument worked through in §3.3.1.
+
 ## Objectives of the Project
 
 The objectives below are those set out in the approved project proposal, unchanged. Each is restated here with the part of the delivered system that satisfies it and the chapter of this report where the evidence is presented.
@@ -135,6 +151,23 @@ Four capabilities in the submitted system were not part of the approved proposal
 - **Project workspaces.** A project holds standing instructions and a chosen set of documents, and a conversation inside it retrieves only from those documents. This addresses a limitation found in use: a single flat library means a question about the IT policy can be answered from the HR handbook if a passage happens to be similar.
 - **An interface in eleven languages.** The proposal placed multi-language support out of scope, and *document* content remains English. What was added is the *interface*: 355 strings per locale across eleven languages. The distinction is made carefully in §3.6.5.
 - **A private conversation mode** in which nothing is written to the conversation history, described in §6.6.
+
+### Promised in the proposal but not delivered
+
+Six things the approved proposal states are not in the submitted system. They are listed here, with what was done instead, because the proposal is the contract this project was approved against and a reader comparing the two documents should not have to find these for themselves. Each is discussed again where it belongs: the security items in §6.8, the testing items in §5.7.
+
+Table: What the proposal promised and the system does not do
+
+| Promised in the proposal | What the system actually does |
+|---|---|
+| "All user data and documents must be encrypted at rest and in transit" | Uploaded files and the vector index are ordinary files on disk. Full-disk encryption is the appropriate control and is the deploying organisation's to apply. Nothing is transmitted at all unless the cloud provider is selected. |
+| "All API communication over HTTPS/TLS" | The reference deployment serves HTTP on the loopback interface, which is appropriate for one machine and is not appropriate for a networked one. |
+| "Rate limiting implemented on all API endpoints" | There is no throttle on authentication attempts. bcrypt's cost makes offline cracking expensive, but an internet-facing deployment would need one. |
+| "Refresh token mechanism for seamless session management" | A single access token, valid for 1440 minutes. A refresh mechanism was not built. |
+| "Regular database backups configured" | No backup schedule is configured. `pg_dump` is documented in the installation guide and is run by hand. |
+| "Continuous integration ... with pytest for the backend and Jest for the frontend" | 46 backend tests under pytest, run by hand. There are no front-end unit tests and no continuous integration pipeline. |
+
+Two further differences are smaller but real. The proposal's hardware table gives a minimum of **6 GB of video memory**; the machine this system was built and measured on has **4 GB**, which is the direct reason the proposal's `qwen3` model does not fit and was replaced. And four tools named in the proposal's software table are not in the delivered system: **PyPDF2** was superseded by its maintained successor `pypdf`, **`text-embedding-ada-002`** by OpenAI's current `text-embedding-3-small`, and **Unstructured.io** and **Postman** were not needed. LangChain moved from the 0.2 series named in the proposal to 0.3.14.
 
 ### Out of scope
 

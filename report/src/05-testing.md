@@ -187,4 +187,6 @@ Four gaps are stated here because a test report that lists only what was tested 
 
 **The cloud provider path.** Every measurement in this chapter is from the local model. The OpenAI path works and is exercised manually, but it is not in the timed run, because a metered API would make the numbers a function of somebody's network rather than of this system.
 
+**Front-end testing, and continuous integration.** The approved proposal names pytest for the backend **and Jest for the front end**, run under continuous integration. The backend half is delivered: 46 tests, run with one command. The front end has no unit tests, and there is no CI pipeline, so every test run in this report was started by hand. This is a departure from the proposal and is listed as one in §1.5.
+
 **Documents in other languages.** Out of scope by declaration, and untested by consequence. A Hindi document will index without error and retrieve poorly, and no case in this suite demonstrates how poorly.

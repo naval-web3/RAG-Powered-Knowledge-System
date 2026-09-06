@@ -16,6 +16,20 @@ Table: The seven modules, what each owns, and where it lives
 | M6 Conversation, Project and Settings | Conversations and messages, projects and their document scope, standing instructions and preferences | `api/chat.py`, `api/projects.py`, `api/settings.py` |
 | M7 Administration and Analytics | Counts, the query log, the live health of every dependency, the user list | `api/admin.py`, `api/usage.py` |
 
+The approved proposal also names seven modules, and the two lists are not identical. The proposal counts the ReactJS front end as one module and does not separate the vector store from the pipeline that fills it. This report separates them and describes the front end as a design concern in §3.6 rather than as a backend module. The reason is the one the rest of this chapter turns on: the vector store is the only component two other modules both write to and read from, so making it a module of its own is what allows the rule in §3.1 that nothing else may talk to Chroma. The mapping is one to one apart from that split.
+
+Table: The proposal's modules, and where each one lives in this design
+
+| Module in the approved proposal | Where it is in this report |
+|---|---|
+| 1. Authentication Module | M1, unchanged |
+| 2. Document Management Module | M2, unchanged |
+| 3. Document Processing Pipeline Module | M3, with the vector store and the embedding backend lifted out into M4 |
+| 4. RAG Query Engine Module | M5, unchanged |
+| 5. Conversation Management Module | M6, which also carries projects and settings, neither of which the proposal has |
+| 6. Frontend UI Module (ReactJS) | Described as design in §3.6 and shown in Chapter 8, rather than as a backend module |
+| 7. Admin Dashboard Module | M7, unchanged |
+
 Three properties of that division are worth stating, because each was chosen and each has a cost.
 
 **No module reaches upward.** M5 does not know that HTTP exists; it takes a question and returns an answer. M4 does not know what a conversation is. M3 does not know who the user is beyond a `user_id` it writes into metadata. The practical consequence is that the RAG engine can be exercised from a script with no web server running, which is how the retrieval measurements in §5.5 were taken.

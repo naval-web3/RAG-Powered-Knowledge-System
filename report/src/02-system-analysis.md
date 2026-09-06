@@ -82,7 +82,9 @@ The available window ran from the approval of the synopsis to the date the bound
 
 ### Work Breakdown and Three-Point Estimation
 
-The work was decomposed into twelve activities. Each was estimated using the three-point method, in which an optimistic time *o*, a most likely time *m* and a pessimistic time *p* are combined into an expected time:
+The approved proposal sets out a twelve-week plan in eight phases: requirement analysis, system analysis and design, environment setup, backend development, frontend development, integration and testing, documentation, and submission. That outline is the schedule this project was approved against, and the network below is a refinement of it rather than a replacement. The eight phases become twelve activities because two of them split along a real dependency: the proposal's single "Backend Development" phase is in practice four activities that must happen in order, since the retrieval engine cannot be built before there are embedded chunks to retrieve.
+
+The work was therefore decomposed into twelve activities. Each was estimated using the three-point method, in which an optimistic time *o*, a most likely time *m* and a pessimistic time *p* are combined into an expected time:
 
 > **tₑ = (o + 4m + p) / 6**
 
@@ -197,11 +199,13 @@ Table: Functional requirements — administration
 
 ### Non-Functional Requirements
 
+The approved proposal states five non-functional requirements. All five appear below, and two of them, NFR-16 and NFR-17, are recorded as stated rather than demonstrated. The proposal's performance target is also worth stating precisely, because it has two halves: an answer in under five seconds, **and** a corpus of up to a thousand documents. The first half is met and measured. The second is not tested at all, and §5.7 says so.
+
 Table: Non-functional requirements
 
 | Id | Category | Requirement |
 |---|---|---|
-| NFR-1 | Performance | A question answered from the local 3-billion-parameter model shall return in under ten seconds on the reference hardware; the measured mean is 4.2 s (§5.5). |
+| NFR-1 | Performance | A question shall be answered in **under five seconds**, which is the target the approved proposal sets. Measured mean over 31 cases on the local 3-billion-parameter model: 4162 ms, slowest 6389 ms (§5.5). |
 | NFR-2 | Performance | Retrieval alone — embedding the question and searching the index — shall complete in under one second. |
 | NFR-3 | Performance | Ingestion shall publish progress at least once per page or per batch, so that no phase appears frozen. |
 | NFR-4 | Reliability | A failure in one document's ingestion shall not affect any other document or any other user. |
@@ -216,6 +220,8 @@ Table: Non-functional requirements
 | NFR-13 | Maintainability | The backend shall be organised into layers — routers, services, providers, models — with no upward dependencies. |
 | NFR-14 | Maintainability | The language model provider and the embedding backend shall each be replaceable by adding one class and no other change. |
 | NFR-15 | Portability | The system shall run on Windows and Linux, and shall have a Docker Compose configuration for deployment. |
+| NFR-16 | Scalability | The proposal requires the architecture to support horizontal scaling of the vector database and the API servers. The delivered system is a single-machine deployment and this requirement is **stated but not demonstrated**; §5.7 says what was and was not measured, and §9.4 says what scaling would need. |
+| NFR-17 | Availability | The proposal sets 99% uptime with error handling and logging. Error handling and logging are delivered and the administrator's health report (§7.7) reports live dependency status, but **no uptime figure is claimed**, because the system has not been run continuously long enough to measure one. |
 
 ### Assumptions, Dependencies and Constraints
 

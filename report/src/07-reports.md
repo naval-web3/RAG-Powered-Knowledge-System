@@ -16,6 +16,17 @@ Table: The outputs the system produces
 | The recent query log | Administrators | `query_logs`, newest first | §7.6 |
 | The system health report | Administrators | Live probes of every dependency | §7.7 |
 
+The approved proposal names four reports the system is to generate. Three of them are delivered in full and one in part, and the mapping is set out below rather than left for a reader to work out.
+
+Table: The four reports the proposal names, and what is delivered
+
+| Report the proposal names | Delivered as | Complete? |
+|---|---|---|
+| **User Activity Report**: login history, queries per user, documents uploaded | The personal usage report (§7.4) for the user's own figures, and the administrator's user list (§7.6) for activity across accounts. `last_login` carries the login time | Yes |
+| **System Performance Report**: average query response time, embedding generation time, system uptime | The administrator's dashboard (§7.5) reports the mean response time over every question, and the health report (§7.7) reports live dependency status | **Partly.** Embedding generation time is not recorded separately from the total, and no uptime figure is claimed, for the reason given at NFR-17 |
+| **Document Analytics Report**: documents per user, chunk distribution, processing success and failure rates | The dashboard's document counts and type breakdown, and the library (§7.3), where every document carries its chunk count and its state, including the reason any failure failed | Yes |
+| **Query Analytics Report**: most queried topics, source document usage frequency, response quality metrics | The query log (§7.6) carries every question with its provider, model, chunk count, relevance and elapsed time | **Partly.** The raw material is all recorded, but the system does not aggregate it into topics or a quality score. §9.4 proposes what that would take |
+
 ## The Grounded Answer and Its Citations
 
 The primary output has three layers, and each layer is a different kind of claim.

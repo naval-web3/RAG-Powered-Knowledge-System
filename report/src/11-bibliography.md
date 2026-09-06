@@ -16,38 +16,44 @@
 
 7. Devlin, J., Chang, M., Lee, K. and Toutanova, K. (2019). *BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding*. Proceedings of NAACL-HLT 2019. arXiv:1810.04805. — The transformer architecture the embedding model derives from.
 
+8. Touvron, H., Lavril, T., Izacard, G., Martinet, X., Lachaux, M., Lacroix, T., et al. (2023). *LLaMA: Open and Efficient Foundation Language Models*. Meta AI Research. arXiv:2302.13971. — The model family `llama3.2:3b` belongs to, which answers every question measured in Chapter 5.
+
+9. Chase, H. (2022). *LangChain: Building Applications with LLMs Through Composability*. — The orchestration layer behind the prompt templates and the chat model interface in §3.4.
+
+10. Jiang, A. Q., Sablayrolles, A., Mensch, A., Bamford, C., Chaplot, D. S., et al. (2023). *Mistral 7B*. Mistral AI. arXiv:2310.06825. — Named in the approved proposal as an alternative local model; not used, for the video-memory reason given in §2.2.1.
+
 ## Books
 
-8. Pressman, R. S. and Maxim, B. R. (2020). *Software Engineering: A Practitioner's Approach*. 9th edition. McGraw-Hill. — The iterative and incremental model applied in §2.4, and the estimation method in §2.3.
+11. Pressman, R. S. and Maxim, B. R. (2020). *Software Engineering: A Practitioner's Approach*. 9th edition. McGraw-Hill. — The iterative and incremental model applied in §2.4, and the estimation method in §2.3.
 
-9. Sommerville, I. (2016). *Software Engineering*. 10th edition. Pearson. — Requirements specification and the classification used in §2.5.
+12. Sommerville, I. (2016). *Software Engineering*. 10th edition. Pearson. — Requirements specification and the classification used in §2.5.
 
-10. Elmasri, R. and Navathe, S. B. (2016). *Fundamentals of Database Systems*. 7th edition. Pearson. — Normalisation and the entity-relationship model, as applied in §2.7 and §3.3.1.
+13. Elmasri, R. and Navathe, S. B. (2016). *Fundamentals of Database Systems*. 7th edition. Pearson. — Normalisation and the entity-relationship model, as applied in §2.7 and §3.3.1.
 
-11. Fowler, M. (2018). *Refactoring: Improving the Design of Existing Code*. 2nd edition. Addison-Wesley. — The basis of the modularisation argument in §3.1.
+14. Fowler, M. (2018). *Refactoring: Improving the Design of Existing Code*. 2nd edition. Addison-Wesley. — The basis of the modularisation argument in §3.1.
 
-12. Jurafsky, D. and Martin, J. H. (2024). *Speech and Language Processing*. 3rd edition draft. — Chapters on vector semantics and question answering.
+15. Jurafsky, D. and Martin, J. H. (2024). *Speech and Language Processing*. 3rd edition draft. — Chapters on vector semantics and question answering.
 
 ## Documentation and Specifications
 
-13. FastAPI documentation. `https://fastapi.tiangolo.com` — Dependency injection, which is the mechanism §4.2 relies on for access control.
+16. FastAPI documentation. `https://fastapi.tiangolo.com` — Dependency injection, which is the mechanism §4.2 relies on for access control.
 
-14. SQLAlchemy 2.0 documentation. `https://docs.sqlalchemy.org` — The declarative ORM and the DDL emitted in §4.1.
+17. SQLAlchemy 2.0 documentation. `https://docs.sqlalchemy.org` — The declarative ORM and the DDL emitted in §4.1.
 
-15. ChromaDB documentation. `https://docs.trychroma.com` — Persistent client mode, metadata filtering, and the `$and` / `$in` operators used in §4.4.2.
+18. ChromaDB documentation. `https://docs.trychroma.com` — Persistent client mode, metadata filtering, and the `$and` / `$in` operators used in §4.4.2.
 
-16. LangChain documentation. `https://python.langchain.com` — Chat prompt templates, message placeholders, and the chat model interface behind `LLMProvider`.
+19. LangChain documentation. `https://python.langchain.com` — Chat prompt templates, message placeholders, and the chat model interface behind `LLMProvider`.
 
-17. Ollama documentation. `https://ollama.com` — Local model serving, the `/api/tags` endpoint used by the health check in §7.7.
+20. Ollama documentation. `https://ollama.com` — Local model serving, the `/api/tags` endpoint used by the health check in §7.7.
 
-18. React 18 documentation. `https://react.dev` — Hooks and the function-component model used throughout the interface.
+21. React 18 documentation. `https://react.dev` — Hooks and the function-component model used throughout the interface.
 
-19. PostgreSQL 16 documentation. `https://www.postgresql.org/docs/16/` — Check constraints, referential actions and the JSONB type used in §3.3.
+22. PostgreSQL 16 documentation. `https://www.postgresql.org/docs/16/` — Check constraints, referential actions and the JSONB type used in §3.3.
 
-20. Jones, M., Bradley, J. and Sakimura, N. (2015). *RFC 7519: JSON Web Token (JWT)*. IETF. — The token format and the claims used in §6.2.
+23. Jones, M., Bradley, J. and Sakimura, N. (2015). *RFC 7519: JSON Web Token (JWT)*. IETF. — The token format and the claims used in §6.2.
 
-21. Provos, N. and Mazières, D. (1999). *A Future-Adaptable Password Scheme*. USENIX Annual Technical Conference. — bcrypt, and why an adaptive work factor matters.
+24. Provos, N. and Mazières, D. (1999). *A Future-Adaptable Password Scheme*. USENIX Annual Technical Conference. — bcrypt, and why an adaptive work factor matters.
 
-22. OWASP Foundation (2021). *OWASP Top Ten*. `https://owasp.org/Top10/` — The threat classes §6.1 is written against.
+25. OWASP Foundation (2021). *OWASP Top Ten*. `https://owasp.org/Top10/` — The threat classes §6.1 is written against.
 
-23. Indira Gandhi National Open University (2025). *MCSP-232 Project Guidelines*. School of Computer and Information Sciences. — The structure, page budget and assessable components this report is written to.
+26. Indira Gandhi National Open University (2025). *MCSP-232 Project Guidelines*. School of Computer and Information Sciences. — The structure, page budget and assessable components this report is written to.
