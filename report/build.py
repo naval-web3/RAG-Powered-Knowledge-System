@@ -193,7 +193,7 @@ def _column_widths(rows: list[list[str]], cols: int) -> list:
         # A very long prose column is capped before the weighting, so that one
         # 200-character description cannot squeeze a "Default" header until it
         # breaks across two lines.
-        weights.append(max(4.5, min(longest, 110) ** 0.7 + 1.4))
+        weights.append(max(5.0, min(longest, 100) ** 0.7 + 1.7))
     total = sum(weights)
     return [Inches(TEXT_WIDTH_IN * w / total) for w in weights]
 
