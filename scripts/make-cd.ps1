@@ -223,9 +223,12 @@ Get-ChildItem $OutDir -Recurse -File | Where-Object { $textExt -contains $_.Exte
     # Secret-shaped assignments, unless the value is an obvious placeholder.
     # POSTGRES_PASSWORD is deliberately absent: 'rag' is a local development
     # password that belongs in .env.example and docker-compose.yml.
+    # FILE_ENCRYPTION_KEY is here because it is worse than the others if it
+    # escapes: it opens every stored document, and unlike a signing key, which
+    # can be rotated, a key pressed onto a disc and posted cannot be recalled.
     # [ \t]* not \s* - \s matches newlines, so a greedy \s* after '=' on an
     # empty assignment swallows the line break and captures the NEXT line.
-    foreach ($m in [regex]::Matches($c, '(?m)^(SECRET_KEY|OPENAI_API_KEY)[ \t]*=[ \t]*(.*)$')) {
+    foreach ($m in [regex]::Matches($c, '(?m)^(SECRET_KEY|OPENAI_API_KEY|FILE_ENCRYPTION_KEY)[ \t]*=[ \t]*(.*)$')) {
         $name = $m.Groups[1].Value
         $val  = $m.Groups[2].Value.Trim().Trim('"').Trim("'")
         if ($val -notmatch $placeholder) {
