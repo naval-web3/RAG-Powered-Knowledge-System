@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_diagram.css">
+<title>Entity relationship diagram</title>
+<style>
+  /* The entities are laid out as positioned HTML boxes and the relationships
+     are drawn on one SVG sheet over them, so that adding a column to a table
+     does not mean re-typing a hundred <text> elements. Every box carries an
+     explicit height, because the wire coordinates below are worked out from
+     the tops and bottoms written here. */
+  #sheet { position: relative; width: 1050px; height: 730px; padding: 0; }
+  .plane { position: relative; width: 1050px; height: 730px; }
+
+  .tbl { position: absolute; width: 250px; border: 1.6px solid #111; background: #fff; }
+  .tbl > h3 {
+    margin: 0; height: 28px; line-height: 28px; padding: 0 8px;
+    font-size: 13.5px; font-weight: 700; background: #ececec;
+    border-bottom: 1.6px solid #111; box-sizing: border-box;
+  }
+  .r {
+    display: flex; align-items: baseline; gap: 6px;
+    height: 17px; line-height: 17px; padding: 0 8px; font-size: 12px;
+  }
+  .r .n { flex: 1 1 auto; white-space: nowrap; }
+  .r .ty { color: #555; font-size: 10.5px; white-space: nowrap; }
+  .r .k { width: 34px; text-align: right; font-size: 9.5px; font-weight: 700; }
+  .r.pk .n { font-weight: 700; text-decoration: underline; }
+  .r.fk .n { font-style: italic; }
+
+  svg.wires { position: absolute; left: 0; top: 0; }
+  .wire { stroke: #111; stroke-width: 1.5; fill: none; }
+  .foot { stroke: #111; stroke-width: 1.5; fill: none; }
+  .opt  { stroke: #111; stroke-width: 1.5; fill: #fff; }
+  .card { font-size: 11px; fill: #111; }
+  .verb { font-size: 11px; fill: #333; font-style: italic; }
+  .note { font-size: 10.5px; fill: #444; font-style: italic; }
+</style>
+</head>
+<body>
+<div id="sheet"><div class="plane">
+
+  <!-- ===================== column A ===================== -->
+  <div class="tbl" style="left:30px; top:60px; height:202px">
+    <h3>users</h3>
+    <div class="r pk"><span class="n">user_id</span><span class="ty">uuid</span><span class="k">PK</span></div>
+    <div class="r"><span class="n">username</span><span class="ty">varchar(100)</span><span class="k">U</span></div>
+    <div class="r"><span class="n">email</span><span class="ty">varchar(255)</span><span class="k">U</span></div>
+    <div class="r"><span class="n">password_hash</span><span class="ty">varchar(255)</span><span class="k"></span></div>
+    <div class="r"><span class="n">role</span><span class="ty">varchar(20)</span><span class="k"></span></div>
+    <div class="r"><span class="n">is_active</span><span class="ty">boolean</span><span class="k"></span></div>
+    <div class="r"><span class="n">created_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+    <div class="r"><span class="n">last_login</span><span class="ty">timestamptz</span><span class="k"></span></div>
+    <div class="r"><span class="n">custom_instructions</span><span class="ty">text</span><span class="k"></span></div>
+    <div class="r"><span class="n">work_role</span><span class="ty">varchar(40)</span><span class="k"></span></div>
+  </div>
+
+  <div class="tbl" style="left:30px; top:300px; height:134px">
+    <h3>password_reset_tokens</h3>
+    <div class="r pk"><span class="n">token_id</span><span class="ty">uuid</span><span class="k">PK</span></div>
+    <div class="r fk"><span class="n">user_id</span><span class="ty">uuid</span><span class="k">FK</span></div>
+    <div class="r"><span class="n">code_hash</span><span class="ty">varchar(255)</span><span class="k"></span></div>
+    <div class="r"><span class="n">expires_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+    <div class="r"><span class="n">used</span><span class="ty">boolean</span><span class="k"></span></div>
+    <div class="r"><span class="n">created_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+  </div>
+
+  <div class="tbl" style="left:30px; top:480px; height:202px">
+    <h3>query_logs</h3>
+    <div class="r pk"><span class="n">log_id</span><span class="ty">uuid</span><span class="k">PK</span></div>
+    <div class="r fk"><span class="n">user_id</span><span class="ty">uuid null</span><span class="k">FK</span></div>
+    <div class="r fk"><span class="n">conversation_id</span><span class="ty">uuid null</span><span class="k">FK</span></div>
+    <div class="r"><span class="n">query_text</span><span class="ty">text</span><span class="k"></span></div>
+    <div class="r"><span class="n">response_time_ms</span><span class="ty">integer</span><span class="k"></span></div>
+    <div class="r"><span class="n">chunks_retrieved</span><span class="ty">integer</span><span class="k"></span></div>
+    <div class="r"><span class="n">llm_provider</span><span class="ty">varchar(50)</span><span class="k"></span></div>
+    <div class="r"><span class="n">model_name</span><span class="ty">varchar(100)</span><span class="k"></span></div>
+    <div class="r"><span class="n">status</span><span class="ty">varchar(20)</span><span class="k"></span></div>
+    <div class="r"><span class="n">created_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+  </div>
+
+  <!-- ===================== column B ===================== -->
+  <div class="tbl" style="left:400px; top:40px; height:185px">
+    <h3>projects</h3>
+    <div class="r pk"><span class="n">project_id</span><span class="ty">uuid</span><span class="k">PK</span></div>
+    <div class="r fk"><span class="n">user_id</span><span class="ty">uuid</span><span class="k">FK</span></div>
+    <div class="r"><span class="n">name</span><span class="ty">varchar(120)</span><span class="k"></span></div>
+    <div class="r"><span class="n">instructions</span><span class="ty">text</span><span class="k"></span></div>
+    <div class="r"><span class="n">doc_scope</span><span class="ty">varchar(10)</span><span class="k"></span></div>
+    <div class="r"><span class="n">pinned</span><span class="ty">boolean</span><span class="k"></span></div>
+    <div class="r"><span class="n">created_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+    <div class="r"><span class="n">updated_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+    <div class="r"><span class="n">last_opened_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+  </div>
+
+  <div class="tbl" style="left:400px; top:300px; height:168px">
+    <h3>conversations</h3>
+    <div class="r pk"><span class="n">conversation_id</span><span class="ty">uuid</span><span class="k">PK</span></div>
+    <div class="r fk"><span class="n">user_id</span><span class="ty">uuid</span><span class="k">FK</span></div>
+    <div class="r fk"><span class="n">project_id</span><span class="ty">uuid null</span><span class="k">FK</span></div>
+    <div class="r"><span class="n">title</span><span class="ty">varchar(255)</span><span class="k"></span></div>
+    <div class="r"><span class="n">pinned</span><span class="ty">boolean</span><span class="k"></span></div>
+    <div class="r"><span class="n">unread</span><span class="ty">boolean</span><span class="k"></span></div>
+    <div class="r"><span class="n">created_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+    <div class="r"><span class="n">updated_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+  </div>
+
+  <div class="tbl" style="left:400px; top:560px; height:151px">
+    <h3>messages</h3>
+    <div class="r pk"><span class="n">message_id</span><span class="ty">uuid</span><span class="k">PK</span></div>
+    <div class="r fk"><span class="n">conversation_id</span><span class="ty">uuid</span><span class="k">FK</span></div>
+    <div class="r"><span class="n">role</span><span class="ty">varchar(20)</span><span class="k"></span></div>
+    <div class="r"><span class="n">content</span><span class="ty">text</span><span class="k"></span></div>
+    <div class="r"><span class="n">source_documents</span><span class="ty">jsonb</span><span class="k"></span></div>
+    <div class="r"><span class="n">token_count</span><span class="ty">integer</span><span class="k"></span></div>
+    <div class="r"><span class="n">created_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+  </div>
+
+  <!-- ===================== column C ===================== -->
+  <div class="tbl" style="left:770px; top:70px; height:287px">
+    <h3>documents</h3>
+    <div class="r pk"><span class="n">document_id</span><span class="ty">uuid</span><span class="k">PK</span></div>
+    <div class="r fk"><span class="n">user_id</span><span class="ty">uuid</span><span class="k">FK</span></div>
+    <div class="r"><span class="n">title</span><span class="ty">varchar(255)</span><span class="k"></span></div>
+    <div class="r"><span class="n">original_filename</span><span class="ty">varchar(255)</span><span class="k"></span></div>
+    <div class="r"><span class="n">file_path</span><span class="ty">varchar(500)</span><span class="k"></span></div>
+    <div class="r"><span class="n">file_type</span><span class="ty">varchar(10)</span><span class="k"></span></div>
+    <div class="r"><span class="n">file_size</span><span class="ty">bigint</span><span class="k"></span></div>
+    <div class="r"><span class="n">upload_date</span><span class="ty">timestamptz</span><span class="k"></span></div>
+    <div class="r"><span class="n">processing_status</span><span class="ty">varchar(20)</span><span class="k"></span></div>
+    <div class="r"><span class="n">chunk_count</span><span class="ty">integer</span><span class="k"></span></div>
+    <div class="r"><span class="n">error_message</span><span class="ty">text</span><span class="k"></span></div>
+    <div class="r"><span class="n">stage</span><span class="ty">varchar(20)</span><span class="k"></span></div>
+    <div class="r"><span class="n">progress</span><span class="ty">integer</span><span class="k"></span></div>
+    <div class="r"><span class="n">stage_detail</span><span class="ty">varchar(120)</span><span class="k"></span></div>
+    <div class="r"><span class="n">pinned</span><span class="ty">boolean</span><span class="k"></span></div>
+  </div>
+
+  <div class="tbl" style="left:770px; top:430px; height:66px">
+    <h3>project_documents</h3>
+    <div class="r pk fk"><span class="n">project_id</span><span class="ty">uuid</span><span class="k">PK FK</span></div>
+    <div class="r pk fk"><span class="n">document_id</span><span class="ty">uuid</span><span class="k">PK FK</span></div>
+  </div>
+
+  <!-- ===================== relationships ===================== -->
+  <svg class="wires" width="1050" height="730" viewBox="0 0 1050 730" xmlns="http://www.w3.org/2000/svg">
+
+    <!-- users 1 : N projects -->
+    <path class="wire" d="M 280 132 L 400 132"/>
+    <path class="foot" d="M 292 125 L 292 139"/>
+    <path class="foot" d="M 386 132 L 400 125 M 386 132 L 400 132 M 386 132 L 400 139"/>
+    <text class="card mid" x="340" y="122">1 : N</text>
+    <text class="verb mid" x="340" y="152">owns</text>
+
+    <!-- users 1 : N conversations -->
+    <path class="wire" d="M 280 215 L 345 215 L 345 384 L 400 384"/>
+    <path class="foot" d="M 292 208 L 292 222"/>
+    <path class="foot" d="M 386 384 L 400 377 M 386 384 L 400 384 M 386 384 L 400 391"/>
+    <text class="card" x="352" y="288">1 : N</text>
+    <text class="verb" x="352" y="302">starts</text>
+
+    <!-- users 1 : N documents -->
+    <path class="wire" d="M 155 60 L 155 26 L 895 26 L 895 70"/>
+    <path class="foot" d="M 148 48 L 162 48"/>
+    <path class="foot" d="M 895 56 L 888 70 M 895 56 L 895 70 M 895 56 L 902 70"/>
+    <text class="card end" x="496" y="18">1 : N</text>
+    <text class="verb" x="504" y="18">uploads</text>
+
+    <!-- users 0..1 : N query_logs  (user_id is nullable, ON DELETE SET NULL) -->
+    <path class="wire" d="M 280 240 L 320 240 L 320 455 L 155 455 L 155 480"/>
+    <path class="foot" d="M 292 233 L 292 247"/>
+    <circle class="opt" cx="304" cy="240" r="4"/>
+    <path class="foot" d="M 155 466 L 148 480 M 155 466 L 155 480 M 155 466 L 162 480"/>
+    <text class="card end" x="252" y="470">0..1 : N</text>
+    <text class="verb" x="260" y="470">logs</text>
+
+    <!-- users 1 : N password_reset_tokens -->
+    <path class="wire" d="M 155 262 L 155 300"/>
+    <path class="foot" d="M 148 274 L 162 274"/>
+    <path class="foot" d="M 155 286 L 148 300 M 155 286 L 155 300 M 155 286 L 162 300"/>
+    <text class="card" x="165" y="278">1 : N</text>
+    <text class="verb" x="165" y="292">requests</text>
+
+    <!-- projects 0..1 : N conversations  (project_id is nullable) -->
+    <path class="wire" d="M 525 225 L 525 300"/>
+    <path class="foot" d="M 518 237 L 532 237"/>
+    <circle class="opt" cx="525" cy="249" r="4"/>
+    <path class="foot" d="M 525 286 L 518 300 M 525 286 L 525 300 M 525 286 L 532 300"/>
+    <text class="card" x="535" y="245">0..1 : N</text>
+    <text class="verb" x="535" y="259">scopes</text>
+
+    <!-- conversations 1 : N messages -->
+    <path class="wire" d="M 525 468 L 525 560"/>
+    <path class="foot" d="M 518 480 L 532 480"/>
+    <path class="foot" d="M 525 546 L 518 560 M 525 546 L 525 560 M 525 546 L 532 560"/>
+    <text class="card" x="535" y="508">1 : N</text>
+    <text class="verb" x="535" y="522">contains</text>
+
+    <!-- conversations 0..1 : N query_logs -->
+    <path class="wire" d="M 440 468 L 440 530 L 282 530"/>
+    <path class="foot" d="M 433 480 L 447 480"/>
+    <circle class="opt" cx="440" cy="492" r="4"/>
+    <path class="foot" d="M 296 530 L 282 523 M 296 530 L 282 530 M 296 530 L 282 537"/>
+    <text class="card end" x="381" y="522">0..1 : N</text>
+    <text class="verb" x="389" y="522">records</text>
+
+    <!-- projects 1 : N project_documents -->
+    <path class="wire" d="M 650 185 L 710 185 L 710 463 L 768 463"/>
+    <path class="foot" d="M 662 178 L 662 192"/>
+    <path class="foot" d="M 754 463 L 768 456 M 754 463 L 768 463 M 754 463 L 768 470"/>
+    <text class="card" x="718" y="300">1 : N</text>
+
+    <!-- documents 1 : N project_documents -->
+    <path class="wire" d="M 895 357 L 895 430"/>
+    <path class="foot" d="M 888 369 L 902 369"/>
+    <path class="foot" d="M 895 416 L 888 430 M 895 416 L 895 430 M 895 416 L 902 430"/>
+    <text class="card" x="903" y="397">1 : N</text>
+
+    <text class="note" x="770" y="516">resolves projects : documents = M : N</text>
+
+    <!-- key to the notation, in the empty quarter under project_documents -->
+    <path class="wire" d="M 672 596 L 706 596"/>
+    <path class="foot" d="M 684 589 L 684 603"/>
+    <text class="note" x="714" y="600">exactly one</text>
+    <path class="wire" d="M 672 622 L 706 622"/>
+    <path class="foot" d="M 692 622 L 706 615 M 692 622 L 706 622 M 692 622 L 706 629"/>
+    <text class="note" x="714" y="626">many</text>
+    <path class="wire" d="M 672 648 L 706 648"/>
+    <path class="foot" d="M 680 641 L 680 655"/>
+    <circle class="opt" cx="694" cy="648" r="4"/>
+    <text class="note" x="714" y="652">zero or one</text>
+    <text class="note" x="672" y="682">underlined = primary key,  italic = foreign key,  U = unique</text>
+  </svg>
+
+</div></div>
+</body>
+</html>
