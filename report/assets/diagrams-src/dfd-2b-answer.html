@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_diagram.css">
+<title>DFD Level 2 - process 4.0, Answer Question</title>
+<style>
+  .proc-no { font-size: 15px; font-weight: 700; }
+  .proc { font-size: 12px; }
+  .store-id { font-size: 12px; font-weight: 700; }
+  .store-name { font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div id="sheet">
+<svg width="1220" height="660" viewBox="0 0 1220 660" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+    </marker>
+  </defs>
+
+  <!-- ============ external entities ============ -->
+  <rect class="shape fill" x="30" y="270" width="150" height="90"/>
+  <text class="t b mid" x="105" y="302">Registered</text>
+  <text class="t b mid" x="105" y="322">User</text>
+  <text class="t-xs mid" x="105" y="342">external entity</text>
+
+  <rect class="shape fill" x="980" y="550" width="200" height="80"/>
+  <text class="t b mid" x="1080" y="580">Language Model</text>
+  <text class="t b mid" x="1080" y="600">Provider</text>
+  <text class="t-xs mid" x="1080" y="618">external entity</text>
+
+  <!-- ============ data stores ============ -->
+  <g>
+    <path class="store-line" d="M 30 40 L 200 40 M 30 80 L 200 80 M 30 40 L 30 80 M 74 40 L 74 80"/>
+    <text class="store-id" x="43" y="66">D1</text>
+    <text class="store-name" x="86" y="66">users</text>
+
+    <path class="store-line" d="M 300 26 L 520 26 M 300 66 L 520 66 M 300 26 L 300 66 M 344 26 L 344 66"/>
+    <text class="store-id" x="313" y="52">D7</text>
+    <text class="store-name" x="356" y="52">projects</text>
+
+    <path class="store-line" d="M 950 30 L 1190 30 M 950 70 L 1190 70 M 950 30 L 950 70 M 994 30 L 994 70"/>
+    <text class="store-id" x="963" y="56">D6</text>
+    <text class="store-name" x="1006" y="56">query_logs</text>
+
+    <path class="store-line" d="M 470 300 L 690 300 M 470 340 L 690 340 M 470 300 L 470 340 M 514 300 L 514 340"/>
+    <text class="store-id" x="483" y="326">D4</text>
+    <text class="store-name" x="526" y="326">vector store</text>
+
+    <path class="store-line" d="M 500 480 L 720 480 M 500 520 L 720 520 M 500 480 L 500 520 M 544 480 L 544 520"/>
+    <text class="store-id" x="513" y="506">D2</text>
+    <text class="store-name" x="556" y="506">documents</text>
+  </g>
+
+  <!-- ============ processes ============ -->
+  <circle class="shape" cx="310" cy="175" r="58"/>
+  <text class="proc-no mid" x="310" y="160">4.1</text>
+  <text class="proc mid" x="310" y="178">Resolve Scope,</text>
+  <text class="proc mid" x="310" y="194">Check Provider</text>
+
+  <circle class="shape" cx="310" cy="430" r="58"/>
+  <text class="proc-no mid" x="310" y="415">4.2</text>
+  <text class="proc mid" x="310" y="433">Reply Without</text>
+  <text class="proc mid" x="310" y="449">Retrieval</text>
+
+  <circle class="shape" cx="580" cy="175" r="58"/>
+  <text class="proc-no mid" x="580" y="160">4.3</text>
+  <text class="proc mid" x="580" y="178">Retrieve</text>
+  <text class="proc mid" x="580" y="194">Passages</text>
+
+  <circle class="shape" cx="830" cy="175" r="58"/>
+  <text class="proc-no mid" x="830" y="160">4.4</text>
+  <text class="proc mid" x="830" y="178">Judge</text>
+  <text class="proc mid" x="830" y="194">Relevance</text>
+
+  <circle class="shape" cx="830" cy="430" r="58"/>
+  <text class="proc-no mid" x="830" y="415">4.5</text>
+  <text class="proc mid" x="830" y="433">Assemble the</text>
+  <text class="proc mid" x="830" y="449">Prompt</text>
+
+  <circle class="shape heavy" cx="1060" cy="430" r="58"/>
+  <text class="proc-no mid" x="1060" y="415">4.6</text>
+  <text class="proc mid" x="1060" y="433">Generate and</text>
+  <text class="proc mid" x="1060" y="449">Clean the Answer</text>
+
+  <circle class="shape" cx="1060" cy="175" r="58"/>
+  <text class="proc-no mid" x="1060" y="160">4.7</text>
+  <text class="proc mid" x="1060" y="178">Log the</text>
+  <text class="proc mid" x="1060" y="194">Query</text>
+
+  <!-- ============ flows ============ -->
+  <path class="flow" d="M 180 290 L 210 290 L 210 175 L 250 175"/>
+  <text class="flow-label" x="196" y="242">question, project,</text>
+  <text class="flow-label" x="196" y="256">provider, model</text>
+
+  <path class="flow" d="M 200 60 L 262 60 L 262 140"/>
+  <text class="flow-label" x="208" y="110">standing</text>
+  <text class="flow-label" x="208" y="124">instructions</text>
+
+  <path class="flow" d="M 340 68 L 340 124"/>
+  <text class="flow-label" x="350" y="96">instructions, scope</text>
+
+  <path class="flow dashed" d="M 310 233 L 310 370"/>
+  <text class="flow-label" x="322" y="250">a greeting, no documents</text>
+  <text class="flow-label" x="322" y="264">at all, a project with none</text>
+  <text class="flow-label" x="322" y="278">attached, or a question</text>
+  <text class="flow-label" x="322" y="292">about the conversation</text>
+
+  <path class="flow" d="M 262 466 L 105 466 L 105 362"/>
+  <text class="flow-label" x="120" y="486">a plain reply, no sources</text>
+
+  <path class="flow" d="M 368 175 L 520 175"/>
+  <text class="flow-label mid" x="444" y="150">question, and the</text>
+  <text class="flow-label mid" x="444" y="164">document ids allowed</text>
+
+  <path class="flow" d="M 560 231 L 560 298"/>
+  <text class="flow-label end" x="552" y="270">query vector</text>
+
+  <path class="flow" d="M 600 298 L 600 229"/>
+  <text class="flow-label" x="610" y="270">top 5 with score,</text>
+  <text class="flow-label" x="610" y="284">page and section</text>
+
+  <path class="flow" d="M 638 175 L 770 175"/>
+  <text class="flow-label mid" x="704" y="150">passages and</text>
+  <text class="flow-label mid" x="704" y="164">their best score</text>
+
+  <path class="flow dashed" d="M 790 217 L 730 217 L 730 380 L 460 380 L 460 560 L 340 560 L 340 484"/>
+  <text class="flow-label mid" x="595" y="358">nothing scored above 0.15 &#8212;</text>
+  <text class="flow-label mid" x="595" y="372">the model is never asked</text>
+
+  <path class="flow" d="M 830 233 L 830 370"/>
+  <text class="flow-label" x="840" y="290">the passages that</text>
+  <text class="flow-label" x="840" y="304">will be quoted</text>
+
+  <path class="flow" d="M 720 500 L 800 500 L 800 482"/>
+  <text class="flow-label end" x="640" y="470">document titles</text>
+
+  <path class="flow" d="M 888 430 L 1000 430"/>
+  <text class="flow-label mid" x="944" y="386">grounding rules,</text>
+  <text class="flow-label mid" x="944" y="400">numbered passages,</text>
+  <text class="flow-label mid" x="944" y="414">recent history</text>
+
+  <path class="flow" d="M 1040 484 L 1040 548"/>
+  <text class="flow-label end" x="1032" y="520">prompt</text>
+
+  <path class="flow" d="M 1090 548 L 1090 481"/>
+  <text class="flow-label" x="1100" y="520">answer text</text>
+
+  <path class="flow" d="M 1060 372 L 1060 235"/>
+  <text class="flow-label" x="1070" y="290">latency, provider,</text>
+  <text class="flow-label" x="1070" y="304">model, chunks used</text>
+
+  <path class="flow" d="M 1060 117 L 1060 74"/>
+  <text class="flow-label end" x="1052" y="100">one row per question</text>
+
+  <path class="flow" d="M 1002 442 L 960 442 L 960 640 L 20 640 L 20 300 L 28 300"/>
+  <text class="flow-label" x="300" y="632">the answer, with its passages numbered as they were quoted</text>
+</svg>
+</div>
+</body>
+</html>
