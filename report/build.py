@@ -29,6 +29,7 @@ report actually needs is supported; nothing else is.
     <!-- toc -->   contents field      <!-- pagebreak -->   page break
     <!-- lof -->   list of figures     <!-- arabic -->      restart at page 1
     <!-- lot -->   list of tables      <!-- landscape -->   wide section
+    <!-- arabic --> start the numbered body (numbering is continuous)
 """
 
 from __future__ import annotations
@@ -829,7 +830,10 @@ def handle_directive(builder: ReportBuilder, name: str, arg: str | None) -> None
         _setup_page(section)
         section.header.is_linked_to_previous = False
         section.footer.is_linked_to_previous = False
-        _number_format(section, "decimal", start=1)
+        # Numbering is one continuous arabic run from the title page, so this
+        # section must NOT restart it. The inherited rule is cleared instead,
+        # which leaves Word counting on from the front matter.
+        _clear_number_format(section)
         _page_footer(section)
         _running_header(section, "RAG Powered Knowledge System")
         # The section break already turned the page, so the chapter heading
@@ -905,9 +909,9 @@ def main() -> int:
     build_styles(doc)
     first = doc.sections[0]
     _setup_page(first)
-    _number_format(first, "lowerRoman", start=1)
+    _number_format(first, "decimal", start=1)
     _page_footer(first)
-    # The title page carries no page number, though it counts as page i.
+    # The title page carries no page number, though it counts as page 1.
     first.different_first_page_header_footer = True
 
     builder = ReportBuilder(doc)
