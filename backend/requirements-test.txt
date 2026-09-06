@@ -1,0 +1,25 @@
+# Just enough to import the modules the unit tests touch, at the same pins as
+# requirements.txt.
+#
+# The full requirements pull sentence-transformers, which pulls torch: several
+# gigabytes, and none of it needed here. Every function under test is pure, and
+# the one heavy import in the tree, the embedding model, is loaded lazily inside
+# a property, so it is never reached from a test.
+#
+#   pip install -r requirements-test.txt && pytest
+
+fastapi==0.115.6
+python-multipart==0.0.20
+pydantic==2.10.5
+pydantic-settings==2.7.1
+email-validator==2.2.0
+sqlalchemy==2.0.37
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
+langchain-core==0.3.63
+langchain-text-splitters==0.3.8
+chromadb==0.5.4
+chroma-hnswlib==0.7.5
+pytest==8.3.4
+httpx==0.28.1

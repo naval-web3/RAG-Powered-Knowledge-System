@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "smoke": "esbuild smoke/render-smoke.jsx --bundle --platform=node --format=cjs --jsx=automatic --loader:.js=jsx --outfile=smoke/out.cjs --log-level=error && node smoke/out.cjs"
+    "smoke": "esbuild smoke/render-smoke.jsx --bundle --platform=node --format=cjs --jsx=automatic --loader:.js=jsx --outfile=smoke/out.cjs --log-level=error && node smoke/out.cjs",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {
     "axios": "^1.7.9",
@@ -18,8 +19,16 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "jest": "^29.7.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "vite": "^6.0.7"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "testMatch": [
+      "**/src/**/__tests__/**/*.test.js"
+    ]
   }
 }

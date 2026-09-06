@@ -1,0 +1,93 @@
+# Continuous integration for the RAG Powered Knowledge System.
+#
+# The approved proposal specifies pytest for the backend and Jest for the front
+# end, run under continuous integration. This is that.
+#
+# The backend job installs requirements-test.txt rather than requirements.txt.
+# The full set pulls sentence-transformers and therefore torch, several
+# gigabytes of it, and no test needs any of it: every function under test is
+# pure, and the embedding model is loaded lazily inside a property so a test
+# never reaches it. A test run that takes ten minutes to install what it does
+# not use is a test run people switch off.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: backend, pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-test.txt
+
+      - name: Install
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+
+      - name: Compile every module
+        working-directory: backend
+        # Catches a syntax error in a file no test imports, which pytest alone
+        # would not reach.
+        run: python -m compileall -q app
+
+      - name: Test
+        working-directory: backend
+        run: python -m pytest -q
+
+  frontend:
+    name: frontend, jest and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Test
+        working-directory: frontend
+        run: npm test
+
+      - name: Build
+        working-directory: frontend
+        # The production build is what the disc ships, so a build that fails
+        # here is a disc that cannot be made.
+        run: npm run build
+
+  report:
+    name: report builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install python-docx==1.1.2
+
+      - name: Build the report
+        working-directory: report
+        # Only as far as the .docx. Turning that into a PDF needs Word, which no
+        # runner has, so the PDF is made on the machine that has one.
+        run: python build.py
