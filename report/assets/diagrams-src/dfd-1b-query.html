@@ -49,18 +49,24 @@
   <text class="proc mid" x="770" y="174">Conversations</text>
 
   <!-- ============ data stores ============ -->
+  <!-- D1 sits above D7 so that the project scope can drop straight down to 4.0
+       without crossing another store. -->
   <g>
     <path class="store-line" d="M 470 96 L 660 96 M 470 136 L 660 136 M 470 96 L 470 136 M 514 96 L 514 136"/>
-    <text class="store-id" x="483" y="122">D7</text>
-    <text class="store-name" x="526" y="122">projects</text>
+    <text class="store-id" x="483" y="122">D1</text>
+    <text class="store-name" x="526" y="122">users</text>
 
     <path class="store-line" d="M 470 176 L 660 176 M 470 216 L 660 216 M 470 176 L 470 216 M 514 176 L 514 216"/>
-    <text class="store-id" x="483" y="202">D1</text>
-    <text class="store-name" x="526" y="202">users</text>
+    <text class="store-id" x="483" y="202">D7</text>
+    <text class="store-name" x="526" y="202">projects</text>
 
     <path class="store-line" d="M 890 60 L 1140 60 M 890 100 L 1140 100 M 890 60 L 890 100 M 934 60 L 934 100"/>
     <text class="store-id" x="903" y="86">D5</text>
     <text class="store-name" x="946" y="86">conversations, messages</text>
+
+    <path class="store-line" d="M 740 240 L 930 240 M 740 280 L 930 280 M 740 240 L 740 280 M 784 240 L 784 280"/>
+    <text class="store-id" x="753" y="266">D2</text>
+    <text class="store-name" x="796" y="266">documents</text>
 
     <path class="store-line" d="M 640 490 L 850 490 M 640 530 L 850 530 M 640 490 L 640 530 M 684 490 L 684 530"/>
     <text class="store-id" x="653" y="516">D4</text>
@@ -69,33 +75,29 @@
     <path class="store-line" d="M 300 560 L 510 560 M 300 600 L 510 600 M 300 560 L 300 600 M 344 560 L 344 600"/>
     <text class="store-id" x="313" y="586">D6</text>
     <text class="store-name" x="356" y="586">query_logs</text>
-
-    <path class="store-line" d="M 700 240 L 890 240 M 700 280 L 890 280 M 700 240 L 700 280 M 744 240 L 744 280"/>
-    <text class="store-id" x="713" y="266">D2</text>
-    <text class="store-name" x="756" y="266">documents</text>
   </g>
 
   <!-- ============ flows ============ -->
 
   <!-- user -> 7.0 -->
   <path class="flow" d="M 180 268 L 226 268 L 226 142 L 244 142"/>
-  <text class="flow-label" x="140" y="200">project, standing</text>
-  <text class="flow-label" x="140" y="214">instructions,</text>
-  <text class="flow-label" x="140" y="228">preferences</text>
-
-  <!-- 7.0 -> D7 -->
-  <path class="flow" d="M 352 108 L 470 108"/>
-  <text class="flow-label mid" x="410" y="76">name, scope,</text>
-  <text class="flow-label mid" x="410" y="90">linked documents</text>
+  <text class="flow-label" x="236" y="206">project, standing</text>
+  <text class="flow-label" x="236" y="220">instructions,</text>
+  <text class="flow-label" x="236" y="234">preferences</text>
 
   <!-- 7.0 -> D1 -->
-  <path class="flow" d="M 348 160 L 420 160 L 420 196 L 470 196"/>
-  <text class="flow-label" x="360" y="188">preferences</text>
+  <path class="flow" d="M 352 108 L 470 108"/>
+  <text class="flow-label mid" x="410" y="88">preferences</text>
+
+  <!-- 7.0 -> D7 -->
+  <path class="flow" d="M 329 178 L 329 196 L 470 196"/>
+  <text class="flow-label" x="350" y="168">name, scope,</text>
+  <text class="flow-label" x="350" y="182">linked documents</text>
 
   <!-- D7 -> 4.0 : the project supplies scope and instructions -->
-  <path class="flow dashed" d="M 490 136 L 490 306 L 466 306"/>
-  <text class="flow-label" x="386" y="292">instructions,</text>
-  <text class="flow-label" x="386" y="306">document scope</text>
+  <path class="flow dashed" d="M 490 216 L 490 252 L 430 252 L 430 280"/>
+  <text class="flow-label end" x="482" y="230">instructions,</text>
+  <text class="flow-label end" x="482" y="244">document scope</text>
 
   <!-- user -> 4.0 -->
   <path class="flow" d="M 180 330 L 363 330"/>
@@ -110,7 +112,7 @@
   <text class="flow-label" x="560" y="454">query vector, document filter</text>
 
   <!-- D4 -> 4.0 -->
-  <path class="flow" d="M 800 490 L 800 434 L 490 434 L 490 416"/>
+  <path class="flow" d="M 800 490 L 800 434 L 490 434 L 490 388"/>
   <text class="flow-label" x="560" y="428">top-k passages + metadata</text>
 
   <!-- 4.0 -> provider -->
@@ -118,28 +120,29 @@
   <text class="flow-label mid" x="730" y="332">prompt: question + numbered passages</text>
 
   <!-- provider -> 4.0 -->
-  <path class="flow" d="M 950 372 L 493 372"/>
+  <path class="flow" d="M 950 372 L 497 372"/>
   <text class="flow-label mid" x="730" y="392">generated answer text</text>
 
   <!-- 4.0 -> D6 -->
-  <path class="flow" d="M 400 418 L 400 560"/>
+  <path class="flow" d="M 400 415 L 400 560"/>
   <text class="flow-label end" x="392" y="500">latency, provider,</text>
   <text class="flow-label end" x="392" y="514">model, chunks used</text>
 
   <!-- 4.0 reads D2 for the titles it cites -->
-  <path class="flow" d="M 700 260 L 500 260 L 500 300"/>
-  <text class="flow-label mid" x="600" y="252">document titles</text>
+  <path class="flow" d="M 800 280 L 800 310 L 489 310"/>
+  <text class="flow-label" x="810" y="302">document titles</text>
 
   <!-- 4.0 -> 5.0 -->
-  <path class="flow" d="M 470 292 L 600 292 L 600 178 L 716 160"/>
-  <text class="flow-label" x="530" y="286">question, answer, sources</text>
+  <path class="flow" d="M 479 300 L 479 276 L 690 276 L 690 150 L 714 150"/>
+  <text class="flow-label end" x="682" y="254">question, answer,</text>
+  <text class="flow-label end" x="682" y="268">sources</text>
 
   <!-- 5.0 -> D5 -->
-  <path class="flow" d="M 822 132 L 950 132 L 950 100"/>
-  <text class="flow-label" x="838" y="126">message pair</text>
+  <path class="flow" d="M 823 132 L 950 132 L 950 100"/>
+  <text class="flow-label" x="828" y="126">message pair</text>
 
   <!-- D5 -> 5.0 -->
-  <path class="flow" d="M 910 100 L 910 168 L 826 168"/>
+  <path class="flow" d="M 910 100 L 910 168 L 825 168"/>
   <text class="flow-label" x="840" y="186">history</text>
 
   <!-- user -> 5.0 -->
@@ -147,7 +150,7 @@
   <text class="flow-label" x="300" y="20">open, rename, pin, search or delete a conversation</text>
 
   <!-- 5.0 -> user -->
-  <path class="flow" d="M 726 122 L 690 122 L 690 50 L 150 50 L 150 250"/>
+  <path class="flow" d="M 717 128 L 670 128 L 670 50 L 150 50 L 150 250"/>
   <text class="flow-label" x="300" y="44">conversation list and stored history</text>
 </svg>
 </div>
