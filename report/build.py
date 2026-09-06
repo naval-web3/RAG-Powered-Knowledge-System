@@ -119,16 +119,41 @@ def _keep_together(paragraph) -> None:
     pf.keep_with_next = True
 
 
+# Everything Word allows after <w:pgNumType> inside <w:sectPr>. The schema
+# fixes this order, and a new section is a clone of the previous one, so an
+# inherited element has to be replaced in place rather than appended.
+_AFTER_PGNUMTYPE = (
+    "w:cols", "w:formProt", "w:vAlign", "w:noEndnote", "w:titlePg",
+    "w:textDirection", "w:bidi", "w:rtlGutter", "w:docGrid",
+    "w:printerSettings", "w:sectPrChange",
+)
+
+
+def _clear_number_format(section) -> None:
+    """Drop an inherited page-number rule so the section just carries on
+    counting. Without this a landscape plate inside Chapter 2 inherits the
+    "restart at 1" that starts the arabic numbering and renumbers itself 1."""
+    for existing in section._sectPr.findall(qn("w:pgNumType")):
+        section._sectPr.remove(existing)
+
+
 def _number_format(section, fmt: str, start: int | None = None) -> None:
     """Page-number format for a section: 'decimal' or 'lowerRoman'."""
+    _clear_number_format(section)
     pg = OxmlElement("w:pgNumType")
     pg.set(qn("w:fmt"), fmt)
     if start is not None:
         pg.set(qn("w:start"), str(start))
-    section._sectPr.append(pg)
+    section._sectPr.insert_element_before(pg, *_AFTER_PGNUMTYPE)
 
 
 def _page_footer(section, first_page_blank: bool = False) -> None:
+    # python-docx builds a new section by cloning the previous one's <sectPr>,
+    # so the title page's "no header or footer on the first page" setting rides
+    # along into every section created after it and silently swallows the page
+    # number on the first page of each. Only the title page wants it, and it
+    # sets it back on for itself after calling this.
+    section.different_first_page_header_footer = False
     footer = section.footer
     footer.is_linked_to_previous = False
     para = footer.paragraphs[0]
@@ -704,12 +729,15 @@ def handle_directive(builder: ReportBuilder, name: str, arg: str | None) -> None
         section = doc.add_section(WD_SECTION.NEW_PAGE)
         _setup_page(section)
         section.orientation = WD_ORIENT.LANDSCAPE
+        _clear_number_format(section)
         section.page_width, section.page_height = Inches(11.69), Inches(8.27)
         _page_footer(section)
+        _running_header(section, "RAG Powered Knowledge System")
     elif name == "portrait":
         section = doc.add_section(WD_SECTION.NEW_PAGE)
         _setup_page(section)
         section.orientation = WD_ORIENT.PORTRAIT
+        _clear_number_format(section)
         _page_footer(section)
         _running_header(section, "RAG Powered Knowledge System")
     else:
