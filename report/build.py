@@ -507,6 +507,11 @@ class ReportBuilder:
             p.paragraph_format.space_after = Pt(0)
             p.paragraph_format.line_spacing = 1.0
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            # A hanging indent, so a source line too wide for the text column
+            # wraps to an indent rather than back to the margin, where it
+            # would read as a new statement.
+            p.paragraph_format.left_indent = Inches(0.30)
+            p.paragraph_format.first_line_indent = Inches(-0.26)
             run = p.add_run(line.replace("\t", "    "))
             run.font.name = CODE_FONT
             run.font.size = CODE_SIZE
