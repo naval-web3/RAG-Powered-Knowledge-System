@@ -284,27 +284,33 @@ def build_styles(doc: Document) -> None:
 INLINE = re.compile(r"(\*\*.+?\*\*|(?<!\*)\*[^*\n]+?\*(?!\*)|`[^`]+?`)")
 
 
-def add_inline(paragraph, text: str, size=None, code_size=None):
-    """Write text into a paragraph honouring **bold**, *italic* and `code`."""
+def add_inline(paragraph, text: str, size=None, code_size=None,
+               bold: bool = False, italic: bool = False):
+    """Write text into a paragraph honouring **bold**, *italic* and `code`.
+
+    Recursive, because these nest: a sentence that opens by naming a table in
+    `code` inside a **bold** lead-in is ordinary in this report, and a flat
+    parser writes the backticks out as literal characters."""
     size = size or BODY_SIZE
     code_size = code_size or Pt(size.pt - 1.5)
     for piece in INLINE.split(text):
         if not piece:
             continue
         if piece.startswith("**") and piece.endswith("**") and len(piece) > 4:
-            run = paragraph.add_run(piece[2:-2])
-            run.bold = True
+            add_inline(paragraph, piece[2:-2], size, code_size, True, italic)
         elif piece.startswith("`") and piece.endswith("`") and len(piece) > 2:
             run = paragraph.add_run(piece[1:-1])
             run.font.name = CODE_FONT
             run.font.size = code_size
-            continue
+            run.bold = bold
+            run.italic = italic
         elif piece.startswith("*") and piece.endswith("*") and len(piece) > 2:
-            run = paragraph.add_run(piece[1:-1])
-            run.italic = True
+            add_inline(paragraph, piece[1:-1], size, code_size, bold, True)
         else:
             run = paragraph.add_run(piece)
-        run.font.size = size
+            run.font.size = size
+            run.bold = bold
+            run.italic = italic
     return paragraph
 
 
@@ -333,6 +339,29 @@ class ReportBuilder:
     def para(self, text: str, style: str | None = None):
         self.started = True
         p = self.doc.add_paragraph(style=style)
+        add_inline(p, text)
+        self.words += len(text.split())
+        return p
+
+    def numbered_item(self, number: int, text: str):
+        """One item of an ordered list, with the number written literally.
+
+        Word's own List Number style keeps a single counter for the whole
+        document, so the fourth item of the fourth list in the report came out
+        as "19." The number is therefore a run of text and the indent is a
+        hanging one, which cannot drift."""
+        self.started = True
+        p = self.doc.add_paragraph()
+        pf = p.paragraph_format
+        pf.line_spacing = 1.0
+        pf.space_after = Pt(3)
+        pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        pf.left_indent = Inches(0.6)
+        pf.first_line_indent = Inches(-0.25)
+        pf.tab_stops.add_tab_stop(Inches(0.6))
+        run = p.add_run("%d.	" % number)
+        run.font.name = BODY_FONT
+        run.font.size = BODY_SIZE
         add_inline(p, text)
         self.words += len(text.split())
         return p
@@ -675,9 +704,11 @@ def parse(builder: ReportBuilder, text: str) -> None:
 
         numbered = NUMBERED.match(stripped)
         if numbered:
+            n = 0
             while i < len(lines) and NUMBERED.match(lines[i].strip()):
                 item = NUMBERED.match(lines[i].strip()).group("text")
-                builder.para(item, style="List Number")
+                n += 1
+                builder.numbered_item(n, item)
                 i += 1
             continue
 
@@ -789,9 +820,9 @@ def fill_lists(builder: ReportBuilder) -> None:
             para.paragraph_format.tab_stops.add_tab_stop(
                 Inches(TEXT_WIDTH_IN), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS
             )
-            run = para.add_run(label)
-            run.font.name = BODY_FONT
-            run.font.size = Pt(11)
+            # Captions carry inline markup, and the list has to honour it or
+            # the backticks around a table name print as characters.
+            add_inline(para, label, size=Pt(11))
             tab = para.add_run("\t")
             tab.font.size = Pt(11)
             _field(para, " PAGEREF %s \\h " % mark, "0")
