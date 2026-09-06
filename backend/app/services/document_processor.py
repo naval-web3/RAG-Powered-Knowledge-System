@@ -6,6 +6,7 @@ Flow: load raw file -> extract text -> chunk (Recursive splitter,
 -> update the document's processing_status in PostgreSQL.
 """
 
+import io
 import uuid
 
 from langchain_core.documents import Document as LCDocument
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import Document
-from app.services import vector_store
+from app.services import file_store, vector_store
 
 
 # ---------- OCR (scanned / image-only PDFs) ----------
@@ -32,9 +33,12 @@ def _get_ocr_engine():
     return _ocr_engine
 
 
-def _ocr_pdf_pages(path: str, page_indices: list[int], on_progress=None) -> dict[int, str]:
+def _ocr_pdf_pages(data: bytes, page_indices: list[int], on_progress=None) -> dict[int, str]:
     """OCR the given 0-based page indices of a PDF. Renders each page to an
-    image with PyMuPDF and reads it with RapidOCR. Returns {index: text}."""
+    image with PyMuPDF and reads it with RapidOCR. Returns {index: text}.
+
+    Takes the PDF as bytes rather than as a path, because the file on disk is
+    encrypted and PyMuPDF cannot read it from there."""
     import fitz  # PyMuPDF
     import numpy as np
     from PIL import Image
@@ -43,7 +47,7 @@ def _ocr_pdf_pages(path: str, page_indices: list[int], on_progress=None) -> dict
     zoom = settings.OCR_DPI / 72.0
     matrix = fitz.Matrix(zoom, zoom)
     out: dict[int, str] = {}
-    doc = fitz.open(path)
+    doc = fitz.open(stream=data, filetype="pdf")
     targets = page_indices[: settings.OCR_MAX_PAGES]
     try:
         for n_done, idx in enumerate(targets, start=1):
@@ -60,7 +64,7 @@ def _ocr_pdf_pages(path: str, page_indices: list[int], on_progress=None) -> dict
 
 
 # ---------- Text extraction ----------
-def _extract_pdf(path: str, on_ocr_start=None, on_page=None) -> list[tuple[int, str]]:
+def _extract_pdf(data: bytes, on_ocr_start=None, on_page=None) -> list[tuple[int, str]]:
     """Return (page_number, text) for each page. Pages with no embedded
     (selectable) text fall back to OCR when OCR_ENABLED. If OCR is triggered,
     on_ocr_start(n_pages) is called first so the caller can flag the slow step.
@@ -68,7 +72,7 @@ def _extract_pdf(path: str, on_ocr_start=None, on_page=None) -> list[tuple[int, 
     real extraction progress rather than guessing at it."""
     from pypdf import PdfReader
 
-    reader = PdfReader(path)
+    reader = PdfReader(io.BytesIO(data))
     total = len(reader.pages)
     pages: list[tuple[int, str]] = []
     empty_indices: list[int] = []
@@ -85,36 +89,42 @@ def _extract_pdf(path: str, on_ocr_start=None, on_page=None) -> list[tuple[int, 
     if settings.OCR_ENABLED and empty_indices:
         if on_ocr_start is not None:
             on_ocr_start(min(len(empty_indices), settings.OCR_MAX_PAGES))
-        for idx, ocr_text in _ocr_pdf_pages(path, empty_indices, on_progress=on_page).items():
+        for idx, ocr_text in _ocr_pdf_pages(data, empty_indices, on_progress=on_page).items():
             pages[idx] = (pages[idx][0], ocr_text)
     return pages
 
 
-def _extract_docx(path: str) -> list[tuple[int, str]]:
+def _extract_docx(data: bytes) -> list[tuple[int, str]]:
     import docx
 
-    doc = docx.Document(path)
+    doc = docx.Document(io.BytesIO(data))
     text = "\n".join(p.text for p in doc.paragraphs)
     return [(1, text)]
 
 
-def _extract_txt(path: str) -> list[tuple[int, str]]:
-    with open(path, encoding="utf-8", errors="ignore") as f:
-        return [(1, f.read())]
+def _extract_txt(data: bytes) -> list[tuple[int, str]]:
+    return [(1, data.decode("utf-8", errors="ignore"))]
 
 
 def extract_text(
     path: str, file_type: str, on_ocr_start=None, on_page=None
 ) -> list[tuple[int, str]]:
+    """Read a stored document and return its text, page by page.
+
+    The file is decrypted here, once, and the extractors below work on the bytes
+    rather than reopening the path. Nothing writes a plaintext copy to disk on
+    the way, which would have made the encryption decorative.
+    """
+    data = file_store.read(path)
     if file_type == "pdf":
-        return _extract_pdf(path, on_ocr_start=on_ocr_start, on_page=on_page)
+        return _extract_pdf(data, on_ocr_start=on_ocr_start, on_page=on_page)
     if file_type == "docx":
-        pages = _extract_docx(path)
+        pages = _extract_docx(data)
     elif file_type in ("txt", "md"):
         # Markdown is read as what it is on disk: text. Nothing downstream cares
         # about the syntax, and the viewer shows the source rather than
         # rendering it.
-        pages = _extract_txt(path)
+        pages = _extract_txt(data)
     else:
         raise ValueError(f"Unsupported file type: {file_type}")
     # Single-unit formats have one 'page'; report it so progress still moves.

@@ -15,6 +15,9 @@ alembic==1.14.1
 
 # ===== Auth / security =====
 python-jose[cryptography]==3.3.0
+# Pinned in its own right, not only as a python-jose extra: AES-256-GCM for
+# encryption at rest comes from here (app/services/file_store.py).
+cryptography==49.0.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.2.1
 

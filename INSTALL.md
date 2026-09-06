@@ -325,7 +325,68 @@ Register-ScheduledTask -TaskName 'RAG knowledge system backup' `
 Adjust the path if the project is installed elsewhere. Check it afterwards with
 `Get-ScheduledTaskInfo -TaskName 'RAG knowledge system backup'`.
 
-## 11. Serving other people, over HTTPS
+A backup archive is a copy of the documents. Encrypted ones stay encrypted
+inside it, which is the point, but see the warning about the key in section 11.
+
+---
+
+## 11. Encryption at rest
+
+Every document uploaded from now on is encrypted with AES-256-GCM before it is
+written to disk. Open one in Notepad and you get nothing: not the text, not even
+the `%PDF` at the front of a PDF. The application decrypts on the way out, so
+nothing about using it changes.
+
+The key comes from `SECRET_KEY` unless you set `FILE_ENCRYPTION_KEY`. Both live
+in `backend\.env`, which is why that file is not on the disc.
+
+> **The key is the documents.** Lose `SECRET_KEY` (or `FILE_ENCRYPTION_KEY`, if
+> you set one) and every encrypted document is gone, backups included, because
+> the backup holds the encrypted files and not the key. Keep a copy of that line
+> from `.env` somewhere separate from the backup drive.
+>
+> This is also why regenerating `SECRET_KEY` is not a harmless thing to do once
+> the system is in use. It signs everyone out, which is recoverable, and it
+> orphans every stored document, which is not. Set `FILE_ENCRYPTION_KEY`
+> explicitly if you think you may want to change the signing key later.
+
+### The documents restored from the disc
+
+They are not encrypted. They were stored before this was switched on, and they
+belong to a `SECRET_KEY` that only existed on the machine that made them, so
+encrypting them for the disc would have handed you files you could not open.
+
+The application reads both forms, so they work exactly as they should. To
+encrypt them under your own key, stop the application and run:
+
+```powershell
+cd <project>\backend
+.venv\Scripts\Activate.ps1
+python -m scripts.encrypt_uploads --dry-run     # what would change
+python -m scripts.encrypt_uploads               # do it
+```
+
+Take a backup first. Each file is verified as decryptable before the original is
+replaced, and is rewritten through a temporary file so an interruption cannot
+leave a half-written document, but a backup costs nothing and this does not
+undo.
+
+### Checking it
+
+With the servers running:
+
+```powershell
+cd <project>\backend
+.venv\Scripts\Activate.ps1
+python -m scripts.check_encryption --base http://127.0.0.1:8000
+```
+
+It uploads a document, reads the raw bytes off the disk to confirm the text is
+not in them, downloads it again to confirm it comes back whole, and deletes it.
+
+---
+
+## 12. Serving other people, over HTTPS
 
 Everything above is the single-machine deployment: the application serves itself
 on the loopback interface, over HTTP, which is correct there. Nothing leaves the
@@ -360,7 +421,7 @@ trust it.
 > published ports from the base file and Compose merges port lists rather than
 > replacing them.
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -383,7 +444,7 @@ Get-NetTCPConnection -LocalPort 8000 -State Listen |
 
 ---
 
-## 13. Running without Ollama (cloud models only)
+## 14. Running without Ollama (cloud models only)
 
 If the machine cannot run a local model, the application also works with
 OpenAI. Put a key in `backend\.env`:

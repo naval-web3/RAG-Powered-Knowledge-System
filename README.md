@@ -19,6 +19,8 @@ with source citations.
 | Vector store     | ChromaDB (persistent / embedded, cosine similarity)     |
 | Relational DB    | PostgreSQL 16                                           |
 | Auth             | JWT access tokens + rotating refresh tokens, bcrypt      |
+| At rest          | Uploaded documents sealed with AES-256-GCM               |
+| In transit       | HTTPS via Caddy (`docker-compose.tls.yml`)               |
 
 ## Modules (per synopsis)
 

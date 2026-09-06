@@ -34,6 +34,17 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     ALGORITHM: str = "HS256"
 
+    # ---- Encryption at rest ----
+    # Uploaded documents are sealed with AES-256-GCM before they are written.
+    # The key comes from FILE_ENCRYPTION_KEY when one is set, and is otherwise
+    # derived from SECRET_KEY, so a standard installation gets this without a
+    # second secret to manage. See services/file_store.py.
+    #
+    # Files stored before this was switched on stay readable: the reader detects
+    # the format. Turning it off does not decrypt what is already encrypted.
+    ENCRYPT_UPLOADS: bool = True
+    FILE_ENCRYPTION_KEY: str = ""
+
     # ---- PostgreSQL ----
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "rag"

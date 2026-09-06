@@ -16,7 +16,6 @@ from fastapi import (
     status,
 )
 from fastapi import Response
-from fastapi.responses import FileResponse
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
@@ -31,7 +30,7 @@ from app.schemas import (
     DocumentPage,
     DocumentPatch,
 )
-from app.services import vector_store
+from app.services import file_store, vector_store
 from app.services.document_processor import extract_text
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -124,8 +123,10 @@ async def upload_document(
     os.makedirs(user_dir, exist_ok=True)
     stored_name = f"{uuid.uuid4()}.{ext}"
     stored_path = os.path.join(user_dir, stored_name)
-    with open(stored_path, "wb") as f:
-        f.write(data)
+    # Sealed on the way to disk. file_size below stays the size of the document
+    # the user uploaded, not the size of what is stored, because that is the
+    # number shown in the library and counted against the upload limit.
+    file_store.write(stored_path, data)
 
     doc = Document(
         user_id=current_user.user_id,
@@ -275,7 +276,8 @@ def document_thumbnail(
     import fitz  # PyMuPDF, already used to read PDFs
 
     try:
-        with fitz.open(doc.file_path) as pdf:
+        # From bytes, not from the path: the stored file is encrypted.
+        with fitz.open(stream=file_store.read(doc.file_path), filetype="pdf") as pdf:
             if pdf.page_count == 0:
                 raise HTTPException(status.HTTP_404_NOT_FOUND, "This PDF has no pages")
             page = pdf.load_page(0)
@@ -318,15 +320,28 @@ def document_file(
     document_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> FileResponse:
-    """The original upload, byte for byte, under the name it arrived with."""
+) -> Response:
+    """The original upload, byte for byte, under the name it arrived with.
+
+    Sent from memory rather than with FileResponse, which would stream the
+    encrypted file straight off the disk and hand the user something no reader
+    can open. Uploads are capped at MAX_UPLOAD_MB, so there is a bound on what
+    this holds.
+    """
     doc = _owned(db, document_id, current_user)
     if not os.path.exists(doc.file_path):
         raise HTTPException(status.HTTP_410_GONE, "The stored file is missing")
-    return FileResponse(
-        doc.file_path,
-        filename=doc.original_filename,
+    try:
+        data = file_store.read(doc.file_path)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)) from exc
+    return Response(
+        content=data,
         media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{doc.original_filename}"',
+            "Content-Length": str(len(data)),
+        },
     )
 
 
