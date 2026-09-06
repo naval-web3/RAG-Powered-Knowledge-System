@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_diagram.css">
+<title>Use case diagram</title>
+<style>
+  .uc { font-size: 12px; }
+  .actor-name { font-size: 12.5px; font-weight: 700; }
+  .sys-name { font-size: 15px; font-weight: 700; }
+  .stereo { font-size: 10px; font-style: italic; fill: #333; }
+  .assoc { stroke: #111; stroke-width: 1.4; fill: none; }
+  .dep { stroke: #111; stroke-width: 1.3; fill: none; stroke-dasharray: 6 4;
+         marker-end: url(#open); }
+  .gen { stroke: #111; stroke-width: 1.4; fill: none; }
+  .actor { stroke: #111; stroke-width: 1.6; fill: #fff; }
+</style>
+</head>
+<body>
+<div id="sheet">
+<svg width="1150" height="830" viewBox="0 0 1150 830" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="open" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#111" stroke-width="1.4"/>
+    </marker>
+  </defs>
+
+  <!-- ===================== system boundary ===================== -->
+  <rect class="shape" x="230" y="30" width="580" height="785"/>
+  <text class="sys-name mid" x="520" y="56">RAG Powered Knowledge System</text>
+
+  <!-- ===================== actors ===================== -->
+  <!-- Registered User -->
+  <circle class="actor" cx="150" cy="420" r="14"/>
+  <path class="actor" d="M 150 434 L 150 476 M 124 450 L 176 450 M 150 476 L 132 506 M 150 476 L 168 506"/>
+  <text class="actor-name end" x="116" y="455">Registered User</text>
+
+  <!-- Administrator -->
+  <circle class="actor" cx="150" cy="730" r="14"/>
+  <path class="actor" d="M 150 744 L 150 786 M 124 760 L 176 760 M 150 786 L 132 816 M 150 786 L 168 816"/>
+  <text class="actor-name end" x="116" y="765">Administrator</text>
+
+  <!-- an administrator IS a registered user whose role column reads 'admin' -->
+  <path class="gen" d="M 150 716 L 150 532"/>
+  <path class="actor" d="M 150 514 L 142 532 L 158 532 Z"/>
+
+  <!-- Language Model Provider (supporting actor) -->
+  <circle class="actor" cx="960" cy="440" r="14"/>
+  <path class="actor" d="M 960 454 L 960 496 M 934 470 L 986 470 M 960 496 L 942 526 M 960 496 L 978 526"/>
+  <text class="actor-name" x="924" y="552">Language Model</text>
+  <text class="actor-name" x="924" y="568">Provider</text>
+  <text class="stereo" x="924" y="584">Ollama, on this machine,</text>
+  <text class="stereo" x="924" y="597">or the OpenAI service</text>
+
+  <!-- ===================== use cases: what the user does ===================== -->
+  <ellipse class="shape" cx="390" cy="104" rx="92" ry="25"/>
+  <text class="uc mid" x="390" y="109">Register an account</text>
+
+  <ellipse class="shape" cx="390" cy="164" rx="92" ry="25"/>
+  <text class="uc mid" x="390" y="169">Log in</text>
+
+  <ellipse class="shape" cx="390" cy="224" rx="92" ry="25"/>
+  <text class="uc mid" x="390" y="220">Reset a forgotten</text>
+  <text class="uc mid" x="390" y="235">password</text>
+
+  <ellipse class="shape" cx="390" cy="292" rx="92" ry="25"/>
+  <text class="uc mid" x="390" y="297">Upload a document</text>
+
+  <ellipse class="shape" cx="390" cy="352" rx="92" ry="25"/>
+  <text class="uc mid" x="390" y="357">Read a document</text>
+
+  <ellipse class="shape heavy" cx="390" cy="460" rx="92" ry="25"/>
+  <text class="uc mid b" x="390" y="465">Ask a question</text>
+
+  <ellipse class="shape" cx="390" cy="530" rx="92" ry="25"/>
+  <text class="uc mid" x="390" y="526">Inspect a cited</text>
+  <text class="uc mid" x="390" y="541">passage</text>
+
+  <ellipse class="shape" cx="390" cy="590" rx="92" ry="25"/>
+  <text class="uc mid" x="390" y="595">Manage conversations</text>
+
+  <ellipse class="shape" cx="390" cy="650" rx="92" ry="25"/>
+  <text class="uc mid" x="390" y="655">Set up a project</text>
+
+  <ellipse class="shape" cx="390" cy="710" rx="92" ry="25"/>
+  <text class="uc mid" x="390" y="715">Change settings</text>
+
+  <ellipse class="shape" cx="390" cy="770" rx="92" ry="25"/>
+  <text class="uc mid" x="390" y="775">Administer the system</text>
+
+  <!-- ============ use cases the others include or extend ============ -->
+  <ellipse class="shape tint" cx="680" cy="210" rx="92" ry="25"/>
+  <text class="uc mid" x="680" y="206">Recognise text on</text>
+  <text class="uc mid" x="680" y="221">a scanned page</text>
+
+  <ellipse class="shape tint" cx="680" cy="290" rx="92" ry="25"/>
+  <text class="uc mid" x="680" y="286">Extract, split and</text>
+  <text class="uc mid" x="680" y="301">index the text</text>
+
+  <ellipse class="shape tint" cx="680" cy="400" rx="92" ry="25"/>
+  <text class="uc mid" x="680" y="396">Retrieve the passages</text>
+  <text class="uc mid" x="680" y="411">that match</text>
+
+  <ellipse class="shape tint" cx="680" cy="460" rx="92" ry="25"/>
+  <text class="uc mid" x="680" y="456">Generate an answer</text>
+  <text class="uc mid" x="680" y="471">from those passages</text>
+
+  <ellipse class="shape tint" cx="680" cy="520" rx="92" ry="25"/>
+  <text class="uc mid" x="680" y="516">Answer without</text>
+  <text class="uc mid" x="680" y="531">keeping the chat</text>
+
+  <!-- ===================== associations ===================== -->
+  <path class="assoc" d="M 176 450 L 300 104"/>
+  <path class="assoc" d="M 176 450 L 300 164"/>
+  <path class="assoc" d="M 176 450 L 300 224"/>
+  <path class="assoc" d="M 176 450 L 300 292"/>
+  <path class="assoc" d="M 176 450 L 300 352"/>
+  <path class="assoc" d="M 176 450 L 298 460"/>
+  <path class="assoc" d="M 176 450 L 300 530"/>
+  <path class="assoc" d="M 176 450 L 300 590"/>
+  <path class="assoc" d="M 176 450 L 300 650"/>
+  <path class="assoc" d="M 176 450 L 300 710"/>
+  <path class="assoc" d="M 176 760 L 300 770"/>
+  <path class="assoc" d="M 934 470 L 772 460"/>
+
+  <!-- ===================== include and extend ===================== -->
+  <!-- uploading always runs the pipeline -->
+  <path class="dep" d="M 482 292 L 586 290"/>
+  <text class="stereo mid" x="534" y="282">&#171;include&#187;</text>
+
+  <!-- OCR only happens when the page carries no text layer -->
+  <path class="dep" d="M 680 235 L 680 263"/>
+  <text class="stereo" x="690" y="253">&#171;extend&#187;</text>
+
+  <!-- asking always retrieves, then always generates -->
+  <path class="dep" d="M 480 448 L 590 408"/>
+  <text class="stereo mid" x="536" y="418">&#171;include&#187;</text>
+
+  <path class="dep" d="M 482 460 L 586 460"/>
+  <text class="stereo mid" x="534" y="452">&#171;include&#187;</text>
+
+  <!-- private mode is a variation on asking -->
+  <path class="dep" d="M 590 512 L 480 472"/>
+  <text class="stereo mid" x="536" y="506">&#171;extend&#187;</text>
+</svg>
+</div>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_diagram.css">
+<title>Class diagram</title>
+<style>
+  /* Same construction as the ER sheet: positioned boxes, one SVG over them.
+     The service layer of this system is written as modules of functions rather
+     than as classes, so those are drawn as UML modules - a classifier with its
+     stereotype above the name - and only what really is a class is drawn as
+     one. Saying so is more honest than inventing wrapper classes that are not
+     in the source.
+
+     The layers are separated by rules rather than by boxes: a dependency that
+     crosses a layer is the point of the drawing, and a frame it has to be
+     threaded around only makes the wires worse. */
+  #sheet { position: relative; width: 1180px; height: 780px; padding: 0; }
+  .plane { position: relative; width: 1180px; height: 780px; }
+
+  .cls { position: absolute; border: 1.6px solid #111; background: #fff; }
+  .cls > .hd {
+    border-bottom: 1.6px solid #111; padding: 3px 8px 4px; background: #ececec;
+    text-align: center;
+  }
+  .cls > .hd .st { display: block; font-size: 10px; font-style: italic; color: #333; line-height: 12px; }
+  .cls > .hd .nm { display: block; font-size: 13px; font-weight: 700; line-height: 16px; }
+  .cls > .hd .nm.abs { font-style: italic; }
+  .cls .sec { padding: 3px 8px; }
+  .cls .sec + .sec { border-top: 1.6px solid #111; }
+  .cls .m { font-size: 11px; line-height: 15px; white-space: nowrap; }
+  .cls .m.abs { font-style: italic; }
+  .cls .m.dim { color: #555; }
+
+  svg.wires { position: absolute; left: 0; top: 0; }
+  .rule { stroke: #bbb; stroke-width: 1.2; stroke-dasharray: 5 5; }
+  .band { font-size: 11.5px; fill: #555; font-style: italic; }
+  .use  { stroke: #111; stroke-width: 1.3; fill: none; stroke-dasharray: 6 4; marker-end: url(#open); }
+  .gen  { stroke: #111; stroke-width: 1.5; fill: none; }
+  .assoc{ stroke: #111; stroke-width: 1.4; fill: none; }
+  .tri  { stroke: #111; stroke-width: 1.5; fill: #fff; }
+  .lbl  { font-size: 10.5px; fill: #333; font-style: italic; }
+</style>
+</head>
+<body>
+<div id="sheet"><div class="plane">
+
+  <!-- ===================== HTTP layer ===================== -->
+  <div class="cls" style="left:40px; top:52px; width:230px">
+    <div class="hd"><span class="st">&#171;module&#187;</span><span class="nm">api.documents</span></div>
+    <div class="sec">
+      <div class="m">upload(file) : DocumentOut</div>
+      <div class="m">content(id) : DocumentContent</div>
+      <div class="m">remove(id)</div>
+    </div>
+  </div>
+
+  <div class="cls" style="left:320px; top:52px; width:230px">
+    <div class="hd"><span class="st">&#171;module&#187;</span><span class="nm">api.chat</span></div>
+    <div class="sec">
+      <div class="m">ask(req) : ChatResponse</div>
+      <div class="m">stream(req) : EventStream</div>
+      <div class="m">conversations() : list</div>
+    </div>
+  </div>
+
+  <div class="cls" style="left:600px; top:52px; width:230px">
+    <div class="hd"><span class="st">&#171;module&#187;</span><span class="nm">api.projects</span></div>
+    <div class="sec">
+      <div class="m">create(body) : ProjectOut</div>
+      <div class="m">set_documents(id, ids)</div>
+      <div class="m">open(id) : ProjectOut</div>
+    </div>
+  </div>
+
+  <div class="cls" style="left:880px; top:52px; width:230px">
+    <div class="hd"><span class="st">&#171;module&#187;</span><span class="nm">api.auth, api.admin</span></div>
+    <div class="sec">
+      <div class="m">register(), login()</div>
+      <div class="m">reset_password(code)</div>
+      <div class="m">stats(), system()</div>
+    </div>
+  </div>
+
+  <!-- ===================== service layer ===================== -->
+  <div class="cls" style="left:40px; top:210px; width:246px">
+    <div class="hd"><span class="st">&#171;module&#187;</span><span class="nm">services.document_processor</span></div>
+    <div class="sec">
+      <div class="m">extract_text(path, type)</div>
+      <div class="m">process_document(db, doc)</div>
+      <div class="m">_split_sections(text)</div>
+      <div class="m">_ocr_pdf_pages(path, pages)</div>
+    </div>
+  </div>
+
+  <div class="cls" style="left:336px; top:210px; width:246px">
+    <div class="hd"><span class="st">&#171;module&#187;</span><span class="nm">services.vector_store</span></div>
+    <div class="sec">
+      <div class="m">add_chunks(chunks, ids)</div>
+      <div class="m">similarity_search(q, k, filter)</div>
+      <div class="m">chunks_for_document(id)</div>
+      <div class="m">delete_document(id)</div>
+    </div>
+  </div>
+
+  <div class="cls" style="left:632px; top:210px; width:264px">
+    <div class="hd"><span class="st">&#171;module&#187;</span><span class="nm">services.rag_engine</span></div>
+    <div class="sec">
+      <div class="m">answer_query(q, opts) : Answer</div>
+      <div class="m">answer_query_stream(q, opts)</div>
+      <div class="m">_build_prompt(q, ctx, rules)</div>
+      <div class="m">_format_context(results)</div>
+      <div class="m">generate_title(q) : str</div>
+    </div>
+  </div>
+
+  <!-- ===================== provider layer ===================== -->
+  <div class="cls" style="left:60px; top:400px; width:236px">
+    <div class="hd"><span class="st">&#171;interface&#187;</span><span class="nm abs">Embeddings</span></div>
+    <div class="sec">
+      <div class="m">embed_documents(texts)</div>
+      <div class="m">embed_query(text)</div>
+    </div>
+  </div>
+
+  <div class="cls" style="left:336px; top:400px; width:186px">
+    <div class="hd"><span class="st">&#171;module&#187;</span><span class="nm">services.embeddings</span></div>
+    <div class="sec">
+      <div class="m">get_embeddings()</div>
+      <div class="m dim">&#8212; cached singleton</div>
+    </div>
+  </div>
+
+  <div class="cls" style="left:700px; top:400px; width:236px">
+    <div class="hd"><span class="st">&#171;abstract&#187;</span><span class="nm abs">LLMProvider</span></div>
+    <div class="sec">
+      <div class="m">name : str</div>
+      <div class="m">model_name : str</div>
+    </div>
+    <div class="sec">
+      <div class="m abs">chat_model() : BaseChatModel</div>
+      <div class="m">generate(prompt) : str</div>
+    </div>
+  </div>
+
+  <div class="cls" style="left:40px; top:545px; width:170px">
+    <div class="hd"><span class="nm">LocalEmbeddings</span></div>
+    <div class="sec"><div class="m">all-MiniLM-L6-v2, 384 d</div></div>
+  </div>
+
+  <div class="cls" style="left:250px; top:545px; width:196px">
+    <div class="hd"><span class="nm">OpenAIEmbeddings</span></div>
+    <div class="sec"><div class="m">text-embedding-3-small</div></div>
+  </div>
+
+  <div class="cls" style="left:640px; top:545px; width:170px">
+    <div class="hd"><span class="nm">OllamaProvider</span></div>
+    <div class="sec"><div class="m">chat_model()</div></div>
+  </div>
+
+  <div class="cls" style="left:850px; top:545px; width:170px">
+    <div class="hd"><span class="nm">OpenAIProvider</span></div>
+    <div class="sec"><div class="m">chat_model()</div></div>
+  </div>
+
+  <!-- ===================== persistence ===================== -->
+  <div class="cls" style="left:40px; top:660px; width:300px">
+    <div class="hd"><span class="st">&#171;external&#187;</span><span class="nm">ChromaDB PersistentClient</span></div>
+    <div class="sec"><div class="m">one collection, cosine similarity</div></div>
+  </div>
+
+  <div class="cls" style="left:440px; top:660px; width:470px">
+    <div class="hd"><span class="st">&#171;package&#187;</span><span class="nm">app.models &#8212; SQLAlchemy ORM</span></div>
+    <div class="sec">
+      <div class="m">User, Document, Conversation, Message, Project,</div>
+      <div class="m">ProjectDocument, QueryLog, PasswordResetToken</div>
+      <div class="m dim">reached from every router and from both services</div>
+    </div>
+  </div>
+
+  <!-- ===================== wires ===================== -->
+  <svg class="wires" width="1180" height="780" viewBox="0 0 1180 780" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="open" viewBox="0 0 10 10" refX="9" refY="5"
+              markerWidth="9" markerHeight="9" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#111" stroke-width="1.4"/>
+      </marker>
+    </defs>
+
+    <!-- layer rules -->
+    <text class="band" x="24" y="38">HTTP layer &#8212; FastAPI routers</text>
+    <path class="rule" d="M 20 176 L 1160 176"/>
+    <text class="band" x="24" y="200">service layer</text>
+    <path class="rule" d="M 20 366 L 1160 366"/>
+    <text class="band" x="24" y="390">provider layer</text>
+    <path class="rule" d="M 20 628 L 1160 628"/>
+    <text class="band" x="24" y="652">persistence</text>
+
+    <!-- routers depend on services -->
+    <path class="use" d="M 155 143 L 155 208"/>
+    <path class="use" d="M 435 143 L 435 166 L 720 166 L 720 208"/>
+
+    <!-- the pipeline writes chunks; the engine searches them -->
+    <path class="use" d="M 288 250 L 334 250"/>
+    <text class="lbl mid" x="311" y="202">writes chunks</text>
+    <path class="use" d="M 630 250 L 584 250"/>
+    <text class="lbl mid" x="607" y="202">searches</text>
+
+    <!-- the vector store embeds through the factory -->
+    <path class="use" d="M 429 316 L 429 398"/>
+    <text class="lbl" x="437" y="352">embeds through</text>
+
+    <!-- the factory hands back whichever backend is configured -->
+    <path class="use" d="M 334 438 L 298 438"/>
+    <text class="lbl mid" x="316" y="392">returns one of</text>
+
+    <!-- Embeddings realisations -->
+    <path class="tri" d="M 178 478 L 168 498 L 188 498 Z"/>
+    <path class="gen" d="M 125 545 L 125 498 L 178 498"/>
+    <path class="gen" d="M 348 545 L 348 498 L 178 498"/>
+
+    <!-- the engine asks whichever provider the request named -->
+    <path class="use" d="M 818 331 L 818 398"/>
+    <text class="lbl" x="826" y="346">asks the</text>
+    <text class="lbl" x="826" y="360">chosen provider</text>
+
+    <!-- LLMProvider subclasses -->
+    <path class="tri" d="M 818 515 L 808 535 L 828 535 Z"/>
+    <path class="gen" d="M 725 545 L 725 535 L 818 535"/>
+    <path class="gen" d="M 935 545 L 935 535 L 818 535"/>
+
+    <!-- the vector store owns the Chroma collection -->
+    <path class="assoc" d="M 560 316 L 560 644 L 190 644 L 190 658"/>
+    <text class="lbl" x="568" y="470">persists vectors into</text>
+
+    <!-- rows go through the ORM -->
+    <path class="use" d="M 1110 96 L 1150 96 L 1150 650 L 880 650 L 880 658"/>
+    <text class="lbl mid" x="1015" y="642">reads and writes rows</text>
+  </svg>
+
+</div></div>
+</body>
+</html>
