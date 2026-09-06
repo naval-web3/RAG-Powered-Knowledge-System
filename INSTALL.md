@@ -254,7 +254,49 @@ the language model.
 
 ---
 
-## 10. Troubleshooting
+## 10. Backups
+
+The proposal asks for a regular database backup, and `scripts\backup-db.ps1`
+takes one. It dumps three things into a single timestamped folder under
+`backups\`:
+
+| What | How |
+|---|---|
+| PostgreSQL | `pg_dump -Fc`, the custom format `pg_restore` reads |
+| The Chroma vector index | `backend\chroma_db` zipped |
+| The uploaded originals | `backend\uploads` zipped |
+
+**All three or none.** A database dump on its own is not a restorable backup of
+this system. The rows reference vectors in Chroma and files on disk by id, so a
+restore that brings back only the rows leaves every document unanswerable. Each
+backup folder carries a `MANIFEST.txt` with the restore commands for that
+specific backup.
+
+Take one by hand:
+
+```
+powershell -ExecutionPolicy Bypass -File scripts\backup-db.ps1
+```
+
+Backups older than fourteen days are pruned; pass `-KeepDays 30` to change that,
+or `-Destination D:\backups` to write somewhere else.
+
+### Running it nightly
+
+Register it with Task Scheduler once, from an elevated PowerShell:
+
+```
+$action  = New-ScheduledTaskAction -Execute 'powershell.exe' `
+    -Argument '-ExecutionPolicy Bypass -File "E:\rag-knowledge-system\scripts\backup-db.ps1"'
+$trigger = New-ScheduledTaskTrigger -Daily -At 2am
+Register-ScheduledTask -TaskName 'RAG knowledge system backup' `
+    -Action $action -Trigger $trigger -Description 'Nightly database, vector and upload backup'
+```
+
+Adjust the path if the project is installed elsewhere. Check it afterwards with
+`Get-ScheduledTaskInfo -TaskName 'RAG knowledge system backup'`.
+
+## 11. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -277,7 +319,7 @@ Get-NetTCPConnection -LocalPort 8000 -State Listen |
 
 ---
 
-## 11. Running without Ollama (cloud models only)
+## 12. Running without Ollama (cloud models only)
 
 If the machine cannot run a local model, the application also works with
 OpenAI. Put a key in `backend\.env`:

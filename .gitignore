@@ -48,3 +48,6 @@ report/report.pdf
 report/report-plain.docx
 report/report-plain.pdf
 report/~$*.docx
+
+# Local backups taken by scripts/backup-db.ps1
+backups/
