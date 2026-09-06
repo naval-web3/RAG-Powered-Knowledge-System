@@ -16,7 +16,7 @@ Retrieval-Augmented Generation, described by Lewis and colleagues in 2020, resol
 
 This project designs, builds, tests and documents a complete working system on that architecture. It is not a demonstration of a pipeline in a notebook. It is a multi-user web application with accounts and roles, a document library with a real ingestion pipeline, a conversational interface, a vector store, a relational database, an administrator's view of the running system, and an installation procedure that brings all of it up on a machine with no internet connection.
 
-![The landing page. The system is presented to a first-time visitor by what it does — a question answered from the user's own documents, with the sources it used.](../docs/screenshots/01-landing.png){width=5.9}
+![The landing page. The system is presented to a first-time visitor by what it does — a question answered from the user's own documents, with the sources it used.](../docs/screenshots/01-landing.png){width=4.3}
 
 ## The Problem This Project Addresses
 
@@ -158,7 +158,7 @@ The user then asks: *"How many days of casual leave am I entitled to?"* The ques
 
 Everything that happened is recorded: the message and its sources in PostgreSQL, and a row in the query log holding the response time, the number of chunks retrieved, the provider and the model. That log is what the administrator's dashboard reports on, and what Chapter 5 measures.
 
-![The architecture as it is explained to the end user, on the application's own "under the hood" page.](../docs/screenshots/04-under-the-hood.png){width=5.5}
+![The architecture as it is explained to the end user, on the application's own "under the hood" page.](../docs/screenshots/04-under-the-hood.png){width=5.2}
 
 ## Organisation of This Report
 

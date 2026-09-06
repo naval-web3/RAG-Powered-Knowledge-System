@@ -331,6 +331,7 @@ class ReportBuilder:
         self.figures: list[str] = []
         self.tables: list[str] = []
         self.words = 0
+        self.landscape = False    # figures are capped against the page height
         self.started = False          # no page break before the very first block
         self.markers: dict[str, object] = {}   # where the figure/table lists go
 
@@ -431,7 +432,15 @@ class ReportBuilder:
         holder.paragraph_format.space_after = Pt(2)
         holder.paragraph_format.keep_with_next = True
         run = holder.add_run()
-        run.add_picture(str(image), width=Inches(width or TEXT_WIDTH_IN))
+        shape = run.add_picture(str(image), width=Inches(width or TEXT_WIDTH_IN))
+        # A width alone can make a figure taller than the page it has to sit on,
+        # and Word then puts the picture on one page and its caption on the next.
+        # A full-page screen capture at 5.9in wide is 11in tall. Cap the height
+        # and let the width follow, rather than trusting every call site.
+        limit = Emu(int(Inches(5.7 if self.landscape else 8.6)))
+        if shape.height > limit:
+            shape.width = Emu(int(shape.width * limit / shape.height))
+            shape.height = limit
         cap = self.doc.add_paragraph(style="Caption")
         add_inline(cap, "Figure %s: %s" % (number, caption), size=Pt(10))
         mark = "fig_%s" % number.replace(".", "_")
@@ -778,6 +787,7 @@ def handle_directive(builder: ReportBuilder, name: str, arg: str | None) -> None
         para.paragraph_format.space_after = Pt(float(arg or 12))
     elif name == "arabic":
         section = doc.add_section(WD_SECTION.NEW_PAGE)
+        builder.landscape = False
         _setup_page(section)
         section.header.is_linked_to_previous = False
         section.footer.is_linked_to_previous = False
@@ -789,6 +799,7 @@ def handle_directive(builder: ReportBuilder, name: str, arg: str | None) -> None
         builder.started = False
     elif name == "landscape":
         section = doc.add_section(WD_SECTION.NEW_PAGE)
+        builder.landscape = True
         _setup_page(section)
         section.orientation = WD_ORIENT.LANDSCAPE
         _clear_number_format(section)
@@ -797,6 +808,7 @@ def handle_directive(builder: ReportBuilder, name: str, arg: str | None) -> None
         _running_header(section, "RAG Powered Knowledge System")
     elif name == "portrait":
         section = doc.add_section(WD_SECTION.NEW_PAGE)
+        builder.landscape = False
         _setup_page(section)
         section.orientation = WD_ORIENT.PORTRAIT
         _clear_number_format(section)

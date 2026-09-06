@@ -12,23 +12,23 @@ the evaluation. Nothing in that list is absent.
 | 00 | `00-front-matter.md` | Title, Certificate of Originality, Acknowledgement, Abstract, Contents, List of Figures, List of Tables | VI.1(iii), VI.2 index | 9 | done |
 | 01 | `01-introduction.md` | Introduction and Objectives | Introduction/Objectives | 10 | done |
 | 02 | `02-system-analysis.md` | System Analysis | Identification of need · feasibility · planning (PERT + Gantt) · SRS · paradigm · DFD 0/1/2 · ER · data dictionary · UML | 32 | done |
-| 03 | `03-system-design.md` | System Design | Modularisation · integrity and constraints · database design · procedural design · UI design · architecture | 18 | to do |
-| 04 | `04-coding.md` | Coding | SQL/DDL · access rights · code segments with comments · standardisation · efficiency · error handling · parameter passing · validation | 12 | to do |
-| 05 | `05-testing.md` | Testing | Techniques and strategies · test plan · unit test report · system test report · debugging and code improvement | 11 | to do |
-| 06 | `06-security.md` | System Security Measures | Database/data security · user profiles and access rights | 7 | to do |
-| 07 | `07-reports.md` | Reports and Outputs | Sample report layouts | 5 | to do |
-| 08 | `08-screens.md` | Screen Layouts | Screen dumps in order | 12 | to do |
-| 09 | `09-future-scope.md` | Future Scope and Further Enhancement | Future scope | 4 | to do |
-| 10 | `10-conclusion.md` | Conclusion | — | 2 | to do |
-| 11 | `11-bibliography.md` | Bibliography | Bibliography | 2 | to do |
-| 12 | `12-appendices.md` | Appendices: installation, user manual, REST API reference, test corpus | Appendices | 8 | to do |
-| 13 | `13-glossary.md` | Glossary | Glossary | 3 | to do |
+| 03 | `03-system-design.md` | System Design | Modularisation · integrity and constraints · database design · procedural design · UI design · architecture | 18 | done |
+| 04 | `04-coding.md` | Coding | SQL/DDL · access rights · code segments with comments · standardisation · efficiency · error handling · parameter passing · validation | 12 | done |
+| 05 | `05-testing.md` | Testing | Techniques and strategies · test plan · unit test report · system test report · debugging and code improvement | 11 | done |
+| 06 | `06-security.md` | System Security Measures | Database/data security · user profiles and access rights | 7 | done |
+| 07 | `07-reports.md` | Reports and Outputs | Sample report layouts | 5 | done |
+| 08 | `08-screens.md` | Screen Layouts | Screen dumps in order | 12 | done |
+| 09 | `09-future-scope.md` | Future Scope and Further Enhancement | Future scope | 4 | done |
+| 10 | `10-conclusion.md` | Conclusion | — | 2 | done |
+| 11 | `11-bibliography.md` | Bibliography | Bibliography | 2 | done |
+| 12 | `12-appendices.md` | Appendices: installation, user manual, REST API reference, test corpus | Appendices | 8 | done |
+| 13 | `13-glossary.md` | Glossary | Glossary | 3 | done |
 
-**Where the pages go.** Chapter 2 came out at 32 pages rather than the 26 first
-planned, and thirteen of those are full-page landscape plates: the diagrams are
-only legible at about 9 inches wide, which was established by building a page
-and looking at it rather than by guessing. The remaining chapters were re-cut to
-land the whole report near 135 pages including every plate.
+**Where the pages go.** The finished report is **131 pages**: fourteen of front
+matter numbered i-xiv, and **117 numbered body pages**. Fifty-three figures and
+forty-seven tables. Fourteen of the body pages are full-page landscape diagram
+plates, because the drawings are only legible at about nine inches wide - which
+was established by building a page and looking at it rather than by guessing.
 
 ## Rules this report is written to
 

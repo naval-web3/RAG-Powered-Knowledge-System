@@ -227,7 +227,7 @@ One provider-specific accommodation survives in the prompt builder: models in th
 
 ## Interface Design of the REST API
 
-The API is 53 endpoints across seven routers, and it follows one set of rules throughout.
+The API is 39 endpoints across seven routers, and it follows one set of rules throughout.
 
 - **Resources are nouns and the verb is the method.** `POST /api/documents` uploads, `GET /api/documents/{id}` reads, `PATCH /api/documents/{id}` renames or pins, `DELETE /api/documents/{id}` removes. There is no `/api/deleteDocument`.
 - **`PATCH` is partial and means it.** A conversation can be renamed without resending its project, its pinned state or its title.
