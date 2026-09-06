@@ -580,7 +580,7 @@ def title_page(builder: ReportBuilder) -> None:
     blocks = (
         (left, ["Submitted By", "", "Name: NAVAL CHAUDHARY",
                 "Enrolment No.: 2354558202", "Programme: MCA_NEW"]),
-        (right, ["Guided By", "", "Name: ____________________",
+        (right, ["Guided By", "", "Name: DR. PAWAN KUMAR THAKUR",
                  "Signature: ________________", "Date: _____________________"]),
     )
     for cell, lines in blocks:

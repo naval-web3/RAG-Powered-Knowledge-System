@@ -5,7 +5,7 @@
 
 <!-- vspace 18 -->
 
-This is to certify that the project report entitled **"RAG Powered Knowledge System"** submitted to the School of Computer and Information Sciences, Indira Gandhi National Open University, New Delhi, in partial fulfilment of the requirements for the award of the degree of **Master of Computer Applications (MCA_NEW)**, is an original work carried out by me, **Naval Chaudhary**, Enrolment Number **2354558202**, under the guidance of my project guide.
+This is to certify that the project report entitled **"RAG Powered Knowledge System"** submitted to the School of Computer and Information Sciences, Indira Gandhi National Open University, New Delhi, in partial fulfilment of the requirements for the award of the degree of **Master of Computer Applications (MCA_NEW)**, is an original work carried out by me, **Naval Chaudhary**, Enrolment Number **2354558202**, under the guidance of **Dr. Pawan Kumar Thakur**.
 
 The matter embodied in this project report is genuine work done by me and has not been submitted, either to this University or to any other University or Institution, for the fulfilment of the requirement of any course of study. To the best of my knowledge, this report does not contain any material previously published or written by another person except where due acknowledgement and reference have been made in the text.
 
@@ -13,7 +13,7 @@ I further declare that the software developed as part of this project has been w
 
 <!-- vspace 24 -->
 
-<!-- signblock Signature of the Student / / Name: NAVAL CHAUDHARY / Enrolment No.: 2354558202 / Address: __________________ / __________________________ / Date: ____________________ | Signature of the Guide / / Name: ____________________ / Designation: _____________ / Address: __________________ / __________________________ / Date: ____________________ -->
+<!-- signblock Signature of the Student / / Name: NAVAL CHAUDHARY / Enrolment No.: 2354558202 / Address: __________________ / __________________________ / Date: ____________________ | Signature of the Guide / / Name: DR. PAWAN KUMAR THAKUR / Designation: _____________ / Address: __________________ / __________________________ / Date: ____________________ -->
 
 # *Acknowledgement
 
@@ -21,7 +21,7 @@ I further declare that the software developed as part of this project has been w
 
 The completion of this project would not have been possible without the support and guidance of a number of people, and it is a pleasure to record my thanks to them here.
 
-I am deeply grateful to my project guide for the time, patience and technical direction offered throughout the development of this system. The regular reviews shaped both the scope of the work and the discipline with which it was carried out, and several of the design decisions recorded in this report are the direct result of those discussions.
+I am deeply grateful to my project guide, **Dr. Pawan Kumar Thakur**, for the time, patience and technical direction offered throughout the development of this system. The regular reviews shaped both the scope of the work and the discipline with which it was carried out, and several of the design decisions recorded in this report are the direct result of those discussions.
 
 I thank the School of Computer and Information Sciences, Indira Gandhi National Open University, for the structure the MCA_NEW programme provides and for a project component that requires a student to carry an idea through analysis, design, construction and testing rather than stopping at a working demonstration. I am equally grateful to the staff of Regional Centre 11, Shimla, and of Study Centre 1105 for their administrative help.
 
