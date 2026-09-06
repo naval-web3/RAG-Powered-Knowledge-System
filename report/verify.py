@@ -19,7 +19,12 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(HERE, "src")
+# --src so a variant built under variants/ can be checked the same way. Image
+# paths still resolve against this directory, as they do in build.py.
+if "--src" in sys.argv:
+    SRC = os.path.abspath(sys.argv[sys.argv.index("--src") + 1])
+else:
+    SRC = os.path.join(HERE, "src")
 
 # Numbering is a state, not a per-file flag: this comment turns it on and it
 # stays on for every file after it. The front matter comes before it.
@@ -38,7 +43,17 @@ def build_index(sources):
     numbering = False
 
     for _name, text in sources:
+        fenced = False
         for line in text.splitlines():
+            # A code listing is not markdown. Python comments start with "# " in
+            # column one, which is also how a chapter heading starts, so without
+            # this a printed source file reads as ninety chapters.
+            if line.startswith("```"):
+                fenced = not fenced
+                continue
+            if fenced:
+                continue
+
             if line.strip() == NUMBERED_ON:
                 numbering = True
                 continue

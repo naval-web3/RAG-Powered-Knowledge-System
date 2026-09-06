@@ -31,7 +31,8 @@ import sys
 import fitz  # PyMuPDF
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PDF = os.path.join(HERE, "report.pdf")
+# A path argument so a variant under variants/ can be checked the same way.
+PDF = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(HERE, "report.pdf")
 
 FOOTER_INCHES = 1.0
 CAPTION = re.compile(r"^(Figure|Table) (\d+\.\d+):")

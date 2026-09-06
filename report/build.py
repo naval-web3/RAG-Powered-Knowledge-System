@@ -413,8 +413,13 @@ class ReportBuilder:
             text = text[1:].strip()
 
         if level == 1:
-            if self.started:
-                self.doc.add_page_break()
+            # The chapter starts a new page by a property on its own heading,
+            # not by a break paragraph before it. A break paragraph is itself
+            # content: when the previous chapter happens to end exactly at the
+            # foot of a page, the break makes an empty page and the heading then
+            # starts the one after it. That is how a 240 page variant of this
+            # report ended up with sheet 238 blank.
+            page_break = self.started
             self.started = True
             self.section_no = 0
             self.subsection_no = 0
@@ -429,6 +434,7 @@ class ReportBuilder:
                 # it. "CHAPTER 3  SYSTEM DESIGN" reads correctly in both places.
                 title = "CHAPTER %d.  %s" % (self.chapter, title)
             head = self.doc.add_heading(title, level=1)
+            head.paragraph_format.page_break_before = page_break
             self._rule(head)
             return head
 
@@ -897,13 +903,58 @@ def fill_lists(builder: ReportBuilder) -> None:
 # entry point
 # ---------------------------------------------------------------------------
 
+def _shrink_trailing_paragraph(doc) -> None:
+    """Make the empty paragraph that has to follow a final table take no room.
+
+    A table cannot be the last thing in a Word body, so there is always a
+    paragraph after one. At body size it needs a whole line, and when the table
+    ends near the foot of a page that line becomes a blank final page carrying
+    nothing but a header and a page number. Shrinking the paragraph mark to a
+    point costs nothing visible and removes the page.
+    """
+    paragraphs = doc.paragraphs
+    if not paragraphs or paragraphs[-1].text.strip():
+        return
+    last = paragraphs[-1]
+    fmt = last.paragraph_format
+    fmt.space_before = Pt(0)
+    fmt.space_after = Pt(0)
+    fmt.line_spacing = 1.0
+    # The height of an empty paragraph is the height of its paragraph mark, and
+    # that is set in the pPr's own rPr rather than on any run.
+    pPr = last._p.get_or_add_pPr()
+    rPr = pPr.find(qn("w:rPr"))
+    if rPr is None:
+        rPr = OxmlElement("w:rPr")
+        pPr.insert(0, rPr)
+    for tag in ("w:sz", "w:szCs"):
+        size = OxmlElement(tag)
+        size.set(qn("w:val"), "2")  # half-points, so one point
+        rPr.append(size)
+
+
+def _flag(name: str, default: Path) -> Path:
+    """The path after --name on the command line, or the default."""
+    if name not in sys.argv:
+        return default
+    index = sys.argv.index(name) + 1
+    if index >= len(sys.argv):
+        raise SystemExit("%s needs a value" % name)
+    return Path(sys.argv[index])
+
+
 def main() -> int:
     global BORDER
     BORDER = "--no-border" not in sys.argv
-    out = OUT if BORDER else OUT_PLAIN
-    sources = sorted(SRC.glob("*.md"))
+    # --src and --out let a variant of the report be built beside the real one
+    # without disturbing it. Image paths in the sources resolve against this
+    # file's directory rather than against --src, so a variant source folder is
+    # free to live anywhere.
+    src = _flag("--src", SRC)
+    out = _flag("--out", OUT if BORDER else OUT_PLAIN)
+    sources = sorted(src.glob("*.md"))
     if not sources:
-        print("no chapters in %s" % SRC, file=sys.stderr)
+        print("no chapters in %s" % src, file=sys.stderr)
         return 1
 
     doc = Document()
@@ -923,6 +974,7 @@ def main() -> int:
         parse(builder, path.read_text(encoding="utf-8"))
 
     fill_lists(builder)
+    _shrink_trailing_paragraph(doc)
 
     if "--stats" in sys.argv:
         print("\n  words   %d" % builder.words)
