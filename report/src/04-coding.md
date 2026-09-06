@@ -108,7 +108,7 @@ CREATE TABLE project_documents (
 
 The application connects as one role, and that role owns the schema. Row-level access is not delegated to the database, and that is a decision worth defending rather than glossing over.
 
-PostgreSQL can enforce per-user visibility with row-level security policies, and for a system where the database is shared by several applications that would be the right choice. Here it would mean one database role per application user, created at registration and dropped at deletion, with the connection pool switching role per request. The cost is a second identity system that must be kept in step with the first, and a failure mode — the two drifting apart — that is worse than the one being defended against.
+PostgreSQL can enforce per-user visibility with row-level security policies, and for a system where the database is shared by several applications that would be the right choice. Here it would mean one database role per application user, created at registration and dropped at deletion, with the connection pool switching role per request. The cost is a second identity system that must be kept in step with the first, and a failure mode, the two drifting apart, that is worse than the one being defended against.
 
 What the system does instead is enforce ownership at exactly one place per request, in the FastAPI dependency that resolves the token, and then filter every query by the identity that dependency returns. The dependency is the only way a handler obtains a user, so a handler cannot accidentally serve an unauthenticated request; it has no user to serve it to.
 
@@ -203,7 +203,7 @@ This is the control that makes the system's central claim true. It sits between 
     context, sources = _format_context(results)
 ```
 
-Three details in twenty lines are worth naming. The scope narrows twice and the second narrowing is *checked* — a document identifier that is not in the project's set is refused rather than quietly used, which is what stops a project's guarantee being bypassed by a request. `top_score` is taken from `results[0]` because the search returns its results ordered by relevance, so the best score is the first one. And the not-found reply still reports `len(results)` and `top_score`, so the query log records what was retrieved even on the branch where nothing was used — which is what made it possible to calibrate the floor against real questions rather than guessing it.
+Three details in twenty lines are worth naming. The scope narrows twice and the second narrowing is *checked*. A document identifier that is not in the project's set is refused rather than quietly used, which is what stops a project's guarantee being bypassed by a request. `top_score` is taken from `results[0]` because the search returns its results ordered by relevance, so the best score is the first one. And the not-found reply still reports `len(results)` and `top_score`, so the query log records what was retrieved even on the branch where nothing was used. Which is what made it possible to calibrate the floor against real questions rather than guessing it.
 
 ### The Filtered Vector Search
 
@@ -233,7 +233,7 @@ The scope filter is passed into the search rather than applied to its output, an
     )
 ```
 
-`user_id` is in the `where` clause unconditionally. There is no code path through this function that searches without it, which means a caller cannot forget it — the only thing a caller controls is whether the search is narrowed *further*. The single-document case is special-cased to a plain equality rather than an `$in` of one element because Chroma treats the two differently in its query planning, and the single-document scope is the common case when a user is reading one file.
+`user_id` is in the `where` clause unconditionally. There is no code path through this function that searches without it, which means a caller cannot forget it. The only thing a caller controls is whether the search is narrowed *further*. The single-document case is special-cased to a plain equality rather than an `$in` of one element because Chroma treats the two differently in its query planning, and the single-document scope is the common case when a user is reading one file.
 
 The score returned is `1 − distance`, converting Chroma's cosine distance into a relevance where higher is better, so that the floor in the previous excerpt reads the way a person would expect.
 
@@ -332,7 +332,7 @@ The system distinguishes four kinds of failure and handles each differently, bec
 
 **A bad request** is rejected at the boundary with a 4xx and a sentence naming the problem. Pydantic validates the shape of every request body; explicit checks handle what a schema cannot express.
 
-**A dependency that is not available** is reported as itself. Before retrieval runs, the engine asks whether the chosen provider is reachable and configured, and a failure produces a message naming the provider and the reason — a missing key, a key without credit, a model that has not been pulled, a service that is not running. This check exists because without it a provider failure surfaced as *"I couldn't find anything in your documents"*, which is not merely unhelpful but actively misleading: it blames the user's library for the system's own outage.
+**A dependency that is not available** is reported as itself. Before retrieval runs, the engine asks whether the chosen provider is reachable and configured, and a failure produces a message naming the provider and the reason. A missing key, a key without credit, a model that has not been pulled, a service that is not running. This check exists because without it a provider failure surfaced as *"I couldn't find anything in your documents"*, which is worse than unhelpful. It blames the user's library for the system's own outage.
 
 **A failure inside a document's ingestion** is recorded on that document and affects nothing else. The pipeline wraps its work in a single handler that writes the reason onto the row and re-raises, so the worker exits non-zero and the parent records that too:
 
@@ -385,8 +385,8 @@ Validation happens at three layers, and the layering is intentional: each catche
         )
 ```
 
-The extension is derived defensively — a filename with no dot, or no filename at all, yields an empty extension that fails the membership test rather than raising an index error. The size is checked **after** reading, because the declared `Content-Length` of a multipart upload is a claim by the client and not a fact. And the empty-file case is separated from the too-large case, because they are different mistakes and deserve different sentences.
+The extension is derived defensively. A filename with no dot, or no filename at all, yields an empty extension that fails the membership test rather than raising an index error. The size is checked **after** reading, because the declared `Content-Length` of a multipart upload is a claim by the client and not a fact. And the empty-file case is separated from the too-large case, because they are different mistakes and deserve different sentences.
 
-**At the database layer**, the check constraints in §4.1 catch anything that reaches the row by a path the first two layers do not cover — a migration, a script, or a future endpoint written without them. A file type outside the four allowed cannot be stored even if every check in Python were removed.
+**At the database layer**, the check constraints in §4.1 catch anything that reaches the row by a path the first two layers do not cover: a migration, a script, or a future endpoint written without them. A file type outside the four allowed cannot be stored even if every check in Python were removed.
 
 The stored file name is also worth noting: an upload is written as `{uuid4}.{ext}` inside a directory named for the owner's identifier, never under the name the client supplied. A user-supplied filename is a path traversal waiting to happen, and it is kept as data in `original_filename` rather than used as a path.

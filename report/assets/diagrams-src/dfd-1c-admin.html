@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_diagram.css">
+<title>DFD Level 1 (c) - administration</title>
+<style>
+  .proc-no { font-size: 15px; font-weight: 700; }
+  .proc { font-size: 12.5px; }
+  .store-id { font-size: 12px; font-weight: 700; }
+  .store-name { font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div id="sheet">
+<svg width="760" height="430" viewBox="0 0 760 430" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+    </marker>
+  </defs>
+
+  <!-- ============ external entity ============ -->
+  <rect class="shape fill" x="20" y="163" width="132" height="84"/>
+  <text class="t b mid" x="86" y="193">Administrator</text>
+  <text class="t-xs mid" x="86" y="213">external entity</text>
+  <text class="t-xs mid" x="86" y="231">role = admin</text>
+
+  <!-- ============ process ============ -->
+  <circle class="shape" cx="310" cy="205" r="54"/>
+  <text class="proc-no mid" x="310" y="194">6.0</text>
+  <text class="proc mid" x="310" y="212">Administer</text>
+  <text class="proc mid" x="310" y="228">and Report</text>
+
+  <!-- ============ data stores ============ -->
+  <g>
+    <path class="store-line" d="M 440 30 L 740 30 M 440 66 L 740 66 M 440 30 L 440 66 M 480 30 L 480 66"/>
+    <text class="store-id" x="452" y="53">D1</text>
+    <text class="store-name" x="492" y="53">users</text>
+
+    <path class="store-line" d="M 440 112 L 740 112 M 440 148 L 740 148 M 440 112 L 440 148 M 480 112 L 480 148"/>
+    <text class="store-id" x="452" y="135">D2</text>
+    <text class="store-name" x="492" y="135">documents</text>
+
+    <path class="store-line" d="M 440 194 L 740 194 M 440 230 L 740 230 M 440 194 L 440 230 M 480 194 L 480 230"/>
+    <text class="store-id" x="452" y="217">D5</text>
+    <text class="store-name" x="492" y="217">conversations, messages</text>
+
+    <path class="store-line" d="M 440 276 L 740 276 M 440 312 L 740 312 M 440 276 L 440 312 M 480 276 L 480 312"/>
+    <text class="store-id" x="452" y="299">D6</text>
+    <text class="store-name" x="492" y="299">query_logs</text>
+
+    <path class="store-line" d="M 440 358 L 740 358 M 440 394 L 740 394 M 440 358 L 440 394 M 480 358 L 480 394"/>
+    <text class="store-id" x="452" y="381">D4</text>
+    <text class="store-name" x="492" y="381">vector store</text>
+  </g>
+
+  <!-- ============ flows ============ -->
+  <path class="flow" d="M 152 188 L 254 188"/>
+  <text class="flow-label mid" x="203" y="180">a request</text>
+
+  <path class="flow" d="M 256 222 L 152 222"/>
+  <text class="flow-label mid" x="203" y="240">counts, timings,</text>
+  <text class="flow-label mid" x="203" y="254">live health</text>
+
+  <path class="flow" d="M 438 48 L 348 166"/>
+  <text class="flow-label end" x="334" y="62">how many users,</text>
+  <text class="flow-label end" x="334" y="76">and how many active</text>
+
+  <path class="flow" d="M 438 130 L 360 184"/>
+  <text class="flow-label end" x="352" y="126">counts by file type</text>
+
+  <path class="flow" d="M 438 212 L 364 208"/>
+  <text class="flow-label mid" x="400" y="198">counts</text>
+
+  <path class="flow" d="M 438 294 L 362 219"/>
+  <text class="flow-label end" x="366" y="300">response times,</text>
+  <text class="flow-label end" x="366" y="314">chunk counts, model</text>
+
+  <path class="flow" d="M 438 376 L 336 251"/>
+  <text class="flow-label end" x="330" y="344">how many vectors</text>
+  <text class="flow-label end" x="330" y="358">the collection holds</text>
+
+  <text class="t-xs" x="20" y="388">6.0 reads only. It writes nothing, and it</text>
+  <text class="t-xs" x="20" y="402">cannot open a document or a conversation</text>
+  <text class="t-xs" x="20" y="416">belonging to another user.</text>
+</svg>
+</div>
+</body>
+</html>

@@ -34,11 +34,11 @@ Three properties of that division are worth stating, because each was chosen and
 
 **No module reaches upward.** M5 does not know that HTTP exists; it takes a question and returns an answer. M4 does not know what a conversation is. M3 does not know who the user is beyond a `user_id` it writes into metadata. The practical consequence is that the RAG engine can be exercised from a script with no web server running, which is how the retrieval measurements in §5.5 were taken.
 
-**M4 is the only module that talks to Chroma.** Every read and every write of a vector goes through `vector_store.py`. This was not merely tidy; it turned out to be load-bearing. Opening the Chroma index from a second process while the backend holds it desynchronises the index — a lesson learned the expensive way, described in §5.6 — and a single choke point is what makes that rule enforceable rather than merely advisory.
+**M4 is the only module that talks to Chroma.** Every read and every write of a vector goes through `vector_store.py`. This was not merely tidy; it turned out to be load-bearing. Opening the Chroma index from a second process while the backend holds it desynchronises the index, a lesson learned the expensive way, described in §5.6, and a single choke point is what makes that rule enforceable rather than merely advisory.
 
 **M5 has no persistence of its own.** The engine writes nothing. Its caller stores the message, the sources and the log row. That is why private mode (FR-24) needed no change to the engine at all: the router simply does not write what the engine returns.
 
-The cost of the division is one extra indirection on every request — a router calls a service which calls a provider — and it is worth paying, because it is what allowed the language model provider to be changed per request without any router knowing.
+The cost of the division is one extra indirection on every request, a router calls a service which calls a provider, and it is worth paying, because it is what allowed the language model provider to be changed per request without any router knowing.
 
 ## Procedural Design
 
@@ -52,13 +52,13 @@ The first turns a file into searchable vectors. The second turns a question into
 
 Ingestion is started by the upload endpoint and runs to completion without the user waiting. Three ways of doing that were considered, and the one chosen is the least obvious.
 
-**A background task in the web server** is what FastAPI offers first, and it was tried first. It fails badly. Extraction and embedding are synchronous, CPU-bound work; running them in the server's thread pool occupies a worker thread for the whole of a large document, and under a second upload the pool can deadlock. The observed symptom was uploads stuck on `processing` for ever, with no error anywhere, because nothing had failed — the work had simply never been scheduled.
+**A background task in the web server** is what FastAPI offers first, and it was tried first. It fails badly. Extraction and embedding are synchronous, CPU-bound work; running them in the server's thread pool occupies a worker thread for the whole of a large document, and under a second upload the pool can deadlock. The observed symptom was uploads stuck on `processing` for ever, with no error anywhere, because nothing had failed. The work had simply never been scheduled.
 
-**A task queue** — Celery with a broker — is the industrial answer and is the wrong shape here. It introduces a second service to install, a broker to configure and a worker to keep running, in a system whose central design goal is that it installs on one machine with no network.
+**A task queue**, Celery with a broker, is the industrial answer and is the wrong shape here. It introduces a second service to install, a broker to configure and a worker to keep running, in a system whose central design goal is that it installs on one machine with no network.
 
 **A separate operating-system process**, spawned per upload, is what the system does. `api/documents.py` starts `python -m app.worker <document_id>` as a child process and returns 201 immediately. The child opens its own database session, runs the pipeline, writes progress as it goes, and exits.
 
-That choice buys three properties that neither alternative offers together. A hung extraction cannot block the API, because it is not in the API's process. A crash — including a native crash inside a PDF parser or an OCR engine — takes down only that upload, and the non-zero exit status is caught and recorded on the document row. And there is no new service to install, because the child is the same Python interpreter that is already running.
+That choice buys three properties that neither alternative offers together. A hung extraction cannot block the API, because it is not in the API's process. A crash, including a native crash inside a PDF parser or an OCR engine, takes down only that upload, and the non-zero exit status is caught and recorded on the document row. And there is no new service to install, because the child is the same Python interpreter that is already running.
 
 ### Extraction, Section Detection and Chunking
 
@@ -66,14 +66,14 @@ The pipeline's job is to turn a file into chunks that are worth retrieving. Each
 
 **Extraction is per page, and the page number is kept.** Text is pulled out one page at a time and the page number travels with it all the way into the vector store's metadata. This is what allows a citation to say *page 7* rather than *somewhere in this document*, and it is the reason extraction is not simply a call that returns one long string.
 
-**Optical character recognition is conditional and is announced.** If a PDF page yields no selectable text, the page is rendered at 240 dpi and recognised with RapidOCR. The condition matters: OCR is by far the slowest step in the pipeline, and running it on every page to guard against the occasional scan would make every ordinary document slow. It is also announced, because a document that is going to take two minutes rather than four seconds should say so — the stage becomes `ocr` and the detail line reads, for example, *scanned PDF — running OCR on 11 page(s)*.
+**Optical character recognition is conditional and is announced.** If a PDF page yields no selectable text, the page is rendered at 240 dpi and recognised with RapidOCR. The condition matters: OCR is by far the slowest step in the pipeline, and running it on every page to guard against the occasional scan would make every ordinary document slow. It is also announced, because a document that is going to take two minutes rather than four seconds should say so. The stage becomes `ocr` and the detail line reads, for example, *scanned PDF - running OCR on 11 page(s)*.
 
-**Sections are detected before the text is split.** Before chunking, the page text is scanned for lines that look like headings — short lines, title case or all capitals, no terminal full stop — and the text is divided at them. Each resulting piece carries the heading above it. The consequence is visible in the interface: a citation can say *§4.2 Leave Entitlement* rather than only a page number, and a user checking an answer lands on the right paragraph rather than the right page.
+**Sections are detected before the text is split.** Before chunking, the page text is scanned for lines that look like headings, short lines, title case or all capitals, no terminal full stop, and the text is divided at them. Each resulting piece carries the heading above it. The consequence is visible in the interface: a citation can say *§4.2 Leave Entitlement* rather than only a page number, and a user checking an answer lands on the right paragraph rather than the right page.
 
 **Chunks are 1000 characters with 200 of overlap.** The splitter is recursive, preferring to break at a blank line, then at a line break, then at a sentence end, then at a space, and only splitting mid-word if it has no alternative. The two numbers were chosen against each other:
 
 - **1000 characters** is roughly a paragraph and a half. Much smaller and a chunk stops containing a complete thought, so a retrieved passage answers half a question. Much larger and the embedding is an average of several topics, which makes it a weaker match for any one of them, and the retrieved passage becomes something the user has to read rather than something they can check at a glance.
-- **200 characters of overlap** — a fifth of the chunk — exists for the sentence that straddles a boundary. Without overlap, a fact stated in the last line of one chunk and qualified in the first line of the next is indexed twice, incompletely, and matches neither. The cost is that the index is about twenty per cent larger than it would otherwise be, which for a library of this size is tens of megabytes.
+- **200 characters of overlap**, a fifth of the chunk, exists for the sentence that straddles a boundary. Without overlap, a fact stated in the last line of one chunk and qualified in the first line of the next is indexed twice, incompletely, and matches neither. The cost is that the index is about twenty per cent larger than it would otherwise be, which for a library of this size is tens of megabytes.
 
 **Embedding and indexing are separate, batched steps.** The chunks are embedded in batches of 64, and then indexed in batches of 64. Doing them as two passes rather than one is deliberate: they are two distinct pieces of real work with very different speeds, and reporting them separately is what lets the progress bar show true per-batch movement instead of one long opaque pause between 68 % and 99 %.
 
@@ -82,7 +82,7 @@ The pipeline's job is to turn a file into chunks that are worth retrieving. Each
 Retrieval is four steps, and the third is the one that makes the system trustworthy.
 
 1. **The question is embedded** by the same model that embedded the chunks. This is not an implementation detail but the whole basis of the method: a question and a passage are comparable only because they are points in the same space, produced by the same function.
-2. **The index is searched with the scope already applied.** The filter — this user, and optionally this project's documents or this one document — is passed *into* the Chroma query as a metadata condition, not applied to the results afterwards. Passages outside the scope are therefore never candidates, which matters both for correctness and for security: a filter applied after the fact can be forgotten, and a top-*k* computed over everything and then filtered returns fewer than *k* results without saying so.
+2. **The index is searched with the scope already applied.** The filter, this user, and optionally this project's documents or this one document, is passed *into* the Chroma query as a metadata condition, not applied to the results afterwards. Passages outside the scope are therefore never candidates, which matters both for correctness and for security: a filter applied after the fact can be forgotten, and a top-*k* computed over everything and then filtered returns fewer than *k* results without saying so.
 3. **The best score is tested against a floor of 0.15.** Chroma returns cosine distance; the system reports relevance as `1 − distance`, so higher is better. The floor was calibrated against the test corpus, where questions genuinely covered by a document score about 0.28 and above while off-topic questions score below 0.10. Below the floor the system reports that it found nothing **and does not call the language model**. This is the single control that separates a system which says *I don't know* from one that invents.
 4. **The passages are formatted with their citations.** The chunk texts are joined into one context block, and a parallel list of citations is built carrying the document title, page, section, relevance score and a 200-character snippet.
 
@@ -94,13 +94,13 @@ The order of steps 3 and 4 is the point. Nothing is generated until the retrieva
 
 The relational schema is in third normal form. Rather than assert that, it is worth walking the three conditions over the two tables where the argument is not trivial.
 
-**`documents` is in 1NF** — every attribute holds a single value, and there is no repeating group. The temptation avoided here was a `pages` or `chunks` column holding a list; chunks live in the vector store, and the count is a scalar.
+**`documents` is in 1NF**. Every attribute holds a single value, and there is no repeating group. The temptation avoided here was a `pages` or `chunks` column holding a list; chunks live in the vector store, and the count is a scalar.
 
-**It is in 2NF** — the key is the single attribute `document_id`, so no non-key attribute can depend on part of the key. This is the ordinary consequence of using surrogate keys throughout.
+**It is in 2NF**. The key is the single attribute `document_id`, so no non-key attribute can depend on part of the key. This is the ordinary consequence of using surrogate keys throughout.
 
-**It is in 3NF** — no non-key attribute determines another. The pair that could have broken this is `processing_status` and `stage`: `stage` determines `processing_status`, since `stage = 'chunking'` always means `processing_status = 'processing'`. That is a transitive dependency, and it is present deliberately. Removing it would mean deriving the coarse status in every query that filters on it, and the whole reason the coarse column exists is that it is cheap to index and filter. The denormalisation is one column wide, is maintained in exactly one place — the progress reporter — and is documented here rather than hidden.
+**It is in 3NF**, no non-key attribute determines another. The pair that could have broken this is `processing_status` and `stage`: `stage` determines `processing_status`, since `stage = 'chunking'` always means `processing_status = 'processing'`. That is a transitive dependency, and it is present deliberately. Removing it would mean deriving the coarse status in every query that filters on it, and the whole reason the coarse column exists is that it is cheap to index and filter. The denormalisation is one column wide, is maintained in exactly one place, the progress reporter, and is documented here rather than hidden.
 
-**`messages` is the other interesting case.** `source_documents` holds a JSON structure, which looks at first like a violation of 1NF. It is not, because the structure is not a repeating group of the entity's own attributes; it is a record *about* an answer, whose shape belongs to the answer and not to the schema. Normalising it into a `message_sources` table was considered and rejected: the citations are written once and read as a unit, never queried by their parts, and a join returning five rows to render one message buys nothing. Where they *are* queried by their parts — the response time, the chunk count, the provider — those are separate scalar columns on `query_logs`.
+**`messages` is the other interesting case.** `source_documents` holds a JSON structure, which looks at first like a violation of 1NF. It is not, because the structure is not a repeating group of the entity's own attributes; it is a record *about* an answer, whose shape belongs to the answer and not to the schema. Normalising it into a `message_sources` table was considered and rejected: the citations are written once and read as a unit, never queried by their parts, and a join returning five rows to render one message buys nothing. Where they *are* queried by their parts, the response time, the chunk count, the provider, those are separate scalar columns on `query_logs`.
 
 **`project_documents` exists because 1NF requires it.** A project's set of documents is a repeating group; resolving the many-to-many relationship into a link table whose key is the pair of foreign keys is the standard and correct treatment.
 
@@ -160,7 +160,7 @@ Table: The metadata carried by every indexed chunk
 
 Two design points follow from that table.
 
-The **`user_id` in the metadata is a security control, not a convenience.** It is the mechanism by which one user's search cannot see another user's chunks, and because it is applied inside the query it holds even if a caller passes a document identifier belonging to somebody else — the conjunction simply matches nothing.
+The **`user_id` in the metadata is a security control, not a convenience.** It is the mechanism by which one user's search cannot see another user's chunks, and because it is applied inside the query it holds even if a caller passes a document identifier belonging to somebody else, the conjunction simply matches nothing.
 
 The **`title` and `file_type` are deliberately duplicated** from the `documents` row. This is denormalisation across two different stores, and it is justified by what it saves: rendering five citations would otherwise mean five lookups, or one join that the vector store cannot perform at all, on the hot path of every answer.
 
@@ -197,7 +197,7 @@ Storing this with the message rather than only in the query log is a decision th
 
 The system embeds with `all-MiniLM-L6-v2` by default, producing 384-dimensional vectors, and can be configured to use OpenAI's `text-embedding-3-small` at 1536 dimensions instead.
 
-Three properties of the local model decided the choice. It is **small** — 90 MB, which downloads once and then works offline for ever. It is **fast enough on a CPU** that embedding a ninety-page document is seconds rather than minutes, which matters because the reference machine's 4 GB of video memory is wanted by the language model. And its **384 dimensions** keep the index small: a library of a few hundred documents is tens of megabytes, so the whole system fits on a CD alongside its source.
+Three properties of the local model decided the choice. It is **small**, 90 MB, which downloads once and then works offline for ever. It is **fast enough on a CPU** that embedding a ninety-page document is seconds rather than minutes, which matters because the reference machine's 4 GB of video memory is wanted by the language model. And its **384 dimensions** keep the index small: a library of a few hundred documents is tens of megabytes, so the whole system fits on a CD alongside its source.
 
 One constraint follows from having two options, and it is absolute: **the embedding backend cannot be changed once documents are indexed.** A 384-dimensional query vector cannot be compared with 1536-dimensional chunk vectors, and a mixed collection is not repairable by any query. The setting is therefore a deployment-time decision, and changing it requires re-indexing every document. This is stated in the installation guide rather than left to be discovered.
 
@@ -213,7 +213,7 @@ The engine's first responsibility is to decide whether retrieval is the right re
 
 **A project with nothing attached.** This one is a deliberate refusal. The engine does *not* fall back to the wider library, because the entire purpose of a project is that it cannot answer from documents the user did not put in it. Silently widening the scope would be the single most damaging thing the system could do to its own guarantee.
 
-**A question about the conversation.** *"what did you just say?"* or *"say that in Hindi"* is about the transcript, not the documents. Retrieval is skipped rather than merely ignored — and the reason is empirical. A small model handed both *"answer using ONLY the excerpts"* and a set of excerpts that have nothing to do with the question first decides it has nothing to say, and then applies the not-found line to an exchange it answered itself a moment earlier. The transcript path uses a different system prompt with the excerpt rules left out altogether rather than softened.
+**A question about the conversation.** *"what did you just say?"* or *"say that in Hindi"* is about the transcript, not the documents. Retrieval is skipped rather than merely ignored, and the reason is empirical. A small model handed both *"answer using ONLY the excerpts"* and a set of excerpts that have nothing to do with the question first decides it has nothing to say, and then applies the not-found line to an exchange it answered itself a moment earlier. The transcript path uses a different system prompt with the excerpt rules left out altogether rather than softened.
 
 ### The Prompt, and What It Forbids
 
@@ -235,7 +235,7 @@ Two mechanical details in the prompt exist because of specific failures.
 
 `LLMProvider` is an abstract class with one abstract operation, `chat_model()`, and one concrete one, `generate()`. `OllamaProvider` and `OpenAIProvider` implement it, and `get_provider(name, model)` resolves a request's choice to an instance.
 
-The abstraction is thin on purpose. It does not attempt to normalise the differences between providers beyond returning a LangChain chat model, because the differences that matter are not in the call — they are in what goes wrong. A provider that is not running, a missing API key, a key with no credit and a model that has not been pulled are four different failures, and each is reported to the user in those words rather than as a generic error or, worse, as *"I couldn't find anything in your documents"*. The health check that produces those messages runs **before** retrieval, so that a provider failure is never mistaken for an empty library.
+The abstraction is thin on purpose. It does not attempt to normalise the differences between providers beyond returning a LangChain chat model, because the differences that matter are not in the call, they are in what goes wrong. A provider that is not running, a missing API key, a key with no credit and a model that has not been pulled are four different failures, and each is reported to the user in those words rather than as a generic error or, worse, as *"I couldn't find anything in your documents"*. The health check that produces those messages runs **before** retrieval, so that a provider failure is never mistaken for an empty library.
 
 One provider-specific accommodation survives in the prompt builder: models in the `qwen3` family run a slow internal reasoning pass by default, and the builder appends the `/no_think` switch for them. It is confined to one line and is named for what it is.
 
@@ -245,7 +245,7 @@ The API is 39 endpoints across seven routers, and it follows one set of rules th
 
 - **Resources are nouns and the verb is the method.** `POST /api/documents` uploads, `GET /api/documents/{id}` reads, `PATCH /api/documents/{id}` renames or pins, `DELETE /api/documents/{id}` removes. There is no `/api/deleteDocument`.
 - **`PATCH` is partial and means it.** A conversation can be renamed without resending its project, its pinned state or its title.
-- **Status codes carry meaning.** 201 on creation with the created resource; 204 on a delete that returns nothing; 400 for a malformed request; 401 for a missing or expired token; 403 for a valid token without the right; 404 for something that does not exist *or does not belong to the caller*, which is deliberate — a 403 on somebody else's document would confirm that it exists.
+- **Status codes carry meaning.** 201 on creation with the created resource; 204 on a delete that returns nothing; 400 for a malformed request; 401 for a missing or expired token; 403 for a valid token without the right; 404 for something that does not exist *or does not belong to the caller*, which is deliberate. A 403 on somebody else's document would confirm that it exists.
 - **Ownership is a server concern.** Every handler that touches user-owned data filters by the authenticated identity taken from the token, never by an identifier in the request body.
 - **Errors say what to do.** `File exceeds 25 MB limit` and `Unknown provider 'gemini'. Use 'ollama' or 'openai'.` are both more useful than `400 Bad Request`, and both are what the API actually returns.
 
@@ -257,13 +257,13 @@ The full endpoint reference is in Appendix C.
 
 The interface is eleven pages and twenty-two components. Its layout is a persistent left sidebar carrying conversations, pinned documents and pinned projects; a top bar carrying the model picker, the retrieval scope and the account menu; and a main column that is either a conversation, the document library, a document reader, a project, or the administrator's dashboard.
 
-The sidebar is the navigation, and it is designed around the fact that a knowledge system accumulates. Conversations group by age, groups can be folded, the whole sidebar can be collapsed to icons, and anything worth keeping in reach — a document, a project — can be pinned into it.
+The sidebar is the navigation, and it is designed around the fact that a knowledge system accumulates. Conversations group by age, groups can be folded, the whole sidebar can be collapsed to icons, and anything worth keeping in reach, a document, a project, can be pinned into it.
 
 ### One Stylesheet Rather Than a Utility Framework
 
 The approved proposal named Tailwind CSS. Tailwind remains in the build configuration from the initial scaffold and is not used; the delivered interface is styled by a single hand-written stylesheet of 3,581 lines.
 
-The reason is that this interface is not a set of pages assembled from utilities. It is one application with a coherent visual system — a colour scale, a spacing scale, a type scale, a shadow scale — expressed as custom properties and consumed by named component classes. That system has to do two things a utility framework makes awkward: it has to switch cleanly between a light and a dark theme by swapping the values of the custom properties rather than by rewriting class lists across every component, and it has to be readable by one person maintaining it, which markup carrying fifteen utility classes per element is not.
+The reason is that this interface is not a set of pages assembled from utilities. It is one application with a coherent visual system, a colour scale, a spacing scale, a type scale, a shadow scale, expressed as custom properties and consumed by named component classes. That system has to do two things a utility framework makes awkward: it has to switch cleanly between a light and a dark theme by swapping the values of the custom properties rather than by rewriting class lists across every component, and it has to be readable by one person maintaining it, which markup carrying fifteen utility classes per element is not.
 
 The honest cost is that a hand-written stylesheet has no tree-shaking and no constraint stopping a new rule from duplicating an old one. At 3,581 lines that cost has not yet been paid, and the report records the decision rather than presenting the configuration file as if it were used.
 
@@ -283,7 +283,7 @@ Two decisions inside that are worth recording. The disclosure control carries no
 
 The interface is responsive to 414 px without horizontal scrolling. Below the breakpoint the sidebar becomes a drawer over a backdrop, opened from the same panel icon that collapses it on the desktop and closed from the icon inside the drawer's own header.
 
-That last detail is a fix rather than a plan. The drawer originally slid in *behind* the top bar, because the bar sits at a higher stacking level, so its own header was hidden and the drawer read as empty. The open drawer now sits above both the bar and its backdrop, which puts the opening control out of reach — hence the closing control inside the drawer, which closes the drawer without also setting the desktop collapsed state, so that widening the window does not leave the sidebar hidden.
+That last detail is a fix rather than a plan. The drawer originally slid in *behind* the top bar, because the bar sits at a higher stacking level, so its own header was hidden and the drawer read as empty. The open drawer now sits above both the bar and its backdrop, which puts the opening control out of reach, hence the closing control inside the drawer, which closes the drawer without also setting the desktop collapsed state, so that widening the window does not leave the sidebar hidden.
 
 ![The interface at phone width. The sidebar has become a drawer with its own closing control.](../docs/screenshots/35-mobile-sidebar.png){width=3.1}
 
@@ -293,7 +293,7 @@ The interface is available in eleven languages, at 355 keys per locale. Three bo
 
 **What is translated** is the interface: every label, button, heading, menu item, empty state and error message.
 
-**What is not translated** is the documents, the answers and the stored data. Retrieval is over English documents with an English embedding model, and the answer comes back in the language the model was asked for — which is a request in the prompt, not a translation layer.
+**What is not translated** is the documents, the answers and the stored data. Retrieval is over English documents with an English embedding model, and the answer comes back in the language the model was asked for. Which is a request in the prompt, not a translation layer.
 
 **What is stored as an identifier rather than a label** is anything the system reasons about later. A user's work role is stored as its identifier and never as its displayed name, so that changing the interface language does not change what the prompt says about that user.
 
@@ -303,9 +303,9 @@ The interface is available in eleven languages, at 355 keys per locale. Three bo
 
 The whole system is one machine. The deployment diagram makes the claim that matters visible: **the only line that crosses the host boundary is the optional one to OpenAI.**
 
-Inside the boundary sit two processes and three stores. Uvicorn runs the FastAPI application and holds the ORM, the Chroma client and the provider abstraction. `app.worker` is spawned per upload and exits when it is done. PostgreSQL listens on the loopback interface. ChromaDB is embedded — a directory on disk, not a service. The upload store is a directory of the original files. Ollama runs as its own process on the same machine and is reached over the loopback interface on port 11434.
+Inside the boundary sit two processes and three stores. Uvicorn runs the FastAPI application and holds the ORM, the Chroma client and the provider abstraction. `app.worker` is spawned per upload and exits when it is done. PostgreSQL listens on the loopback interface. ChromaDB is embedded, a directory on disk, not a service. The upload store is a directory of the original files. Ollama runs as its own process on the same machine and is reached over the loopback interface on port 11434.
 
-A Docker Compose configuration is provided and defines three services — `postgres`, `backend` and `frontend` — with three named volumes for the database, the uploads and the Chroma index. It is a convenience for deployment, not the reference environment; the system as tested and measured in Chapter 5 runs directly on the host.
+A Docker Compose configuration is provided and defines three services, `postgres`, `backend` and `frontend`, with three named volumes for the database, the uploads and the Chroma index. It is a convenience for deployment, not the reference environment; the system as tested and measured in Chapter 5 runs directly on the host.
 
 <!-- landscape -->
 

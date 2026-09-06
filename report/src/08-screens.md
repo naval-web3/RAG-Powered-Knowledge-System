@@ -1,8 +1,8 @@
 # Screen Layouts
 
-This chapter presents the interface in the order a user meets it: arriving, signing in, asking a question, managing documents and projects, controlling retrieval, adjusting the system, and finally the administrator's view and the phone layout. Every screen is a capture of the running application against the seeded account described in §5.4 — the answers shown are real answers from `llama3.2:3b` running locally, not mock-ups.
+This chapter presents the interface in the order a user meets it: arriving, signing in, asking a question, managing documents and projects, controlling retrieval, adjusting the system, and finally the administrator's view and the phone layout. Every screen is a capture of the running application against the seeded account described in §5.4. The answers shown are real answers from `llama3.2:3b` running locally, not mock-ups.
 
-Desktop screens were captured at 1440 × 900 and phone screens at 414 × 896. Screens that are meant to be read whole — the landing and feature pages — are full-page captures; the rest are viewport captures, so that they sit at a consistent size on the page.
+Desktop screens were captured at 1440 × 900 and phone screens at 414 × 896. Screens that are meant to be read whole, the landing and feature pages, are full-page captures; the rest are viewport captures, so that they sit at a consistent size on the page.
 
 Four screens have already appeared where they carried an argument rather than merely illustrating one: the landing page and a grounded answer in Chapter 1, the sources panel and one opened passage in Chapter 3, private mode in Chapter 6, and the library, usage, dashboard and query log in Chapter 7. They are not repeated here.
 
@@ -42,7 +42,7 @@ Four screens have already appeared where they carried an argument rather than me
 
 ![Adding a document from the composer, without leaving the conversation.](../docs/screenshots/18-add-menu.png){width=5.6}
 
-![Settings — model and retrieval parameters. The number of passages retrieved is the *k* of §3.2.4, exposed rather than fixed.](../docs/screenshots/31-settings-model.png){width=5.6}
+![Settings: model and retrieval parameters. The number of passages retrieved is the *k* of §3.2.4, exposed rather than fixed.](../docs/screenshots/31-settings-model.png){width=5.6}
 
 ## Navigating a Library That Accumulates
 
@@ -56,13 +56,13 @@ Four screens have already appeared where they carried an argument rather than me
 
 ## Settings
 
-![Settings — general. Theme, language and the standing instructions that ride above the grounding rules on every answer.](../docs/screenshots/26-settings-general.png){width=5.6}
+![Settings: general. Theme, language and the standing instructions that ride above the grounding rules on every answer.](../docs/screenshots/26-settings-general.png){width=5.6}
 
-![Settings — account. Changing a password, and deleting the account together with every document, conversation and vector belonging to it.](../docs/screenshots/27-settings-account.png){width=5.6}
+![Settings: account. Changing a password, and deleting the account together with every document, conversation and vector belonging to it.](../docs/screenshots/27-settings-account.png){width=5.6}
 
-![Settings — privacy. What is stored, and what private mode does not store.](../docs/screenshots/28-settings-privacy.png){width=5.6}
+![Settings: privacy. What is stored, and what private mode does not store.](../docs/screenshots/28-settings-privacy.png){width=5.6}
 
-![Settings — knowledge base. The size of the library as the system sees it: documents, indexed chunks and bytes.](../docs/screenshots/30-settings-knowledge.png){width=5.6}
+![Settings: knowledge base. The size of the library as the system sees it: documents, indexed chunks and bytes.](../docs/screenshots/30-settings-knowledge.png){width=5.6}
 
 ## The Phone Layout
 

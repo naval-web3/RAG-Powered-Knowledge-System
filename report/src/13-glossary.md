@@ -9,7 +9,7 @@ Table: Glossary
 | **bcrypt** | The adaptive, salted password hashing function used for every stored password. Deliberately slow, with a work factor that can be raised as hardware improves without invalidating existing hashes |
 | **Bearer token** | The signed JWT sent in the `Authorization` header of every request to a protected endpoint |
 | **Chunk** | A passage of about 1000 characters, overlapping its neighbours by 200, carrying the document, page, section and position it came from. The unit that is embedded, indexed, retrieved and cited |
-| **ChromaDB** | The vector database, run embedded — a directory on disk rather than a service. Holds one collection |
+| **ChromaDB** | The vector database, run embedded, a directory on disk rather than a service. Holds one collection |
 | **Citation** | One retrieved passage as shown to the user: its document title, page, section, relevance score and text |
 | **Context** | The retrieved passages placed into the prompt. In this system the model is instructed to use the context and nothing else |
 | **Cosine similarity** | The measure of closeness between two vectors. Chroma returns a *distance*; this system reports relevance as `1 − distance`, so higher is better |
@@ -18,7 +18,7 @@ Table: Glossary
 | **Grounding** | The constraint that an answer be composed only from retrieved passages. Enforced twice here: in the prompt, and by the relevance floor, which decides before generation whether to call the model at all |
 | **Hallucination** | A fluent, confident, invented answer. The failure mode this system's architecture exists to prevent |
 | **HNSW** | Hierarchical Navigable Small World: the approximate nearest-neighbour index Chroma uses. Its in-memory state is why opening the index from a second process desynchronises it (defect D4) |
-| **Incognito / private mode** | Answering a question and writing nothing — no conversation, no message, no query log row |
+| **Incognito / private mode** | Answering a question and writing nothing, no conversation, no message, no query log row |
 | **JWT** | JSON Web Token. Signed with HS256, carrying the user's identifier and role, valid for 1440 minutes |
 | **LangChain** | The library used to build prompt templates and to talk to both model providers behind one interface |
 | **LLM** | Large language model. Here, `llama3.2:3b` or `granite4:micro` locally through Ollama, or an OpenAI model |
@@ -31,7 +31,7 @@ Table: Glossary
 | **Retrieval line** | The line beneath every answer recording how many passages were used, from which documents, on which model, and in how many milliseconds |
 | **Section** | A heading detected during ingestion and carried into a chunk's metadata, so that a citation can name §4.2 rather than only page 7 |
 | **Semantic search** | Matching on meaning rather than on characters. What distinguishes this system from full-text search |
-| **Stage** | The fine-grained ingestion phase — extracting, ocr, chunking, embedding, indexing — that drives the progress bar. Distinct from `processing_status`, the coarse, indexed column a query filters on |
+| **Stage** | The fine-grained ingestion phase, extracting, ocr, chunking, embedding, indexing, that drives the progress bar. Distinct from `processing_status`, the coarse, indexed column a query filters on |
 | **Standing instructions** | Free text a user or a project applies to every answer. May set role, tone, format and task; may not override the grounding rules |
 | **Streaming** | Returning an answer in fragments as the model produces them. Available at `POST /api/chat/stream` |
 | **top-*k*** | The number of passages retrieved per question. Five by default, configurable per user |
