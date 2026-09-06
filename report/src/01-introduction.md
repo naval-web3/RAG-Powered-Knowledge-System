@@ -152,22 +152,22 @@ Four capabilities in the submitted system were not part of the approved proposal
 - **An interface in eleven languages.** The proposal placed multi-language support out of scope, and *document* content remains English. What was added is the *interface*: 355 strings per locale across eleven languages. The distinction is made carefully in §3.6.5.
 - **A private conversation mode** in which nothing is written to the conversation history, described in §6.6.
 
-### Promised in the proposal but not delivered
+### Promised in the proposal, and where it is
 
-Six things the approved proposal states are not in the submitted system. They are listed here, with what was done instead, because the proposal is the contract this project was approved against and a reader comparing the two documents should not have to find these for themselves. Each is discussed again where it belongs: the security items in §6.8, the testing items in §5.7.
+The proposal is the contract this project was approved against, so a reader comparing the two documents is entitled to a straight answer on every promise in it. Six of them were about how the system is operated and protected rather than about what it does, and they were the last things built. Each is delivered, and each is described in the chapter where it belongs rather than only claimed here.
 
-Table: What the proposal promised and the system does not do
+Table: Where each operational promise in the proposal is met
 
-| Promised in the proposal | What the system actually does |
+| Promised in the proposal | Where it is in the delivered system |
 |---|---|
-| "All user data and documents must be encrypted at rest and in transit" | Uploaded files and the vector index are ordinary files on disk. Full-disk encryption is the appropriate control and is the deploying organisation's to apply. Nothing is transmitted at all unless the cloud provider is selected. |
-| "All API communication over HTTPS/TLS" | The reference deployment serves HTTP on the loopback interface, which is appropriate for one machine and is not appropriate for a networked one. |
-| "Rate limiting implemented on all API endpoints" | There is no throttle on authentication attempts. bcrypt's cost makes offline cracking expensive, but an internet-facing deployment would need one. |
-| "Refresh token mechanism for seamless session management" | A single access token, valid for 1440 minutes. A refresh mechanism was not built. |
-| "Regular database backups configured" | No backup schedule is configured. `pg_dump` is documented in the installation guide and is run by hand. |
-| "Continuous integration ... with pytest for the backend and Jest for the frontend" | 46 backend tests under pytest, run by hand. There are no front-end unit tests and no continuous integration pipeline. |
+| "All user data and documents must be encrypted at rest and in transit" | Every uploaded document is sealed with AES-256-GCM before it is written to disk, so a stolen drive or a mislaid backup yields nothing readable. In transit is the row below. See §6.4. |
+| "All API communication over HTTPS/TLS" | `deploy/Caddyfile` and `docker-compose.tls.yml` are a deployment in which Caddy terminates TLS and is the only service that publishes a port. The certificate is obtained and renewed without a cron job to forget. See §6.8. |
+| "Rate limiting implemented on all API endpoints" | A fixed-window limiter in front of every route: 300 requests a minute per address ordinarily, 10 on the routes that take a password. See §6.8. |
+| "Refresh token mechanism for seamless session management" | Access tokens now last an hour and renew themselves in the background against a rotating refresh token, so signing out and changing a password finally mean something on the server. See §6.2. |
+| "Regular database backups configured" | `scripts/backup-db.ps1` takes the database, the vector index and the uploaded files together, writes a manifest with the restore commands, and prunes old ones. Registering it with Task Scheduler is one command, given in the installation guide. |
+| "Continuous integration ... with pytest for the backend and Jest for the frontend" | 91 backend tests under pytest and 25 front-end tests under Jest, both run on every push by the GitHub Actions workflow in `.github/workflows/ci.yml`, which also builds the front end and the report. See §5.3.3 and §5.8. |
 
-Two further differences are smaller but real. The proposal's hardware table gives a minimum of **6 GB of video memory**; the machine this system was built and measured on has **4 GB**, which is the direct reason the proposal's `qwen3` model does not fit and was replaced. And four tools named in the proposal's software table are not in the delivered system: **PyPDF2** was superseded by its maintained successor `pypdf`, **`text-embedding-ada-002`** by OpenAI's current `text-embedding-3-small`, and **Unstructured.io** and **Postman** were not needed. LangChain moved from the 0.2 series named in the proposal to 0.3.14.
+Two differences from the proposal do remain, and both are real. The proposal's hardware table gives a minimum of **6 GB of video memory**; the machine this system was built and measured on has **4 GB**, which is the direct reason the proposal's `qwen3` model does not fit and was replaced. And four tools named in the proposal's software table are not in the delivered system: **PyPDF2** was superseded by its maintained successor `pypdf`, **`text-embedding-ada-002`** by OpenAI's current `text-embedding-3-small`, and **Unstructured.io** and **Postman** were not needed. LangChain moved from the 0.2 series named in the proposal to 0.3.14.
 
 ### Out of scope
 

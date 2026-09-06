@@ -140,6 +140,8 @@ Table: Indexes and the query each serves
 | `messages.conversation_id` | Loading one conversation's transcript. |
 | `projects.user_id`, `projects.updated_at` | The projects page and its ordering. |
 | `password_reset_tokens.user_id` | Finding a user's outstanding reset codes. |
+| `refresh_tokens.token_hash` | The only lookup a session renewal makes, and it happens on every renewal. Unique, because two rows for one token would be a contradiction rather than a collision. |
+| `refresh_tokens.user_id` | Withdrawing every session an account has, which is what a password change and a detected token reuse both do. |
 | `query_logs.created_at` | The administrator's dashboard, which reads this table newest-first. |
 
 ### The Vector Store
@@ -241,7 +243,7 @@ One provider-specific accommodation survives in the prompt builder: models in th
 
 ## Interface Design of the REST API
 
-The API is 39 endpoints across seven routers, and it follows one set of rules throughout.
+The API is 41 endpoints across seven routers, and it follows one set of rules throughout.
 
 - **Resources are nouns and the verb is the method.** `POST /api/documents` uploads, `GET /api/documents/{id}` reads, `PATCH /api/documents/{id}` renames or pins, `DELETE /api/documents/{id}` removes. There is no `/api/deleteDocument`.
 - **`PATCH` is partial and means it.** A conversation can be renamed without resending its project, its pinned state or its title.

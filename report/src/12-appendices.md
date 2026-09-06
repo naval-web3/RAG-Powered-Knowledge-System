@@ -28,11 +28,13 @@ Table: The four processes, and the ports they use
 9. **Start the application** with `start-app.bat`.
 10. **Verify** by signing in and asking a question that the seeded corpus answers.
 
-### The Three Things That Go Wrong
+### The Four Things That Go Wrong
 
 **The environment file is missing or has no signing secret.** The backend will not start, and it says so. The template is shipped without a secret deliberately: §6.7 explains that the disc build fails if a real secret is found in the tree, so one has to be generated at install time.
 
 **Ollama is running but no model has been pulled.** This is the failure that looks like a bug in the application and is not. The system reports it precisely. The health report in §7.7 says *"no models"*, and a question answered with no model pulled names the provider and the reason instead of reporting an empty library.
+
+**The signing secret is regenerated on a system already in use.** `SECRET_KEY` has two jobs: it signs the access tokens, and unless `FILE_ENCRYPTION_KEY` is set it also derives the key the uploaded documents are encrypted with (§6.4). Changing it signs everyone out, which is a nuisance, and orphans every document stored under the old key, which is not: a backup holds the encrypted files and not the key, so it does not help. The installation guide states this in a box beside the instruction that generates the secret, and anyone expecting to rotate the signing key later should set `FILE_ENCRYPTION_KEY` separately at install time.
 
 **The embedding backend is changed after documents are indexed.** This is the one irreversible mistake in the installation. A 384-dimensional query cannot be compared with 1536-dimensional chunks, and a mixed collection is not repairable by any query. Changing `EMBEDDING_BACKEND` requires deleting the Chroma directory and re-indexing every document.
 
@@ -83,19 +85,21 @@ A message naming a provider, that Ollama is not running, that a key is missing, 
 
 ## Appendix C: REST API Reference
 
-Thirty-nine endpoints across seven routers. Every endpoint except registration, login and password reset requires a bearer token. Every endpoint touching user-owned data is filtered by the authenticated identity on the server.
+Forty-one endpoints across seven routers. Every endpoint except registration, login, password reset, token renewal and sign-out requires a bearer token; the last two carry their own credential in the body instead. Every endpoint touching user-owned data is filtered by the authenticated identity on the server.
 
 Table: Authentication and account (`/api/auth`)
 
 | Method and path | Purpose |
 |---|---|
-| `POST /register` | Create an account; returns a token |
-| `POST /login` | Authenticate; returns a token |
+| `POST /register` | Create an account; returns an access and a refresh token |
+| `POST /login` | Authenticate; returns an access and a refresh token |
+| `POST /refresh` | Exchange a refresh token for a new pair; the old one is spent |
+| `POST /logout` | Withdraw a refresh token, ending that session on the server |
 | `POST /forgot-password` | Issue a single-use, time-limited reset code |
 | `POST /reset-password` | Set a new password with a valid code |
 | `GET /me` | The current user |
 | `PATCH /me` | Update profile, standing instructions or work role |
-| `POST /change-password` | Change password while signed in |
+| `POST /change-password` | Change password while signed in; ends every other session and returns a new pair |
 | `DELETE /account` | Delete the account and everything belonging to it |
 
 Table: Documents (`/api/documents`)

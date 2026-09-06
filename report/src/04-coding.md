@@ -390,3 +390,5 @@ The extension is derived defensively. A filename with no dot, or no filename at 
 **At the database layer**, the check constraints in §4.1 catch anything that reaches the row by a path the first two layers do not cover: a migration, a script, or a future endpoint written without them. A file type outside the four allowed cannot be stored even if every check in Python were removed.
 
 The stored file name is also worth noting: an upload is written as `{uuid4}.{ext}` inside a directory named for the owner's identifier, never under the name the client supplied. A user-supplied filename is a path traversal waiting to happen, and it is kept as data in `original_filename` rather than used as a path.
+
+The write itself goes through `file_store.write`, which seals the bytes before they reach the disk (§6.4). The recorded `file_size` stays the size of the document the user uploaded and not the size of what is stored, because that is the number shown in the library and the number the upload limit counts. The thirty-six bytes encryption adds are the storage layer's business and nobody else's.

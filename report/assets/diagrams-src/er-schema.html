@@ -143,6 +143,18 @@
     <div class="r pk fk"><span class="n">document_id</span><span class="ty">uuid</span><span class="k">PK FK</span></div>
   </div>
 
+  <div class="tbl" style="left:770px; top:545px; height:164px">
+    <h3>refresh_tokens</h3>
+    <div class="r pk"><span class="n">token_id</span><span class="ty">uuid</span><span class="k">PK</span></div>
+    <div class="r fk"><span class="n">user_id</span><span class="ty">uuid</span><span class="k">FK</span></div>
+    <div class="r"><span class="n">token_hash</span><span class="ty">varchar(64)</span><span class="k">U</span></div>
+    <div class="r"><span class="n">expires_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+    <div class="r"><span class="n">revoked</span><span class="ty">boolean</span><span class="k"></span></div>
+    <div class="r"><span class="n">replaced_by</span><span class="ty">uuid null</span><span class="k"></span></div>
+    <div class="r"><span class="n">created_at</span><span class="ty">timestamptz</span><span class="k"></span></div>
+    <div class="r"><span class="n">last_used_at</span><span class="ty">timestamptz null</span><span class="k"></span></div>
+  </div>
+
   <!-- ===================== relationships ===================== -->
   <svg class="wires" width="1050" height="730" viewBox="0 0 1050 730" xmlns="http://www.w3.org/2000/svg">
 
@@ -174,6 +186,15 @@
     <path class="foot" d="M 155 466 L 148 480 M 155 466 L 155 480 M 155 466 L 162 480"/>
     <text class="card end" x="252" y="470">0..1 : N</text>
     <text class="verb" x="260" y="470">logs</text>
+
+    <!-- users 1 : N refresh_tokens.
+         Routed along the bottom margin, mirroring the uploads wire along the
+         top: every other route out of users is already taken. -->
+    <path class="wire" d="M 30 161 L 16 161 L 16 726 L 895 726 L 895 709"/>
+    <path class="foot" d="M 9 182 L 23 182"/>
+    <path class="foot" d="M 895 712 L 888 726 M 895 712 L 895 726 M 895 712 L 902 726"/>
+    <text class="card" x="658" y="706">1 : N</text>
+    <text class="verb" x="694" y="706">renews</text>
 
     <!-- users 1 : N password_reset_tokens -->
     <path class="wire" d="M 155 262 L 155 300"/>
@@ -219,18 +240,18 @@
 
     <text class="note" x="770" y="516">resolves projects : documents = M : N</text>
 
-    <!-- key to the notation, in the empty quarter under project_documents -->
-    <path class="wire" d="M 672 596 L 706 596"/>
-    <path class="foot" d="M 684 589 L 684 603"/>
-    <text class="note" x="714" y="600">exactly one</text>
-    <path class="wire" d="M 672 622 L 706 622"/>
-    <path class="foot" d="M 692 622 L 706 615 M 692 622 L 706 622 M 692 622 L 706 629"/>
-    <text class="note" x="714" y="626">many</text>
-    <path class="wire" d="M 672 648 L 706 648"/>
-    <path class="foot" d="M 680 641 L 680 655"/>
-    <circle class="opt" cx="694" cy="648" r="4"/>
-    <text class="note" x="714" y="652">zero or one</text>
-    <text class="note" x="672" y="682">underlined = primary key,  italic = foreign key,  U = unique</text>
+    <!-- key to the notation, in the channel between query_logs and messages -->
+    <path class="wire" d="M 292 596 L 326 596"/>
+    <path class="foot" d="M 304 589 L 304 603"/>
+    <text class="note" x="334" y="600">exactly one</text>
+    <path class="wire" d="M 292 622 L 326 622"/>
+    <path class="foot" d="M 312 622 L 326 615 M 312 622 L 326 622 M 312 622 L 326 629"/>
+    <text class="note" x="334" y="626">many</text>
+    <path class="wire" d="M 292 648 L 326 648"/>
+    <path class="foot" d="M 300 641 L 300 655"/>
+    <circle class="opt" cx="314" cy="648" r="4"/>
+    <text class="note" x="334" y="652">zero or one</text>
+    <text class="note" x="30" y="706">underlined = primary key,  italic = foreign key,  U = unique</text>
   </svg>
 
 </div></div>

@@ -6,7 +6,7 @@ A retrieval system that answers every question is not correct. It is credulous. 
 
 Three levels of testing were used, and each was chosen for what only it can find.
 
-**Unit testing** is white box, over the pure functions that decide what a chunk contains, what a citation can name, what may enter a system prompt and what the progress bar reports. These are the places where a wrong line changes the quality of every answer without breaking anything visibly, so they are exactly what a test suite is for. Forty-six tests, no database, no model, no network.
+**Unit testing** is white box, over the pure functions that decide what a chunk contains, what a citation can name, what may enter a system prompt and what the progress bar reports. These are the places where a wrong line changes the quality of every answer without breaking anything visibly, so they are exactly what a test suite is for. Ninety-one tests on the backend and twenty-five on the front end: no database, no model, no network, no browser.
 
 **Integration testing** is grey box, exercising the pipeline end to end against a real PostgreSQL and a real Chroma index. This is where the failures that only appear when two components meet were found, and every one of the defects in §5.6 is of that kind.
 
@@ -31,7 +31,7 @@ Table: The test plan
 
 The unit suite covers pure functions and nothing else. That is a deliberate boundary, not a shortfall of effort, and it is worth saying which side of the line each part of the system falls.
 
-**Tested** are the functions whose behaviour is entirely determined by their arguments: text cleaning, heading detection, section splitting, the small-talk and conversation-question classifiers, the two functions that build the role and language lines of the prompt, brace escaping, reasoning-block stripping, the progress reporter's arithmetic, and password and token handling.
+**Tested** are the functions whose behaviour is entirely determined by their arguments: text cleaning, heading detection, section splitting, the small-talk and conversation-question classifiers, the two functions that build the role and language lines of the prompt, brace escaping, reasoning-block stripping, the progress reporter's arithmetic, password and token handling, the rate limiter's counting and path classification, the generation and hashing of refresh tokens, and the sealing and unsealing of stored documents. On the front end, the formatting helpers that every screen calls.
 
 **Not unit-tested**, and covered by integration and system testing instead, are the parts whose behaviour is a property of a dependency rather than of the code: what a language model returns for a prompt, what Chroma returns for a vector, what `pypdf` extracts from a particular file. A unit test of those would be a test of a mock, and a passing test of a mock proves that the mock behaves as written.
 
@@ -45,13 +45,37 @@ Table: Unit test results
 | `test_rag_rules.py` | 18 | The relevance floor separates the two score populations; greetings and thanks are recognised while real questions are not; conversation questions are recognised in English, French and German; an unknown work role or locale is ignored rather than passed into a system message; braces are escaped; reasoning blocks are stripped | 18 pass |
 | `test_progress.py` | 11 | Each stage ends at its own percentage; a fraction is interpolated across the stage's span; OCR starts where extraction stopped; chunking takes the OCR span when OCR did not run; progress never decreases; fractions outside 0, 1 are clamped; a write is skipped when nothing visible changed; every stage maps to a status the check constraint allows; a long detail is truncated to the column width | 11 pass |
 | `test_security.py` | 3 | A password hash round-trips and rejects the wrong password; a token round-trips carrying its subject and role; a tampered token is refused | 3 pass |
-| **Total** | **46** | | **46 pass**, in 2.1 s |
+| `test_ratelimit.py` | 10 | Requests under the limit pass and the one over it does not; a new window forgives; two addresses are counted apart; the retry-after figure is the time left in the window; credential routes and exempt routes are classified correctly | 10 pass |
+| `test_refresh_tokens.py` | 17 | Two hundred generated tokens are all different and all URL-safe; the stored form is a SHA-256 digest that does not contain the token and changes with one altered character; a refresh token outlives an access token; the expiry is timezone-aware; a refresh token is not a decodable JWT | 17 pass |
+| `test_file_store.py` | 18 | A sealed document contains no readable run of its own text; the same file seals differently every time; empty and binary content survive the round trip; a file altered, truncated, or given another file's nonce refuses to open; plaintext written before encryption existed still reads; the wrong key gives a message that names the cause | 18 pass |
+| **Total** | **91** | | **91 pass**, in 3.0 s |
 
 Two of those tests deserve to be singled out, because they assert something other than that the code works.
 
 `test_an_unknown_work_role_is_ignored_rather_than_passed_through` puts the string *"ignore all previous instructions"* through `work_line()` and asserts that the result is `None`. That is a prompt-injection test in miniature: the work role is a value the client sends, it is used to build a **system** message, and the defence is that only keys present in a fixed table are ever used. The test is what stops that defence being removed by accident.
 
 `test_the_phrase_list_misses_the_present_tense_of_the_same_question` asserts a **miss**. The phrase list that recognises a question aimed at the conversation contains *said* but not *say*, so *"what did you just say?"*, the commonest phrasing there is, is not caught. This is a real limitation and it is recorded as a passing test rather than hidden, so that anyone who widens the pattern later discovers that they have changed documented behaviour. The consequence is mild, and the engine's own comment says why: a miss is not fatal, because the question is still answered, merely with retrieved excerpts alongside it that it did not need.
+
+Three of the suites in that table did not exist when this chapter was first drafted. `test_ratelimit.py`, `test_refresh_tokens.py` and `test_file_store.py` arrived with the three operational features described in §6.8, and they are the reason the total moved from 46 to 91.
+
+### The Front-End Unit Tests
+
+The approved proposal names Jest for the front end, and the same boundary applies there as on the backend: pure functions, no browser. What that leaves is `utils.js` and `docMime.js`, the formatting helpers every screen calls to turn a number, a date or a name into something a person reads. They are worth testing precisely because they are shared. A regression in one of them is visible on every screen at once, which sounds like it would make the fault obvious and in practice does the opposite: a date that reads slightly wrong everywhere looks like a design decision.
+
+Table: Front-end unit test results
+
+| Group | Tests | What it establishes | Result |
+|---|---|---|---|
+| `fmtBytes` | 3 | Bytes stay bytes; kilobytes and megabytes take one decimal; a missing size is a dash and not `NaN` | 3 pass |
+| `initialsOf` | 5 | Two names give two initials; one name gives its first two letters; an email is read as the part before the at sign; `camelCase` counts as a word boundary; nothing gives a question mark rather than a crash | 5 pass |
+| `firstName` | 3 | The first word, capitalised; `camelCase` splits; an unknown name greets somebody rather than nobody | 3 pass |
+| `strengthOf` | 5 | An empty password scores nothing and says nothing; length alone is weak; mixed case, digits and symbols reach the top; the level never exceeds four; the eight-character minimum is the first thing that scores, because the backend rejects anything shorter and the meter must not encourage it | 5 pass |
+| `fileExt` | 3 | The stored type wins when there is one; it falls back to the filename; a file with no extension is empty rather than undefined | 3 pass |
+| `timeAgo`, `fmtDate` | 4 | A moment ago reads as *just now*; hours and days are pluralised; a single unit is singular; no date is a dash on both | 4 pass |
+| `MIME` | 2 | Every accepted upload type can be shown and not only downloaded; the types are the real ones a browser acts on | 2 pass |
+| **Total** | **25** | | **25 pass**, in 0.25 s |
+
+They run under Jest in native ESM, with `transform: {}` and no Babel, because the source is already modules and a transpiler in the chain would be a second thing to configure and a second thing to be wrong.
 
 ## System Testing: The Retrieval Test
 
@@ -187,6 +211,26 @@ Four gaps are stated here because a test report that lists only what was tested 
 
 **The cloud provider path.** Every measurement in this chapter is from the local model. The OpenAI path works and is exercised manually, but it is not in the timed run, because a metered API would make the numbers a function of somebody's network rather than of this system.
 
-**Front-end testing, and continuous integration.** The approved proposal names pytest for the backend **and Jest for the front end**, run under continuous integration. The backend half is delivered: 46 tests, run with one command. The front end has no unit tests, and there is no CI pipeline, so every test run in this report was started by hand. This is a departure from the proposal and is listed as one in §1.5.
+**Everything a browser does.** The front-end unit tests in §5.3.3 cover the formatting helpers, which are pure functions. They do not cover rendering, routing or the behaviour of a component under a click. Those are exercised by hand in the system testing of §5.4, and a regression in one of them would be caught by somebody looking rather than by a test failing.
 
 **Documents in other languages.** Out of scope by declaration, and untested by consequence. A Hindi document will index without error and retrieve poorly, and no case in this suite demonstrates how poorly.
+
+## Running the Suite Automatically
+
+Everything above was run by hand while it was being written, and a suite that is only ever run by the person who wrote it decays quietly: it passes on the machine it was written on, against the dependencies that happened to be installed there, until the day somebody else needs it.
+
+`.github/workflows/ci.yml` runs it on every push and every pull request, in three jobs.
+
+Table: What continuous integration runs
+
+| Job | What it does | Why it is there |
+|---|---|---|
+| backend | `python -m compileall app`, then `pytest` | `compileall` catches a syntax error in a module no test imports, which pytest on its own would never reach |
+| frontend | `npm ci`, `npm test`, `npm run build` | The production build is what the disc ships, so a build that fails here is a disc that cannot be made |
+| report | `python build.py` | The report is generated from source, so it can break like anything else that is generated from source |
+
+The backend job installs `requirements-test.txt` and not `requirements.txt`. The full set pulls `sentence-transformers` and therefore PyTorch, several gigabytes of it, and no test needs any of it: every function under test is pure, and the embedding model is loaded lazily inside a property, so a test never reaches it. The reasoning is written into the file, because it is the kind of decision that looks like an oversight to whoever reads it next: a test run that takes ten minutes to install what it does not use is a test run people switch off.
+
+The report job stops at the `.docx`. Turning that into a PDF needs Word, which no runner has, so the PDF is made on a machine that has one.
+
+Two things this does not do. It does not run the system tests of §5.4, which need a language model, a populated index and about four minutes; those stay a manual exercise. And it does not deploy anything, because there is nothing to deploy to.

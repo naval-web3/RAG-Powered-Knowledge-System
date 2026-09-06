@@ -109,7 +109,7 @@ $pg = 'C:\Program Files\PostgreSQL\16\bin'
 & "$pg\psql.exe" -U postgres -h localhost -d rag_knowledge -f "D:\03-Application-Data\database\rag_knowledge.sql"
 ```
 
-Confirm it worked — this should print a table count of 10 or more:
+Confirm it worked. This should list nine tables:
 
 ```powershell
 & "$pg\psql.exe" -U postgres -h localhost -d rag_knowledge -c "\dt"

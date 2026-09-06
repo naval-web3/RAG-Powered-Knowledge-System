@@ -199,7 +199,7 @@ Table: Functional requirements, administration
 
 ### Non-Functional Requirements
 
-The approved proposal states five non-functional requirements. All five appear below, and two of them, NFR-16 and NFR-17, are recorded as stated rather than demonstrated. The proposal's performance target is also worth stating precisely, because it has two halves: an answer in under five seconds, **and** a corpus of up to a thousand documents. The first half is met and measured. The second is not tested at all, and §5.7 says so.
+The approved proposal states five non-functional requirements. All five appear below, and two of them, NFR-20 and NFR-21, are recorded as stated rather than demonstrated. The proposal's performance target is also worth stating precisely, because it has two halves: an answer in under five seconds, **and** a corpus of up to a thousand documents. The first half is met and measured. The second is not tested at all, and §5.7 says so.
 
 Table: Non-functional requirements
 
@@ -213,15 +213,19 @@ Table: Non-functional requirements
 | NFR-6 | Security | All passwords shall be bcrypt-hashed; all tokens shall be signed; no secret shall appear in the source tree or the submitted media. |
 | NFR-7 | Security | Every query touching user-owned data shall be filtered by the authenticated user's identity on the server, irrespective of what the client requests. |
 | NFR-8 | Security | Vector search shall be filtered by user identity in the vector store itself, not merely after the results return. |
-| NFR-9 | Privacy | The system shall be fully functional with no network connection, and shall not transmit document content anywhere unless the user selects a cloud provider. |
-| NFR-10 | Usability | The interface shall be usable at 414 px width without horizontal scrolling. |
-| NFR-11 | Usability | The interface shall be available in eleven languages, and switching language shall not require a reload or lose state. |
-| NFR-12 | Usability | Every error shown to a user shall say what went wrong and what to do about it, in that user's language. |
-| NFR-13 | Maintainability | The backend shall be organised into layers, routers, services, providers, models, with no upward dependencies. |
-| NFR-14 | Maintainability | The language model provider and the embedding backend shall each be replaceable by adding one class and no other change. |
-| NFR-15 | Portability | The system shall run on Windows and Linux, and shall have a Docker Compose configuration for deployment. |
-| NFR-16 | Scalability | The proposal requires the architecture to support horizontal scaling of the vector database and the API servers. The delivered system is a single-machine deployment and this requirement is **stated but not demonstrated**; §5.7 says what was and was not measured, and §9.4 says what scaling would need. |
-| NFR-17 | Availability | The proposal sets 99% uptime with error handling and logging. Error handling and logging are delivered and the administrator's health report (§7.7) reports live dependency status, but **no uptime figure is claimed**, because the system has not been run continuously long enough to measure one. |
+| NFR-9 | Security | Every uploaded document shall be encrypted before it is written to disk, so that reading the disk does not read the documents (§6.4). |
+| NFR-10 | Security | Every route shall be rate limited per client address, with a stricter limit on the routes that accept a password (§6.8). |
+| NFR-11 | Security | A session shall be revocable: signing out and changing a password shall stop working sessions on the server and not only in the browser (§6.2). |
+| NFR-12 | Security | A deployment serving anyone but the host shall terminate TLS in front of the application, and shall publish no other port (§6.8). |
+| NFR-13 | Privacy | The system shall be fully functional with no network connection, and shall not transmit document content anywhere unless the user selects a cloud provider. |
+| NFR-14 | Usability | The interface shall be usable at 414 px width without horizontal scrolling. |
+| NFR-15 | Usability | The interface shall be available in eleven languages, and switching language shall not require a reload or lose state. |
+| NFR-16 | Usability | Every error shown to a user shall say what went wrong and what to do about it, in that user's language. |
+| NFR-17 | Maintainability | The backend shall be organised into layers, routers, services, providers, models, with no upward dependencies. |
+| NFR-18 | Maintainability | The language model provider and the embedding backend shall each be replaceable by adding one class and no other change. |
+| NFR-19 | Portability | The system shall run on Windows and Linux, and shall have a Docker Compose configuration for deployment. |
+| NFR-20 | Scalability | The proposal requires the architecture to support horizontal scaling of the vector database and the API servers. The delivered system is a single-machine deployment and this requirement is **stated but not demonstrated**; §5.7 says what was and was not measured, and §9.4 says what scaling would need. |
+| NFR-21 | Availability | The proposal sets 99% uptime with error handling and logging. Error handling and logging are delivered and the administrator's health report (§7.7) reports live dependency status, but **no uptime figure is claimed**, because the system has not been run continuously long enough to measure one. |
 
 ### Assumptions, Dependencies and Constraints
 
@@ -332,7 +336,7 @@ Only on the path through 4.5 and 4.6 does a prompt reach the model, and by then 
 
 ## Entity Relationship Model
 
-The relational side of the system is eight entities. The diagram uses crow's-foot notation: a single perpendicular stroke is exactly one, a three-pronged foot is many, and an open circle is optional, zero or one.
+The relational side of the system is nine entities. The diagram uses crow's-foot notation: a single perpendicular stroke is exactly one, a three-pronged foot is many, and an open circle is optional, zero or one.
 
 Three relationships in the model are optional on the parent side, and each of those circles is a deliberate decision, not an oversight.
 
@@ -340,7 +344,7 @@ Three relationships in the model are optional on the parent side, and each of th
 
 **A conversation may outlive its project.** `conversations.project_id` is nullable, and a null there is meaningful and not merely absent: it denotes a loose chat that searches the whole library, which is how every conversation worked before projects existed. Deleting a project therefore sets its conversations free instead of deleting them, which is what a user expects when they tidy up a workspace.
 
-Everything else cascades, and cascades deliberately. Deleting a user removes their documents, conversations, projects and reset tokens. Deleting a conversation removes its messages. Deleting a document removes its project links. The rule the schema follows is that data belonging *to* a user goes when the user goes, and data *about* the system stays.
+Everything else cascades, and cascades deliberately. Deleting a user removes their documents, conversations, projects, reset tokens and refresh tokens. Deleting a conversation removes its messages. Deleting a document removes its project links. The rule the schema follows is that data belonging *to* a user goes when the user goes, and data *about* the system stays.
 
 The one many-to-many relationship, a project holds many documents, and a document may sit in several projects, is resolved by the `project_documents` link table, whose primary key is the pair of foreign keys. This is what allows a document to be attached to three projects while remaining one file, one row and one set of vectors; attaching it to a project neither copies nor re-indexes anything.
 
@@ -461,6 +465,19 @@ Table: Data dictionary, `password_reset_tokens`
 | `used` | boolean | No | false | Set on first use; a code works exactly once. |
 | `created_at` | timestamptz | No | now() |, |
 
+Table: Data dictionary, `refresh_tokens`
+
+| Attribute | Type | Null | Default | Description |
+|---|---|---|---|---|
+| `token_id` | uuid | No | generated | Primary key. |
+| `user_id` | uuid | No |, | Whose session this is. `ON DELETE CASCADE`. Indexed. |
+| `token_hash` | varchar(64) | No |, | SHA-256 of the token. Unique and indexed: it is the only thing a renewal looks up. A hash rather than bcrypt because the token is 48 bytes the server generated, not a password a person chose, so there is no dictionary to slow an attacker down with. |
+| `expires_at` | timestamptz | No |, | After this instant the session must sign in again. |
+| `revoked` | boolean | No | false | Set by signing out, by a password change, and by spending the token in a renewal. |
+| `replaced_by` | uuid | Yes | null | The token issued in exchange for this one. Its presence is what separates a token that was rotated from one that was merely withdrawn, and only the first is treated as evidence that a copy is in use. |
+| `created_at` | timestamptz | No | now() |, |
+| `last_used_at` | timestamptz | Yes | null | When this token was last exchanged. |
+
 Two data structures used by the system are deliberately not in this dictionary, because they are not relational.
 
 The first is the **vector store**. Each chunk in ChromaDB carries its embedding, its text, and a metadata record of `document_id`, `user_id`, `title`, `file_type`, `page_number`, `section` and `chunk_index`. That metadata is what allows a citation to name a page and a section, and what allows retrieval to be filtered by user and by document *inside the index* rather than after the results return. Its design is described in §3.3.
@@ -491,7 +508,7 @@ The two real hierarchies are the ones that exist because something has to be swa
 
 **`Embeddings`** is an interface with two implementations, `LocalEmbeddings` over `all-MiniLM-L6-v2` and OpenAI's `OpenAIEmbeddings`. The `services.embeddings` module is the factory, and it caches its result, so the 90 MB model is loaded once per process rather than once per document.
 
-The four layers are separated in the diagram by rules and not by frames, because a dependency that crosses a layer is the point of the drawing and a frame it has to be threaded around only obscures it. The dependencies all point downward, routers depend on services, services on providers, everything on persistence, and there are no upward dependencies at all, which is the property NFR-13 asks for. Figure 2.11 is the class model.
+The four layers are separated in the diagram by rules and not by frames, because a dependency that crosses a layer is the point of the drawing and a frame it has to be threaded around only obscures it. The dependencies all point downward, routers depend on services, services on providers, everything on persistence, and there are no upward dependencies at all, which is the property NFR-17 asks for. Figure 2.11 is the class model.
 
 ### Sequence Model
 
