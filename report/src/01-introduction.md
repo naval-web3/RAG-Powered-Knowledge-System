@@ -45,7 +45,7 @@ Five pieces of published work decided how this system is built, and each is name
 
 **Ji and colleagues (2023)** surveyed hallucination in natural language generation. Their taxonomy separates a model contradicting its source from a model inventing content with no source at all, and this system is built against the second: the relevance floor exists so that when there is no source, no generation happens.
 
-Two further sources shaped the process rather than the architecture. **Pressman and Maxim (2020)** supplied the iterative and incremental model applied in §2.4 and the three-point estimation method used in §2.3, and **Elmasri and Navathe (2016)** supplied the normalisation argument worked through in §3.3.1.
+Two further sources shaped the process, not the architecture. **Pressman and Maxim (2020)** supplied the iterative and incremental model applied in §2.4 and the three-point estimation method used in §2.3, and **Elmasri and Navathe (2016)** supplied the normalisation argument worked through in §3.3.1.
 
 ## Objectives of the Project
 
@@ -77,7 +77,7 @@ Table: How each objective is met, and where in this report the evidence appears
 
 ## Project Category
 
-The project belongs to more than one of the categories listed in the MCSP-232 guidelines, and it is worth saying which parts fall where rather than simply naming them all:
+The project belongs to more than one of the categories listed in the MCSP-232 guidelines, and it is worth saying which parts fall where and not simply naming them all:
 
 - **Artificial Intelligence and Machine Learning**. The core of the system is a retrieval-augmented generation pipeline built on a pre-trained transformer embedding model and a large language model.
 - **Natural Language Processing**, questions and documents are both handled as natural language; chunking, embedding, semantic matching and prompt construction are all NLP tasks.

@@ -14,11 +14,11 @@ Three approaches are already available to that person, and each of them fails in
 
 **Asking a general-purpose language model.** Fluent, immediate, well-organised and unverifiable. The model was trained on a large corpus of public text, and this organisation's handbook was not in it. Asked about casual leave entitlement, the model produces a confident paragraph describing what casual leave entitlement typically is, in a tone indistinguishable from the tone it would use if it did know. It cannot cite a source, because it does not have one. For a question that governs somebody's pay, their medication or their access rights, a plausible invention is a worse outcome than silence, because silence is visibly a non-answer and an invention is not.
 
-The gap, then, is specific. What is needed is a system that reads the organisation's own documents rather than a model's memory, answers in prose rather than in a list of hits, matches on meaning rather than on characters, and shows its working so that the answer can be checked against the paragraph it came from. Retrieval-Augmented Generation is precisely the architecture that closes that gap, and this project builds a complete system on it.
+The gap, then, is specific. What is needed is a system that reads the organisation's own documents, not a model's memory, answers in prose and not in a list of hits, matches on meaning rather than on characters, and shows its working so that the answer can be checked against the paragraph it came from. Retrieval-Augmented Generation is precisely the architecture that closes that gap, and this project builds a complete system on it.
 
 Two further needs emerged during analysis and shaped the requirements as much as the primary one did.
 
-The first is **confidentiality**. The documents that would most benefit from this treatment, the HR handbook, the clinical protocol, the security policy, are exactly the documents an organisation is least willing to send to a third-party API one query at a time. A system that can only work by posting the user's question and five paragraphs of their internal policy to a commercial endpoint is unusable in the settings where it is most wanted. Local inference therefore had to be a first-class option and not a degraded fallback, and this single requirement drove the choice of Ollama, of a local embedding model, and of an embedded vector store rather than a hosted one.
+The first is **confidentiality**. The documents that would most benefit from this treatment, the HR handbook, the clinical protocol, the security policy, are exactly the documents an organisation is least willing to send to a third-party API one query at a time. A system that can only work by posting the user's question and five paragraphs of their internal policy to a commercial endpoint is unusable in the settings where it is most wanted. Local inference therefore had to be a first-class option and not a degraded fallback, and this single requirement drove the choice of Ollama, of a local embedding model, and of an embedded vector store, not a hosted one.
 
 The second is **auditability**. If the point of the system is that its answers are grounded, then the grounding must be visible. It is not sufficient for the design to be correct; the user must be able to see that a particular sentence came from page seven of a particular document, and to open that page. This turns what would otherwise be an internal implementation detail, which chunks were retrieved and what their similarity scores were, into part of the delivered interface.
 
@@ -32,19 +32,19 @@ The question here is not whether retrieval-augmented generation can be built. It
 
 Four technical risks were identified and each was settled by a trial before the corresponding module was written.
 
-**Can a useful language model run locally on 4 GB of video memory?** This was the largest risk, because the entire confidentiality requirement rests on it. The approved proposal named `qwen3:8b`. A trial established that an 8-billion-parameter model quantised to roughly 4.9 GB does not fit in 4 GB of VRAM, spills into system memory, and takes minutes per answer. Which is not a system anybody would use. `llama3.2:3b`, at about 2 GB, fits with room to spare and answers in one to three seconds on the same machine. The risk was real and the mitigation was to change the model, which is recorded in §1.4 as a departure from the proposal.
+**Can a useful language model run locally on 4 GB of video memory?** This was the largest risk, because the entire confidentiality requirement rests on it. The approved proposal named `qwen3:8b`. A trial established that an 8-billion-parameter model quantised to roughly 4.9 GB does not fit in 4 GB of VRAM, spills into system memory, and takes minutes per answer. That is not a system anybody would use. `llama3.2:3b`, at about 2 GB, fits with room to spare and answers in one to three seconds on the same machine. The risk was real and the mitigation was to change the model, which is recorded in §1.4 as a departure from the proposal.
 
 **Can embeddings be generated without a network?** `sentence-transformers/all-MiniLM-L6-v2` is 90 MB, downloads once, and runs on the CPU at a speed that makes a 90-page document a matter of seconds rather than minutes. It produces 384-dimensional vectors, which is small enough that a library of a few hundred documents occupies tens of megabytes rather than gigabytes. Feasible, and with the useful property that the same model embeds both documents and questions, which is what puts them in a comparable space at all.
 
-**Is an embedded vector database sufficient?** ChromaDB in persistent mode requires no server process, no separate installation and no port. It stores its index on disk beside the application. For a single-machine deployment holding thousands rather than millions of chunks, an embedded store is the better choice rather than a compromise, because it removes an entire class of deployment failure.
+**Is an embedded vector database sufficient?** ChromaDB in persistent mode requires no server process, no separate installation and no port. It stores its index on disk beside the application. For a single-machine deployment holding thousands rather than millions of chunks, an embedded store is the better choice, not a compromise, because it removes an entire class of deployment failure.
 
 **Can the whole thing be installed on a machine with no internet connection?** This was verified as a distinct question, because several of the components would by default reach out to a model hub on first use. The answer is yes, provided the model files are present and the offline environment flags are set, and the mechanism is documented in Appendix A.
 
-The conclusion of the technical investigation was that the system is feasible on the stated hardware, subject to using a 3-billion-parameter local model rather than an 8-billion-parameter one.
+The conclusion of the technical investigation was that the system is feasible on the stated hardware, subject to using a 3-billion-parameter local model, not an 8-billion-parameter one.
 
 ### Economic Feasibility
 
-The direct monetary cost of the delivered system is zero, and this is a deliberate property rather than an accident of a student project.
+The direct monetary cost of the delivered system is zero, and this is a deliberate property, not an accident of a student project.
 
 Table: Cost of the delivered system
 
@@ -82,7 +82,7 @@ The available window ran from the approval of the synopsis to the date the bound
 
 ### Work Breakdown and Three-Point Estimation
 
-The approved proposal sets out a twelve-week plan in eight phases: requirement analysis, system analysis and design, environment setup, backend development, frontend development, integration and testing, documentation, and submission. That outline is the schedule this project was approved against, and the network below is a refinement of it rather than a replacement. The eight phases become twelve activities because two of them split along a real dependency: the proposal's single "Backend Development" phase is in practice four activities that must happen in order, since the retrieval engine cannot be built before there are embedded chunks to retrieve.
+The approved proposal sets out a twelve-week plan in eight phases: requirement analysis, system analysis and design, environment setup, backend development, frontend development, integration and testing, documentation, and submission. That outline is the schedule this project was approved against, and the network below is a refinement of it, not a replacement. The eight phases become twelve activities because two of them split along a real dependency: the proposal's single "Backend Development" phase is in practice four activities that must happen in order, since the retrieval engine cannot be built before there are embedded chunks to retrieve.
 
 The work was therefore decomposed into twelve activities. Each was estimated using the three-point method, in which an optimistic time *o*, a most likely time *m* and a pessimistic time *p* are combined into an expected time:
 
@@ -96,7 +96,7 @@ The expected duration along the critical path A → B → C → E → F → G �
 
 ### The Schedule
 
-The Gantt chart places the same twelve activities on the calendar. Because the critical path has no slack, every critical activity starts on the day its predecessor ends, and the chart is consequently a staircase rather than a set of overlapping bars. The two non-critical activities are drawn at their earliest start, and the float they carry is the horizontal distance between where they end and where their successor begins. Figure 2.2 is the schedule.
+The Gantt chart places the same twelve activities on the calendar. Because the critical path has no slack, every critical activity starts on the day its predecessor ends, and the chart is consequently a staircase, not a set of overlapping bars. The two non-critical activities are drawn at their earliest start, and the float they carry is the horizontal distance between where they end and where their successor begins. Figure 2.2 is the schedule.
 
 <!-- landscape -->
 
@@ -108,7 +108,7 @@ The Gantt chart places the same twelve activities on the calendar. Because the c
 
 ## The Software Engineering Paradigm Applied
 
-The system was built to an **iterative and incremental** model, and the choice was made on the evidence of the technical investigation rather than out of preference.
+The system was built to an **iterative and incremental** model, and the choice was made on the evidence of the technical investigation and not out of preference.
 
 A strict waterfall was rejected for a concrete reason: two of its assumptions are false for this project. Waterfall assumes the requirements can be fixed before construction begins, and it assumes the technology behaves as documented. Neither held. The requirement for optical character recognition did not exist at the start. It was discovered by watching a scanned PDF ingest successfully and then answer nothing. And the local model named in the approved proposal did not fit the hardware, a fact that could only be found by running it. A process that forbids requirements from changing after the design phase would have produced a system that was faithful to a specification and useless in practice.
 
@@ -156,11 +156,11 @@ Table: Functional requirements, the document library
 | Id | Requirement |
 |---|---|
 | FR-8 | A user shall be able to upload a document in PDF, DOCX, TXT or MD format, up to the configured size limit. |
-| FR-9 | The system shall reject any other file type, and shall say which types are accepted rather than failing generically. |
+| FR-9 | The system shall reject any other file type, and shall say which types are accepted instead of failing generically. |
 | FR-10 | Every uploaded document shall be extracted, split into overlapping chunks, embedded, and indexed into the vector store without further user action. |
-| FR-11 | Where a PDF page carries no selectable text, the system shall render the page and recognise its text optically rather than indexing an empty document. |
+| FR-11 | Where a PDF page carries no selectable text, the system shall render the page and recognise its text optically instead of indexing an empty document. |
 | FR-12 | The system shall record and publish the live progress of ingestion, the stage, a percentage and a human-readable detail, so that the interface can show it. |
-| FR-13 | Where ingestion fails, the system shall record the reason on the document and present it to the user rather than leaving the document in an indefinite processing state. |
+| FR-13 | Where ingestion fails, the system shall record the reason on the document and present it to the user instead of leaving the document in an indefinite processing state. |
 | FR-14 | A user shall be able to list, open, read, rename, pin and delete their own documents, and shall not be able to see or act on any other user's. |
 | FR-15 | Deleting a document shall remove its row, its stored file and all of its vectors. |
 
@@ -171,7 +171,7 @@ Table: Functional requirements, asking and answering
 | FR-16 | A user shall be able to ask a question in natural language and receive an answer in prose. |
 | FR-17 | The answer shall be generated only from passages retrieved from that user's own documents, and the prompt shall forbid the use of any other knowledge. |
 | FR-18 | The system shall return, with every answer, the passages it used, each identified by document title, page number, section heading and relevance score. |
-| FR-19 | Where no retrieved passage exceeds the relevance floor, the system shall say that it found nothing rather than generating an answer, and shall not call the language model at all. |
+| FR-19 | Where no retrieved passage exceeds the relevance floor, the system shall say that it found nothing instead of generating an answer, and shall not call the language model at all. |
 | FR-20 | The system shall retrieve the *k* nearest chunks by cosine similarity, with *k* configurable. |
 | FR-21 | A user shall be able to restrict retrieval to a single document, or to the documents attached to a project. |
 | FR-22 | A user shall be able to choose the provider and the model that answers each question, from those the server reports as available. |
@@ -186,7 +186,7 @@ Table: Functional requirements, conversations and projects
 | FR-26 | A user shall be able to list, open, rename, pin, mark unread, search and delete their own conversations. |
 | FR-27 | A reopened conversation shall show the sources and the retrieval details of every past answer, not only of answers received while the page was open. |
 | FR-28 | A user shall be able to create a project, give it standing instructions, and attach a set of documents to it. |
-| FR-29 | A conversation inside a project shall retrieve only from that project's documents, and where the project has none attached it shall say so rather than searching the whole library. |
+| FR-29 | A conversation inside a project shall retrieve only from that project's documents, and where the project has none attached it shall say so instead of searching the whole library. |
 
 Table: Functional requirements, administration
 
@@ -310,13 +310,13 @@ Exploding process 3.0 gives the five sub-processes of the ingestion pipeline. Th
 
 The first is that optical character recognition is a **conditional branch, not a stage**. Process 3.1 reads the file; if the pages yield selectable text it hands them straight to 3.3, and process 3.2 never runs. Only when a page has no text layer at all, which is what a scanner produces, does 3.1 hand the page images to 3.2. This matters because OCR is by far the most expensive part of the pipeline, and a design that ran it unconditionally would make every ordinary document slow to protect against an unusual one.
 
-The second is that **every sub-process writes its own progress back to D2**. The stage name and the percentage on each of those flows are the actual values the pipeline reports. Drawing them individually rather than as one summary flow is the honest depiction, because it is what makes the progress bar in the interface truthful: the bar advances because the process advanced, not because a timer said it should. Figure 2.7 is the exploded process.
+The second is that **every sub-process writes its own progress back to D2**. The stage name and the percentage on each of those flows are the actual values the pipeline reports. Drawing them individually and not as one summary flow is the honest depiction, because it is what makes the progress bar in the interface truthful: the bar advances because the process advanced, not because a timer said it should. Figure 2.7 is the exploded process.
 
 ### Level 2, Process 4.0, Answer Question
 
 Exploding process 4.0 gives seven sub-processes, and the shape of the diagram is the argument of this project in one picture: **there are two ways out of this process that do not involve the language model at all.**
 
-The first is process 4.2. Before anything is retrieved, 4.1 establishes whether retrieval is even the right response. Four situations short-circuit it: the question is a greeting rather than a question; the user has uploaded no documents at all; the conversation belongs to a project with nothing attached to it; or the question is about the conversation itself rather than about the documents. Each of these is answered directly and plainly, with no sources, because there are none and pretending otherwise would be dishonest.
+The first is process 4.2. Before anything is retrieved, 4.1 establishes whether retrieval is even the right response. Four situations short-circuit it: the question is a greeting, not a question; the user has uploaded no documents at all; the conversation belongs to a project with nothing attached to it; or the question is about the conversation itself rather than about the documents. Each of these is answered directly and plainly, with no sources, because there are none and pretending otherwise would be dishonest.
 
 The second is the relevance gate at process 4.4. Retrieval always returns something, a nearest-neighbour search over a non-empty index cannot return nothing, so the mere existence of results proves nothing about whether they are relevant. Process 4.4 compares the best similarity score against a floor of 0.15. Below it, the system reports that it could not find anything and **the provider is never called**. This is the single most important control in the system, because it is the difference between a system that says "I don't know" and a system that invents. It also has a measurable side effect: because no model is invoked, the not-found reply is the fastest response the system produces.
 
@@ -334,11 +334,11 @@ Only on the path through 4.5 and 4.6 does a prompt reach the model, and by then 
 
 The relational side of the system is eight entities. The diagram uses crow's-foot notation: a single perpendicular stroke is exactly one, a three-pronged foot is many, and an open circle is optional, zero or one.
 
-Three relationships in the model are optional on the parent side, and each of those circles is a deliberate decision rather than an oversight.
+Three relationships in the model are optional on the parent side, and each of those circles is a deliberate decision, not an oversight.
 
 **A query log may outlive its user, and may outlive its conversation.** Both foreign keys on `query_logs` are nullable and both are declared `ON DELETE SET NULL`. If they were `CASCADE`, deleting a user would erase the performance record of every question they ever asked, and the administrator's figures would silently rewrite history every time somebody closed an account. The log is an operational record about the *system*, not personal data about the user, and it is designed to survive them.
 
-**A conversation may outlive its project.** `conversations.project_id` is nullable, and a null there is meaningful rather than merely absent: it denotes a loose chat that searches the whole library, which is how every conversation worked before projects existed. Deleting a project therefore sets its conversations free rather than deleting them, which is what a user expects when they tidy up a workspace.
+**A conversation may outlive its project.** `conversations.project_id` is nullable, and a null there is meaningful and not merely absent: it denotes a loose chat that searches the whole library, which is how every conversation worked before projects existed. Deleting a project therefore sets its conversations free instead of deleting them, which is what a user expects when they tidy up a workspace.
 
 Everything else cascades, and cascades deliberately. Deleting a user removes their documents, conversations, projects and reset tokens. Deleting a conversation removes its messages. Deleting a document removes its project links. The rule the schema follows is that data belonging *to* a user goes when the user goes, and data *about* the system stays.
 
@@ -358,7 +358,7 @@ Table: Data dictionary, `users`
 
 | Attribute | Type | Null | Default | Description |
 |---|---|---|---|---|
-| `user_id` | uuid | No | generated | Primary key. A UUID rather than a serial, so that identifiers are not guessable and do not disclose how many users exist. |
+| `user_id` | uuid | No | generated | Primary key. A UUID, not a serial, so that identifiers are not guessable and do not disclose how many users exist. |
 | `username` | varchar(100) | No |, | Display name. Unique. |
 | `email` | varchar(255) | No |, | Login identifier. Unique, indexed. |
 | `password_hash` | varchar(255) | No |, | bcrypt hash. The plaintext is never stored, logged or returned. |
@@ -387,7 +387,7 @@ Table: Data dictionary, `documents`
 | `stage` | varchar(20) | Yes |, | The fine-grained stage within processing: `extracting`, `ocr`, `chunking`, `embedding`, `indexing`. |
 | `progress` | integer | No | 0 | Overall percentage, 0, 100. Only ever moved forward, so a client may interpolate between polls. |
 | `stage_detail` | varchar(120) | Yes |, | Human-readable detail, such as "OCR 4 of 11 page(s)". |
-| `pinned` | boolean | No | false | Kept in the sidebar rather than only on the library page. |
+| `pinned` | boolean | No | false | Kept in the sidebar and not only on the library page. |
 
 Table: Data dictionary, `conversations`
 
@@ -410,7 +410,7 @@ Table: Data dictionary, `messages`
 | `conversation_id` | uuid | No |, | Parent conversation. `ON DELETE CASCADE`. Indexed. |
 | `role` | varchar(20) | No |, | Either `user` or `assistant`, enforced by a check constraint. |
 | `content` | text | No |, | The question, or the generated answer. |
-| `source_documents` | jsonb | Yes |, | The passages the answer used, and the retrieval metadata. Stored with the message rather than only in the query log, so that a reopened conversation can show its sources. |
+| `source_documents` | jsonb | Yes |, | The passages the answer used, and the retrieval metadata. Stored with the message and not only in the query log, so that a reopened conversation can show its sources. |
 | `token_count` | integer | Yes |, | Reserved for token accounting. |
 | `created_at` | timestamptz | No | now() | Message order within the conversation. |
 
@@ -473,7 +473,7 @@ The second is the **JSON stored in `messages.source_documents`**, whose shape is
 
 The use case diagram separates what a user asks for from what the system then has to do. The distinction is carried by the `«include»` and `«extend»` relationships, and both are used with their proper meanings.
 
-`«include»` marks a sub-behaviour that always happens. Uploading a document *always* extracts, splits and indexes it. There is no path through the upload use case that skips it. Asking a question *always* retrieves passages and *always* generates from them. Drawing these as included use cases rather than as separate things the user does is what says that the user does not choose them; they are constituents.
+`«include»` marks a sub-behaviour that always happens. Uploading a document *always* extracts, splits and indexes it. There is no path through the upload use case that skips it. Asking a question *always* retrieves passages and *always* generates from them. Drawing these as included use cases and not as separate things the user does is what says that the user does not choose them; they are constituents.
 
 `«extend»` marks a sub-behaviour that happens only under a condition, and it points from the extension to the base. Recognising text on a scanned page extends the extraction use case, and applies only when a page has no text layer. Answering without keeping the chat extends asking, and applies only when the user has turned private mode on.
 
@@ -487,11 +487,11 @@ The class diagram describes the software structure, and one thing about it has t
 
 The two real hierarchies are the ones that exist because something has to be swapped at run time.
 
-**`LLMProvider`** is an abstract class with two concrete subclasses, `OllamaProvider` and `OpenAIProvider`. Its abstract operation `chat_model()` is the whole contract, and `get_provider()` is the factory that resolves a provider name to an instance. This is the Strategy pattern, and it exists because the choice of model arrives with each request rather than being fixed at start-up: the same running server answers one question from a local model and the next from a cloud one.
+**`LLMProvider`** is an abstract class with two concrete subclasses, `OllamaProvider` and `OpenAIProvider`. Its abstract operation `chat_model()` is the whole contract, and `get_provider()` is the factory that resolves a provider name to an instance. This is the Strategy pattern, and it exists because the choice of model arrives with each request instead of being fixed at start-up: the same running server answers one question from a local model and the next from a cloud one.
 
 **`Embeddings`** is an interface with two implementations, `LocalEmbeddings` over `all-MiniLM-L6-v2` and OpenAI's `OpenAIEmbeddings`. The `services.embeddings` module is the factory, and it caches its result, so the 90 MB model is loaded once per process rather than once per document.
 
-The four layers are separated in the diagram by rules rather than by frames, because a dependency that crosses a layer is the point of the drawing and a frame it has to be threaded around only obscures it. The dependencies all point downward, routers depend on services, services on providers, everything on persistence, and there are no upward dependencies at all, which is the property NFR-13 asks for. Figure 2.11 is the class model.
+The four layers are separated in the diagram by rules and not by frames, because a dependency that crosses a layer is the point of the drawing and a frame it has to be threaded around only obscures it. The dependencies all point downward, routers depend on services, services on providers, everything on persistence, and there are no upward dependencies at all, which is the property NFR-13 asks for. Figure 2.11 is the class model.
 
 ### Sequence Model
 
@@ -515,7 +515,7 @@ Two further details are visible in the ordering. The user's message is written t
 
 The activity diagram covers ingestion, and it is drawn with two swimlanes because the interesting property of that process is that two things run at once. The API answers 201 and spawns the pipeline as a **separate operating-system process**; the browser then polls the document row once a second and draws the bar from the `stage` and `progress` columns the worker is writing. Neither waits for the other.
 
-Running the pipeline as its own process rather than as a background task in the web server is a decision with a reason behind it, recorded in §3.2.2: a synchronous extraction running in the server's thread pool can deadlock the worker thread and leave uploads stuck on "processing" for ever. Process isolation makes that failure impossible rather than unlikely.
+Running the pipeline as its own process and not as a background task in the web server is a decision with a reason behind it, recorded in §3.2.2: a synchronous extraction running in the server's thread pool can deadlock the worker thread and leave uploads stuck on "processing" for ever. Process isolation makes that failure impossible rather than unlikely.
 
 Both failure exits are drawn. A file of the wrong type or size never reaches the pipeline at all and is refused with a reason. A PDF that yields no text even after optical character recognition ends at the second final node with its reason written on the row. Which is a state a real user can reach, by uploading a blank scan, and which they should be told about rather than left watching a bar that has stopped.
 
@@ -527,7 +527,7 @@ The state diagram is the life of a single document. Its five outer states are th
 
 Two columns rather than one is itself the design decision this diagram documents. `processing_status` is the coarse column: it takes five values, it is indexed, and it is what a query filters on when the library page asks for every document that is still processing. `stage` is the fine column: it names which of the five phases the worker is inside, and it is what drives the progress bar. Collapsing them into one would force a choice between a column with too many values to index usefully and a bar with too few steps to be informative.
 
-The percentages on the substates are the actual figures the pipeline reports, and the way they are allocated is deliberate. Each stage is given the span from wherever the previous stage finished up to its own end, rather than a fixed slice from a table. That is what keeps the bar continuous whether or not optical character recognition runs: a scanned PDF finishes reading at 35 % and OCR then owns 35 → 60 %, while a document with a text layer simply lets chunking take that room instead.
+The percentages on the substates are the actual figures the pipeline reports, and the way they are allocated is deliberate. Each stage is given the span from wherever the previous stage finished up to its own end, not a fixed slice from a table. That is what keeps the bar continuous whether or not optical character recognition runs: a scanned PDF finishes reading at 35 % and OCR then owns 35 → 60 %, while a document with a text layer simply lets chunking take that room instead.
 
 <!-- landscape -->
 

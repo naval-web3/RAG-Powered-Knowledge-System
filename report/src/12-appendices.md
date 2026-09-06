@@ -32,7 +32,7 @@ Table: The four processes, and the ports they use
 
 **The environment file is missing or has no signing secret.** The backend will not start, and it says so. The template is shipped without a secret deliberately: §6.7 explains that the disc build fails if a real secret is found in the tree, so one has to be generated at install time.
 
-**Ollama is running but no model has been pulled.** This is the failure that looks like a bug in the application and is not. The system reports it precisely. The health report in §7.7 says *"no models"*, and a question answered with no model pulled names the provider and the reason rather than reporting an empty library.
+**Ollama is running but no model has been pulled.** This is the failure that looks like a bug in the application and is not. The system reports it precisely. The health report in §7.7 says *"no models"*, and a question answered with no model pulled names the provider and the reason instead of reporting an empty library.
 
 **The embedding backend is changed after documents are indexed.** This is the one irreversible mistake in the installation. A 384-dimensional query cannot be compared with 1536-dimensional chunks, and a mixed collection is not repairable by any query. Changing `EMBEDDING_BACKEND` requires deleting the Chroma directory and re-indexing every document.
 
@@ -52,7 +52,7 @@ Table: The four processes, and the ports they use
 
 **Pin** a document or a project to keep it in the sidebar. **Search** conversations from the sidebar. Conversations group by age and each group folds.
 
-**Create a project** when a set of questions belongs to a set of documents. Give it standing instructions, attach the documents it may use, and every conversation inside it will retrieve only from those. This is a guarantee rather than a preference: a project with nothing attached says so rather than quietly searching the whole library.
+**Create a project** when a set of questions belongs to a set of documents. Give it standing instructions, attach the documents it may use, and every conversation inside it will retrieve only from those. This is a guarantee, not a preference: a project with nothing attached says so rather than quietly searching the whole library.
 
 **Set standing instructions** in Settings to apply to every conversation. They can set role, tone, format and task. They cannot switch off citation or the rule that answers come only from the documents.
 

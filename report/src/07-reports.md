@@ -33,7 +33,7 @@ The primary output has three layers, and each layer is a different kind of claim
 
 **The answer** is prose composed by the language model from the retrieved passages and nothing else.
 
-**The retrieval line** sits immediately beneath it and is a factual record rather than a summary: how many passages were used, which documents they came from, which provider and model produced the answer, and how many milliseconds the whole round trip took. It is drawn from the same values that are written to the query log, so what the user reads and what the administrator measures cannot disagree.
+**The retrieval line** sits immediately beneath it and is a factual record, not a summary: how many passages were used, which documents they came from, which provider and model produced the answer, and how many milliseconds the whole round trip took. It is drawn from the same values that are written to the query log, so what the user reads and what the administrator measures cannot disagree.
 
 **The citations** are the five passages themselves, each carrying its document title, page number, section heading and relevance score, and each openable to show the passage as a quotation. The layout is described in §3.6.3 and shown in Figures 3.3 and 3.4.
 
@@ -60,7 +60,7 @@ The ordering is by relevance, best first, which is the order the vector store re
 
 ## The Document Library
 
-The library is a report on the state of every document a user owns: its title, type, size, upload date, chunk count and processing state. While a document is being ingested the same row carries a live progress bar drawn from the `stage` and `progress` columns, and a failed document carries the reason it failed rather than a generic badge.
+The library is a report on the state of every document a user owns: its title, type, size, upload date, chunk count and processing state. While a document is being ingested the same row carries a live progress bar drawn from the `stage` and `progress` columns, and a failed document carries the reason it failed, not a generic badge.
 
 ![The document library. Each row is a report on one document: its type, size, chunk count and state, with the reason written on any document that failed.](../docs/screenshots/11-document-library.png){width=5.9}
 
@@ -88,7 +88,7 @@ Table: The administrator's dashboard, fields and their sources
 | Documents by type | `COUNT` grouped by `file_type` |
 | Questions per day, last fourteen days | `COUNT` grouped by date, gaps filled with zero |
 
-The provider breakdown is the field with the most operational meaning in it. It answers a question an organisation deploying this system will actually ask, *how much of our traffic went to a third party?*, and it answers it from the log rather than from a policy statement.
+The provider breakdown is the field with the most operational meaning in it. It answers a question an organisation deploying this system will actually ask, *how much of our traffic went to a third party?*, and it answers it from the log and not from a policy statement.
 
 ![The administrator's dashboard. Counts, the mean response time, the split by provider, and fourteen days of activity.](../docs/screenshots/32-admin-dashboard.png){width=5.9}
 
@@ -96,13 +96,13 @@ The provider breakdown is the field with the most operational meaning in it. It 
 
 The query log report lists recent questions newest first, each with the user who asked it, the elapsed time, the number of chunks retrieved, the provider and model that served it, and the outcome. It is read from the `created_at` index, which exists for this report and for nothing else.
 
-Two properties of the log are worth restating here, because they are what make it usable as evidence rather than as a feed. It is written on **every** question, whether the answer was good, was a decline, or came back on the relevance floor's fast path, so a low chunk count in this report is itself a signal. And it **outlives its user**: the foreign key is `ON DELETE SET NULL`, so the operational history of the system does not rewrite itself every time somebody closes an account.
+Two properties of the log are worth restating here, because they are what make it usable as evidence and not as a feed. It is written on **every** question, whether the answer was good, was a decline, or came back on the relevance floor's fast path, so a low chunk count in this report is itself a signal. And it **outlives its user**: the foreign key is `ON DELETE SET NULL`, so the operational history of the system does not rewrite itself every time somebody closes an account.
 
 ![The user list and the recent query log. Each row records the model that served the question, the chunks it used and the time it took.](../docs/screenshots/33-admin-users-and-logs.png){width=5.9}
 
 ## The System Health Report
 
-The health report is the only output in the system that is not computed from stored rows. Every field is a live probe made when the page is requested, and each probe is chosen to prove the dependency is genuinely working rather than merely present.
+The health report is the only output in the system that is not computed from stored rows. Every field is a live probe made when the page is requested, and each probe is chosen to prove the dependency is genuinely working and not merely present.
 
 Table: The health report, what each probe actually does
 

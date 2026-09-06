@@ -106,7 +106,7 @@ CREATE TABLE project_documents (
 
 ## Database Access Rights
 
-The application connects as one role, and that role owns the schema. Row-level access is not delegated to the database, and that is a decision worth defending rather than glossing over.
+The application connects as one role, and that role owns the schema. Row-level access is not delegated to the database, and that is a decision worth defending instead of glossing over.
 
 PostgreSQL can enforce per-user visibility with row-level security policies, and for a system where the database is shared by several applications that would be the right choice. Here it would mean one database role per application user, created at registration and dropped at deletion, with the connection pool switching role per request. The cost is a second identity system that must be kept in step with the first, and a failure mode, the two drifting apart, that is worse than the one being defended against.
 
@@ -168,7 +168,7 @@ One convention is unusual enough to justify itself: **comments explain why, not 
 
 ## The Code That Carries the System's Logic
 
-Four excerpts follow. They are not the largest pieces of the system; they are the four places where a wrong line would change what the system *is* rather than merely break it.
+Four excerpts follow. They are not the largest pieces of the system; they are the four places where a wrong line would change what the system *is* and not merely break it.
 
 ### The Relevance Gate
 
@@ -203,7 +203,7 @@ This is the control that makes the system's central claim true. It sits between 
     context, sources = _format_context(results)
 ```
 
-Three details in twenty lines are worth naming. The scope narrows twice and the second narrowing is *checked*. A document identifier that is not in the project's set is refused rather than quietly used, which is what stops a project's guarantee being bypassed by a request. `top_score` is taken from `results[0]` because the search returns its results ordered by relevance, so the best score is the first one. And the not-found reply still reports `len(results)` and `top_score`, so the query log records what was retrieved even on the branch where nothing was used. Which is what made it possible to calibrate the floor against real questions rather than guessing it.
+Three details in twenty lines are worth naming. The scope narrows twice and the second narrowing is *checked*. A document identifier that is not in the project's set is refused rather than quietly used, which is what stops a project's guarantee being bypassed by a request. `top_score` is taken from `results[0]` because the search returns its results ordered by relevance, so the best score is the first one. And the not-found reply still reports `len(results)` and `top_score`, so the query log records what was retrieved even on the branch where nothing was used. Which is what made it possible to calibrate the floor against real questions instead of guessing it.
 
 ### The Filtered Vector Search
 
@@ -233,7 +233,7 @@ The scope filter is passed into the search rather than applied to its output, an
     )
 ```
 
-`user_id` is in the `where` clause unconditionally. There is no code path through this function that searches without it, which means a caller cannot forget it. The only thing a caller controls is whether the search is narrowed *further*. The single-document case is special-cased to a plain equality rather than an `$in` of one element because Chroma treats the two differently in its query planning, and the single-document scope is the common case when a user is reading one file.
+`user_id` is in the `where` clause unconditionally. There is no code path through this function that searches without it, which means a caller cannot forget it. The only thing a caller controls is whether the search is narrowed *further*. The single-document case is special-cased to a plain equality, not an `$in` of one element because Chroma treats the two differently in its query planning, and the single-document scope is the common case when a user is reading one file.
 
 The score returned is `1 − distance`, converting Chroma's cosine distance into a relevance where higher is better, so that the floor in the previous excerpt reads the way a person would expect.
 
@@ -247,7 +247,7 @@ class _Progress:
 
     Each stage is given the slice of the 0-100 bar running from wherever the
     previous stage finished up to its own END. Allocating the start dynamically
-    (rather than from a fixed table) is what keeps the bar continuous whether or
+    (and not from a fixed table) is what keeps the bar continuous whether or
     not OCR runs: a scanned PDF finishes reading at 35 and OCR then owns 35->60,
     while a text PDF simply lets chunking take that room instead. A fixed table
     would either leave a visible jump or, worse, hand OCR a span the extraction
@@ -385,7 +385,7 @@ Validation happens at three layers, and the layering is intentional: each catche
         )
 ```
 
-The extension is derived defensively. A filename with no dot, or no filename at all, yields an empty extension that fails the membership test rather than raising an index error. The size is checked **after** reading, because the declared `Content-Length` of a multipart upload is a claim by the client and not a fact. And the empty-file case is separated from the too-large case, because they are different mistakes and deserve different sentences.
+The extension is derived defensively. A filename with no dot, or no filename at all, yields an empty extension that fails the membership test instead of raising an index error. The size is checked **after** reading, because the declared `Content-Length` of a multipart upload is a claim by the client and not a fact. And the empty-file case is separated from the too-large case, because they are different mistakes and deserve different sentences.
 
 **At the database layer**, the check constraints in §4.1 catch anything that reaches the row by a path the first two layers do not cover: a migration, a script, or a future endpoint written without them. A file type outside the four allowed cannot be stored even if every check in Python were removed.
 

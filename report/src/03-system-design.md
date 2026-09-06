@@ -16,7 +16,7 @@ Table: The seven modules, what each owns, and where it lives
 | M6 Conversation, Project and Settings | Conversations and messages, projects and their document scope, standing instructions and preferences | `api/chat.py`, `api/projects.py`, `api/settings.py` |
 | M7 Administration and Analytics | Counts, the query log, the live health of every dependency, the user list | `api/admin.py`, `api/usage.py` |
 
-The approved proposal also names seven modules, and the two lists are not identical. The proposal counts the ReactJS front end as one module and does not separate the vector store from the pipeline that fills it. This report separates them and describes the front end as a design concern in §3.6 rather than as a backend module. The reason is the one the rest of this chapter turns on: the vector store is the only component two other modules both write to and read from, so making it a module of its own is what allows the rule in §3.1 that nothing else may talk to Chroma. The mapping is one to one apart from that split.
+The approved proposal also names seven modules, and the two lists are not identical. The proposal counts the ReactJS front end as one module and does not separate the vector store from the pipeline that fills it. This report separates them and describes the front end as a design concern in §3.6 and not as a backend module. The reason is the one the rest of this chapter turns on: the vector store is the only component two other modules both write to and read from, so making it a module of its own is what allows the rule in §3.1 that nothing else may talk to Chroma. The mapping is one to one apart from that split.
 
 Table: The proposal's modules, and where each one lives in this design
 
@@ -27,14 +27,14 @@ Table: The proposal's modules, and where each one lives in this design
 | 3. Document Processing Pipeline Module | M3, with the vector store and the embedding backend lifted out into M4 |
 | 4. RAG Query Engine Module | M5, unchanged |
 | 5. Conversation Management Module | M6, which also carries projects and settings, neither of which the proposal has |
-| 6. Frontend UI Module (ReactJS) | Described as design in §3.6 and shown in Chapter 8, rather than as a backend module |
+| 6. Frontend UI Module (ReactJS) | Described as design in §3.6 and shown in Chapter 8, and not as a backend module |
 | 7. Admin Dashboard Module | M7, unchanged |
 
 Three properties of that division are worth stating, because each was chosen and each has a cost.
 
 **No module reaches upward.** M5 does not know that HTTP exists; it takes a question and returns an answer. M4 does not know what a conversation is. M3 does not know who the user is beyond a `user_id` it writes into metadata. The practical consequence is that the RAG engine can be exercised from a script with no web server running, which is how the retrieval measurements in §5.5 were taken.
 
-**M4 is the only module that talks to Chroma.** Every read and every write of a vector goes through `vector_store.py`. This was not merely tidy; it turned out to be load-bearing. Opening the Chroma index from a second process while the backend holds it desynchronises the index, a lesson learned the expensive way, described in §5.6, and a single choke point is what makes that rule enforceable rather than merely advisory.
+**M4 is the only module that talks to Chroma.** Every read and every write of a vector goes through `vector_store.py`. This was not merely tidy; it turned out to be load-bearing. Opening the Chroma index from a second process while the backend holds it desynchronises the index, a lesson learned the expensive way, described in §5.6, and a single choke point is what makes that rule enforceable and not merely advisory.
 
 **M5 has no persistence of its own.** The engine writes nothing. Its caller stores the message, the sources and the log row. That is why private mode (FR-24) needed no change to the engine at all: the router simply does not write what the engine returns.
 
@@ -68,11 +68,11 @@ The pipeline's job is to turn a file into chunks that are worth retrieving. Each
 
 **Optical character recognition is conditional and is announced.** If a PDF page yields no selectable text, the page is rendered at 240 dpi and recognised with RapidOCR. The condition matters: OCR is by far the slowest step in the pipeline, and running it on every page to guard against the occasional scan would make every ordinary document slow. It is also announced, because a document that is going to take two minutes rather than four seconds should say so. The stage becomes `ocr` and the detail line reads, for example, *scanned PDF - running OCR on 11 page(s)*.
 
-**Sections are detected before the text is split.** Before chunking, the page text is scanned for lines that look like headings, short lines, title case or all capitals, no terminal full stop, and the text is divided at them. Each resulting piece carries the heading above it. The consequence is visible in the interface: a citation can say *§4.2 Leave Entitlement* rather than only a page number, and a user checking an answer lands on the right paragraph rather than the right page.
+**Sections are detected before the text is split.** Before chunking, the page text is scanned for lines that look like headings, short lines, title case or all capitals, no terminal full stop, and the text is divided at them. Each resulting piece carries the heading above it. The consequence is visible in the interface: a citation can say *§4.2 Leave Entitlement* and not only a page number, and a user checking an answer lands on the right paragraph, not the right page.
 
 **Chunks are 1000 characters with 200 of overlap.** The splitter is recursive, preferring to break at a blank line, then at a line break, then at a sentence end, then at a space, and only splitting mid-word if it has no alternative. The two numbers were chosen against each other:
 
-- **1000 characters** is roughly a paragraph and a half. Much smaller and a chunk stops containing a complete thought, so a retrieved passage answers half a question. Much larger and the embedding is an average of several topics, which makes it a weaker match for any one of them, and the retrieved passage becomes something the user has to read rather than something they can check at a glance.
+- **1000 characters** is roughly a paragraph and a half. Much smaller and a chunk stops containing a complete thought, so a retrieved passage answers half a question. Much larger and the embedding is an average of several topics, which makes it a weaker match for any one of them, and the retrieved passage becomes something the user has to read instead of something they can check at a glance.
 - **200 characters of overlap**, a fifth of the chunk, exists for the sentence that straddles a boundary. Without overlap, a fact stated in the last line of one chunk and qualified in the first line of the next is indexed twice, incompletely, and matches neither. The cost is that the index is about twenty per cent larger than it would otherwise be, which for a library of this size is tens of megabytes.
 
 **Embedding and indexing are separate, batched steps.** The chunks are embedded in batches of 64, and then indexed in batches of 64. Doing them as two passes rather than one is deliberate: they are two distinct pieces of real work with very different speeds, and reporting them separately is what lets the progress bar show true per-batch movement instead of one long opaque pause between 68 % and 99 %.
@@ -106,7 +106,7 @@ The relational schema is in third normal form. Rather than assert that, it is wo
 
 ### Integrity Constraints
 
-Integrity is enforced in the database, not only in the application, because a constraint that lives only in Python is a convention rather than a guarantee.
+Integrity is enforced in the database, not only in the application, because a constraint that lives only in Python is a convention, not a guarantee.
 
 Table: Constraints declared in the schema
 
@@ -121,7 +121,7 @@ Table: Constraints declared in the schema
 | unique on `users.username` | `users` | Two accounts with the same display name |
 | unique on `users.email` | `users` | Two accounts with the same login identifier |
 
-Referential integrity is declared with an explicit delete rule on every foreign key, and the rule differs by intent. Data belonging **to** a user cascades: deleting a user deletes their documents, conversations, projects and reset tokens, and deleting a conversation deletes its messages. Data **about** the system does not: `query_logs.user_id` and `query_logs.conversation_id` are `ON DELETE SET NULL`, so closing an account does not rewrite the operational record. `conversations.project_id` is also `SET NULL`, so deleting a project releases its conversations into the general library rather than destroying them.
+Referential integrity is declared with an explicit delete rule on every foreign key, and the rule differs by intent. Data belonging **to** a user cascades: deleting a user deletes their documents, conversations, projects and reset tokens, and deleting a conversation deletes its messages. Data **about** the system does not: `query_logs.user_id` and `query_logs.conversation_id` are `ON DELETE SET NULL`, so closing an account does not rewrite the operational record. `conversations.project_id` is also `SET NULL`, so deleting a project releases its conversations into the general library instead of destroying them.
 
 ### Indexes, and Why Each One Exists
 
@@ -191,7 +191,7 @@ When an answer is stored, its citations and its retrieval metadata are written o
 }
 ```
 
-Storing this with the message rather than only in the query log is a decision that came out of use. A conversation is reloaded from `messages`; without the sources on the message, the retrieval line and the sources panel could only ever be rendered on an answer the user had watched arrive, and reopening a chat from yesterday would show a bare paragraph with no provenance at all. The duplication with `query_logs` is intentional and the two serve different readers: the message serves the user reading their own history, the log serves the administrator measuring the system.
+Storing this with the message and not only in the query log is a decision that came out of use. A conversation is reloaded from `messages`; without the sources on the message, the retrieval line and the sources panel could only ever be rendered on an answer the user had watched arrive, and reopening a chat from yesterday would show a bare paragraph with no provenance at all. The duplication with `query_logs` is intentional and the two serve different readers: the message serves the user reading their own history, the log serves the administrator measuring the system.
 
 ### The Embedding Design
 
@@ -213,7 +213,7 @@ The engine's first responsibility is to decide whether retrieval is the right re
 
 **A project with nothing attached.** This one is a deliberate refusal. The engine does *not* fall back to the wider library, because the entire purpose of a project is that it cannot answer from documents the user did not put in it. Silently widening the scope would be the single most damaging thing the system could do to its own guarantee.
 
-**A question about the conversation.** *"what did you just say?"* or *"say that in Hindi"* is about the transcript, not the documents. Retrieval is skipped rather than merely ignored, and the reason is empirical. A small model handed both *"answer using ONLY the excerpts"* and a set of excerpts that have nothing to do with the question first decides it has nothing to say, and then applies the not-found line to an exchange it answered itself a moment earlier. The transcript path uses a different system prompt with the excerpt rules left out altogether rather than softened.
+**A question about the conversation.** *"what did you just say?"* or *"say that in Hindi"* is about the transcript, not the documents. Retrieval is skipped and not merely ignored, and the reason is empirical. A small model handed both *"answer using ONLY the excerpts"* and a set of excerpts that have nothing to do with the question first decides it has nothing to say, and then applies the not-found line to an exchange it answered itself a moment earlier. The transcript path uses a different system prompt with the excerpt rules left out altogether rather than softened.
 
 ### The Prompt, and What It Forbids
 
@@ -235,7 +235,7 @@ Two mechanical details in the prompt exist because of specific failures.
 
 `LLMProvider` is an abstract class with one abstract operation, `chat_model()`, and one concrete one, `generate()`. `OllamaProvider` and `OpenAIProvider` implement it, and `get_provider(name, model)` resolves a request's choice to an instance.
 
-The abstraction is thin on purpose. It does not attempt to normalise the differences between providers beyond returning a LangChain chat model, because the differences that matter are not in the call, they are in what goes wrong. A provider that is not running, a missing API key, a key with no credit and a model that has not been pulled are four different failures, and each is reported to the user in those words rather than as a generic error or, worse, as *"I couldn't find anything in your documents"*. The health check that produces those messages runs **before** retrieval, so that a provider failure is never mistaken for an empty library.
+The abstraction is thin on purpose. It does not attempt to normalise the differences between providers beyond returning a LangChain chat model, because the differences that matter are not in the call, they are in what goes wrong. A provider that is not running, a missing API key, a key with no credit and a model that has not been pulled are four different failures, and each is reported to the user in those words and not as a generic error or, worse, as *"I couldn't find anything in your documents"*. The health check that produces those messages runs **before** retrieval, so that a provider failure is never mistaken for an empty library.
 
 One provider-specific accommodation survives in the prompt builder: models in the `qwen3` family run a slow internal reasoning pass by default, and the builder appends the `/no_think` switch for them. It is confined to one line and is named for what it is.
 
@@ -263,9 +263,9 @@ The sidebar is the navigation, and it is designed around the fact that a knowled
 
 The approved proposal named Tailwind CSS. Tailwind remains in the build configuration from the initial scaffold and is not used; the delivered interface is styled by a single hand-written stylesheet of 3,581 lines.
 
-The reason is that this interface is not a set of pages assembled from utilities. It is one application with a coherent visual system, a colour scale, a spacing scale, a type scale, a shadow scale, expressed as custom properties and consumed by named component classes. That system has to do two things a utility framework makes awkward: it has to switch cleanly between a light and a dark theme by swapping the values of the custom properties rather than by rewriting class lists across every component, and it has to be readable by one person maintaining it, which markup carrying fifteen utility classes per element is not.
+The reason is that this interface is not a set of pages assembled from utilities. It is one application with a coherent visual system, a colour scale, a spacing scale, a type scale, a shadow scale, expressed as custom properties and consumed by named component classes. That system has to do two things a utility framework makes awkward: it has to switch cleanly between a light and a dark theme by swapping the values of the custom properties and not by rewriting class lists across every component, and it has to be readable by one person maintaining it, which markup carrying fifteen utility classes per element is not.
 
-The honest cost is that a hand-written stylesheet has no tree-shaking and no constraint stopping a new rule from duplicating an old one. At 3,581 lines that cost has not yet been paid, and the report records the decision rather than presenting the configuration file as if it were used.
+The honest cost is that a hand-written stylesheet has no tree-shaking and no constraint stopping a new rule from duplicating an old one. At 3,581 lines that cost has not yet been paid, and the report records the decision instead of presenting the configuration file as if it were used.
 
 ### The Sources Disclosure
 
@@ -283,7 +283,7 @@ Two decisions inside that are worth recording. The disclosure control carries no
 
 The interface is responsive to 414 px without horizontal scrolling. Below the breakpoint the sidebar becomes a drawer over a backdrop, opened from the same panel icon that collapses it on the desktop and closed from the icon inside the drawer's own header.
 
-That last detail is a fix rather than a plan. The drawer originally slid in *behind* the top bar, because the bar sits at a higher stacking level, so its own header was hidden and the drawer read as empty. The open drawer now sits above both the bar and its backdrop, which puts the opening control out of reach, hence the closing control inside the drawer, which closes the drawer without also setting the desktop collapsed state, so that widening the window does not leave the sidebar hidden.
+That last detail is a fix, not a plan. The drawer originally slid in *behind* the top bar, because the bar sits at a higher stacking level, so its own header was hidden and the drawer read as empty. The open drawer now sits above both the bar and its backdrop, which puts the opening control out of reach, hence the closing control inside the drawer, which closes the drawer without also setting the desktop collapsed state, so that widening the window does not leave the sidebar hidden.
 
 ![The interface at phone width. The sidebar has become a drawer with its own closing control.](../docs/screenshots/35-mobile-sidebar.png){width=3.1}
 
@@ -295,7 +295,7 @@ The interface is available in eleven languages, at 355 keys per locale. Three bo
 
 **What is not translated** is the documents, the answers and the stored data. Retrieval is over English documents with an English embedding model, and the answer comes back in the language the model was asked for. Which is a request in the prompt, not a translation layer.
 
-**What is stored as an identifier rather than a label** is anything the system reasons about later. A user's work role is stored as its identifier and never as its displayed name, so that changing the interface language does not change what the prompt says about that user.
+**What is stored as an identifier, not a label** is anything the system reasons about later. A user's work role is stored as its identifier and never as its displayed name, so that changing the interface language does not change what the prompt says about that user.
 
 ![The language picker. Eleven interface languages; the documents and the answers are a separate question.](../docs/screenshots/23-language-picker.png){width=5.5}
 

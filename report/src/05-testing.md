@@ -29,7 +29,7 @@ Table: The test plan
 
 ### What Is Unit-Tested, and What Is Not
 
-The unit suite covers pure functions and nothing else. That is a deliberate boundary rather than a shortfall of effort, and it is worth saying which side of the line each part of the system falls.
+The unit suite covers pure functions and nothing else. That is a deliberate boundary, not a shortfall of effort, and it is worth saying which side of the line each part of the system falls.
 
 **Tested** are the functions whose behaviour is entirely determined by their arguments: text cleaning, heading detection, section splitting, the small-talk and conversation-question classifiers, the two functions that build the role and language lines of the prompt, brace escaping, reasoning-block stripping, the progress reporter's arithmetic, and password and token handling.
 
@@ -130,9 +130,9 @@ Table: System test results by class
 
 **Every factual question was answered from the documents.** All thirteen easy and all nine harder cases retrieved the right passages and answered correctly, including the multi-fact cases that required combining separate sections, the referral bonus timing, the difference between Critical and Medium incident SLAs, and the remote-work allowance comparison.
 
-**All five negative cases declined.** Asked about an organ donation policy, international relocation, a dress code and antivirus software, none of which appear anywhere in the corpus, the system said so rather than inventing an answer. This is the result the whole architecture exists to produce, and it is the result a keyword search or a bare language model would not produce.
+**All five negative cases declined.** Asked about an organ donation policy, international relocation, a dress code and antivirus software, none of which appear anywhere in the corpus, the system said so instead of inventing an answer. This is the result the whole architecture exists to produce, and it is the result a keyword search or a bare language model would not produce.
 
-**One negative case is more interesting than a pass.** Asked whether the hospital has a dedicated cancer treatment centre, the system correctly reported that the documents do not say so, and then volunteered that an Oncology department is mentioned elsewhere in the handbook. That is a hedge rather than a hallucination, the additional fact is true and came from a retrieved chunk, but it answers more than was asked. It is scored as a pass because it declined the question it was asked; it is recorded here because a stricter reading would want it not to volunteer.
+**One negative case is more interesting than a pass.** Asked whether the hospital has a dedicated cancer treatment centre, the system correctly reported that the documents do not say so, and then volunteered that an Oncology department is mentioned elsewhere in the handbook. That is a hedge, not a hallucination, the additional fact is true and came from a retrieved chunk, but it answers more than was asked. It is scored as a pass because it declined the question it was asked; it is recorded here because a stricter reading would want it not to volunteer.
 
 **One genuine defect, case 31.** The question asks whether a hospital pharmacy discount is relevant to NovaTech policy. The answer separates the two organisations correctly and cites the right document for the discount. Its final sentence then refers to *"the company's Medication & Pharmacy Policy"*, attributing the hospital's medication rule to NovaTech, which has no such policy. **The retrieval was correct**; the 3-billion-parameter model lost track of which organisation it was describing over a long answer. This is analysed in §5.6 as defect D8.
 
@@ -151,17 +151,17 @@ Table: Response time over thirty-one cases
 | Cases over 10 s | 0 |
 | Cases over 6 s | 2, both cross-document |
 
-Three things are visible in that spread and each is explained by the design rather than by chance.
+Three things are visible in that spread and each is explained by the design and not by chance.
 
 **The floor is about 3.1 seconds and it is the model, not the retrieval.** Embedding a question and searching thirteen chunks is a matter of milliseconds; generation on a 4 GB card is what the user waits for. This is why NFR-2 sets a separate, much tighter budget for retrieval alone.
 
 **Time correlates with the length of the answer, not with the difficulty of the retrieval.** The two slowest cases are both cross-document, and both produce long answers that name two organisations, two contacts and two procedures. A local model generates at a roughly constant number of tokens per second, so a longer answer simply takes longer.
 
-**The relevance floor makes the not-found reply the fastest response the system can produce**, because it returns without calling the model at all. No case in this run took that branch. Every question scored above the floor, including the negative ones, which is itself informative: the negative cases were declined by the *model*, correctly, on the strength of the prompt, rather than by the floor. The floor is the second line of defence and the prompt is the first, and on this corpus the first held.
+**The relevance floor makes the not-found reply the fastest response the system can produce**, because it returns without calling the model at all. No case in this run took that branch. Every question scored above the floor, including the negative ones, which is itself informative: the negative cases were declined by the *model*, correctly, on the strength of the prompt, and not by the floor. The floor is the second line of defence and the prompt is the first, and on this corpus the first held.
 
 ## Defects Found, and What Was Done About Them
 
-Nine defects are recorded here. Each was found by testing rather than by reading, each is described with what actually went wrong rather than with a symptom, and the last one is still open.
+Nine defects are recorded here. Each was found by testing and not by reading, each is described with what actually went wrong and not with a symptom, and the last one is still open.
 
 Table: Defect log
 
@@ -172,10 +172,10 @@ Table: Defect log
 | D3 | Integration | The progress bar froze for the whole of the slowest phase. Each stage had been given a fixed span from a table, and on a scanned document OCR was handed a span that extraction had already consumed | Each stage now takes the span from wherever the previous stage finished up to its own end, allocated dynamically. This is the arithmetic covered by `test_progress.py` |
 | D4 | Integration | About 160 lines of *"Delete of nonexisting embedding ID"*, and every query returning zero chunks from a backend that had been running fine. A standalone script had opened the Chroma index to delete two orphan chunks while the backend still held it, desynchronising the running HNSW index | Vector work goes through the API, or the backend is stopped first. The rule is enforceable because `vector_store.py` is the only module that touches Chroma (§3.1) |
 | D5 | System | A provider failure surfaced to the user as *"I couldn't find anything in your documents"*, blaming the user's library for the system's own outage | A provider health check now runs **before** retrieval, and reports which provider failed and why: not running, no key, no credit, or a model that has not been pulled |
-| D6 | System | The source passage dialog rendered as *"Page7"* and *"SectionOBJECTIVES"*, unstyled. The CSS for its metadata grid had been deleted along with an earlier version of the dialog, and restoring the component brought the markup back without its styles | The rule was restored as a base rule rather than a mobile-only override. **Test note:** a passage without a section falls back to *"chunk N"* in the same slot, and both shapes have three dot-separated parts, so a test that counts parts passes on the wrong one. Test for the `chunk N` fallback instead |
+| D6 | System | The source passage dialog rendered as *"Page7"* and *"SectionOBJECTIVES"*, unstyled. The CSS for its metadata grid had been deleted along with an earlier version of the dialog, and restoring the component brought the markup back without its styles | The rule was restored as a base rule, not a mobile-only override. **Test note:** a passage without a section falls back to *"chunk N"* in the same slot, and both shapes have three dot-separated parts, so a test that counts parts passes on the wrong one. Test for the `chunk N` fallback instead |
 | D7 | System | On a phone the sidebar drawer opened but never closed, wore the wrong icon, and slid in *behind* the top bar so that its own header was hidden, which read as an empty drawer. Three faults in one control | The toggle became a true toggle, the icon was matched to the desktop one, the open drawer was raised above the bar, and a closing control was added inside the drawer that does not also set the desktop collapsed state |
 | D8 | System | **Case 31.** The answer attributed the hospital's *"Medication & Pharmacy Policy"* to NovaTech in its closing sentence, after having separated the two organisations correctly earlier in the same answer. Retrieval was correct; the 3B model lost track of which organisation it was describing over a long answer | **Open.** Two remedies are available and neither was taken: a larger model, which contradicts the 4 GB constraint the system is built to; or naming the source document inline beside each excerpt in the prompt, which contradicts the instruction that keeps document names out of the answer text. The defect is recorded rather than papered over, and §9 proposes the compromise |
-| D9 | Integration | A port left held by a process that `netstat` named but no process table contained, serving requests from a stale index | The process was found by its 497 MB memory footprint, the signature of a backend with the embedding model loaded, and ended. **Lesson recorded:** when `netstat` names a PID that does not resolve, find the process by its memory size rather than reaching for a reboot |
+| D9 | Integration | A port left held by a process that `netstat` named but no process table contained, serving requests from a stale index | The process was found by its 497 MB memory footprint, the signature of a backend with the embedding model loaded, and ended. **Lesson recorded:** when `netstat` names a PID that does not resolve, find the process by its memory size instead of reaching for a reboot |
 
 ## What the Testing Did Not Cover
 

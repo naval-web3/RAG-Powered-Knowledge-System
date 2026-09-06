@@ -9,7 +9,7 @@ Table: Glossary
 | **bcrypt** | The adaptive, salted password hashing function used for every stored password. Deliberately slow, with a work factor that can be raised as hardware improves without invalidating existing hashes |
 | **Bearer token** | The signed JWT sent in the `Authorization` header of every request to a protected endpoint |
 | **Chunk** | A passage of about 1000 characters, overlapping its neighbours by 200, carrying the document, page, section and position it came from. The unit that is embedded, indexed, retrieved and cited |
-| **ChromaDB** | The vector database, run embedded, a directory on disk rather than a service. Holds one collection |
+| **ChromaDB** | The vector database, run embedded, a directory on disk, not a service. Holds one collection |
 | **Citation** | One retrieved passage as shown to the user: its document title, page, section, relevance score and text |
 | **Context** | The retrieved passages placed into the prompt. In this system the model is instructed to use the context and nothing else |
 | **Cosine similarity** | The measure of closeness between two vectors. Chroma returns a *distance*; this system reports relevance as `1 − distance`, so higher is better |
@@ -24,12 +24,12 @@ Table: Glossary
 | **LLM** | Large language model. Here, `llama3.2:3b` or `granite4:micro` locally through Ollama, or an OpenAI model |
 | **Ollama** | The local model runtime, listening on port 11434 on the same machine. What makes the system work with no network |
 | **OCR** | Optical character recognition. Runs only on a PDF page with no text layer, at 240 dpi, through RapidOCR |
-| **Project** | A workspace with its own standing instructions and its own set of documents. A conversation inside one retrieves **only** from those documents, and says so rather than widening the search if none are attached |
+| **Project** | A workspace with its own standing instructions and its own set of documents. A conversation inside one retrieves **only** from those documents, and says so instead of widening the search if none are attached |
 | **Prompt injection** | Text that tries to override a model's instructions. Defended against for values a client sends (whitelisted, §6.5); **not** solved for text inside an uploaded document (§6.8) |
 | **RAG** | Retrieval-Augmented Generation. Retrieve first, then generate only from what was retrieved |
 | **Relevance floor** | The threshold of 0.15 on the best retrieval score. Below it the system reports that it found nothing and the language model is **not called at all** |
 | **Retrieval line** | The line beneath every answer recording how many passages were used, from which documents, on which model, and in how many milliseconds |
-| **Section** | A heading detected during ingestion and carried into a chunk's metadata, so that a citation can name §4.2 rather than only page 7 |
+| **Section** | A heading detected during ingestion and carried into a chunk's metadata, so that a citation can name §4.2 and not only page 7 |
 | **Semantic search** | Matching on meaning rather than on characters. What distinguishes this system from full-text search |
 | **Stage** | The fine-grained ingestion phase, extracting, ocr, chunking, embedding, indexing, that drives the progress bar. Distinct from `processing_status`, the coarse, indexed column a query filters on |
 | **Standing instructions** | Free text a user or a project applies to every answer. May set role, tone, format and task; may not override the grounding rules |

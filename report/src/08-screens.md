@@ -4,7 +4,7 @@ This chapter presents the interface in the order a user meets it: arriving, sign
 
 Desktop screens were captured at 1440 × 900 and phone screens at 414 × 896. Screens that are meant to be read whole, the landing and feature pages, are full-page captures; the rest are viewport captures, so that they sit at a consistent size on the page.
 
-Four screens have already appeared where they carried an argument rather than merely illustrating one: the landing page and a grounded answer in Chapter 1, the sources panel and one opened passage in Chapter 3, private mode in Chapter 6, and the library, usage, dashboard and query log in Chapter 7. They are not repeated here.
+Four screens have already appeared where they carried an argument and not merely illustrating one: the landing page and a grounded answer in Chapter 1, the sources panel and one opened passage in Chapter 3, private mode in Chapter 6, and the library, usage, dashboard and query log in Chapter 7. They are not repeated here.
 
 ## Arriving
 
@@ -12,7 +12,7 @@ Four screens have already appeared where they carried an argument rather than me
 
 ![The feature overview. Each claim on this page is one the rest of this report substantiates.](../docs/screenshots/03-features.png){width=5.6}
 
-![Signing in. The form states its own rules rather than reporting them after a failed attempt.](../docs/screenshots/05-login.png){width=5.6}
+![Signing in. The form states its own rules instead of reporting them after a failed attempt.](../docs/screenshots/05-login.png){width=5.6}
 
 ![Registration. Username and email are both unique, and the uniqueness is enforced by the schema as well as checked here.](../docs/screenshots/06-register.png){width=5.6}
 
@@ -46,7 +46,7 @@ Four screens have already appeared where they carried an argument rather than me
 
 ## Navigating a Library That Accumulates
 
-![Searching conversations. A knowledge system accumulates, so search is part of the navigation rather than an extra page.](../docs/screenshots/19-search-chats.png){width=5.6}
+![Searching conversations. A knowledge system accumulates, so search is part of the navigation, not an extra page.](../docs/screenshots/19-search-chats.png){width=5.6}
 
 ![The sidebar collapsed to its rail, for a user who wants the width.](../docs/screenshots/20-sidebar-collapsed.png){width=5.6}
 

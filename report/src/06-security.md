@@ -28,7 +28,7 @@ The proposal also specifies a **refresh token mechanism**, in its words "for sea
 
 **The token is not trusted on its own.** The dependency in §4.2 resolves the subject to a row and checks that the account still exists and is still active on **every** request. A token stays cryptographically valid for its full lifetime, so an account disabled ten minutes after signing in would otherwise keep working for the rest of the day.
 
-**A forgotten password is reset by a single-use, time-limited code.** No email service is configured for this project, so the code is displayed on screen. It stands in for an emailed link, and the report says so rather than presenting it as a mail flow. What matters is what is stored: only a *hash* of the code, for the same reason a password is hashed, together with an expiry and a `used` flag that makes it single-use. A reset code read out of the database is as useless as a password read out of it.
+**A forgotten password is reset by a single-use, time-limited code.** No email service is configured for this project, so the code is displayed on screen. It stands in for an emailed link, and the report says so instead of presenting it as a mail flow. What matters is what is stored: only a *hash* of the code, for the same reason a password is hashed, together with an expiry and a `used` flag that makes it single-use. A reset code read out of the database is as useless as a password read out of it.
 
 ## User Profiles and Access Rights
 
@@ -52,7 +52,7 @@ Table: Access rights by role
 
 The row that is easy to miss is the one where **both** columns say no. An administrator can see *that* a query was asked and how long it took; an administrator cannot open another user's documents or read their conversations. That is not an oversight in the administrative interface. There is no endpoint that would serve it, because every document and conversation query is filtered by the authenticated user's own identifier, including when the caller is an administrator.
 
-Enforcement is in two layers and both are on the server. `get_current_user` establishes *who*; `require_admin` is built on top of it and establishes *whether*. An administrative endpoint declares `require_admin` as its dependency, so an endpoint cannot be authorised without first being authenticated. The ordering is structural rather than a convention a handler has to remember.
+Enforcement is in two layers and both are on the server. `get_current_user` establishes *who*; `require_admin` is built on top of it and establishes *whether*. An administrative endpoint declares `require_admin` as its dependency, so an endpoint cannot be authorised without first being authenticated. The ordering is structural, not a convention a handler has to remember.
 
 The client hides administrative navigation from a non-administrator, and that is a convenience and not a control. The control is that the endpoint returns 403 whatever the client chooses to render.
 
@@ -79,7 +79,7 @@ Two further measures govern how uploaded files are held.
 
 **SQL injection is structurally impossible in this codebase.** No query is assembled by string concatenation. Every database access goes through SQLAlchemy, which parameterises values, and the one place a literal SQL string appears, the administrator's table count in the health check, takes no user input at all. This is a property of the code rather than of a filter, which is the difference between a defence and a hope.
 
-**Ownership is filtered on the server, on every query.** A handler never trusts an identifier in a request body to decide whose data to serve. It takes the identity from the token, resolves the requested row, and compares. A request for somebody else's document returns **404, not 403**. A deliberate choice, because 403 would confirm that the document exists.
+**Ownership is filtered on the server, on every query.** A handler never trusts an identifier in a request body to decide whose data to serve. It takes the identity from the token, resolves the requested row, and compares. A request for somebody else's document returns **404, not 403**. That is deliberate: a 403 would confirm that the document exists.
 
 **The vector search is filtered inside the index.** This is the measure most easily got wrong, and §3.2.4 explains the mechanism: `user_id` is part of the `where` clause passed to Chroma, so another user's chunks are never candidates. Filtering the results afterwards would be a defence that a future refactor could quietly drop, and would also silently return fewer than *k* results.
 
@@ -103,11 +103,11 @@ Every secret is read from the environment through one settings object. There is 
 
 That covers the repository. It does not, on its own, cover the disc, because a build script that copies a working directory copies whatever is in it. And the working directory is exactly where a `.env` file lives. The disc build therefore ends with a **scan that can fail the build**: it searches the assembled tree for `.env` files and for assignments to `SECRET_KEY` or `OPENAI_API_KEY`, and refuses to finish if it finds a real value. A build that fails prints the offending file and states plainly that the disc must not be burned.
 
-This is a gate rather than a checklist item because the failure it prevents is unrecoverable in the literal sense: a key on a pressed disc that has been posted cannot be un-posted.
+This is a gate, not a checklist item because the failure it prevents is unrecoverable in the literal sense: a key on a pressed disc that has been posted cannot be un-posted.
 
 ## What Is Not Defended Against
 
-Four things are outside the measures above, and each is a real limit rather than a hypothetical one. Three of them are also **departures from the approved proposal**, which states that data must be encrypted at rest and in transit and that rate limiting is implemented on all endpoints. They are repeated in §1.5 alongside the other undelivered promises, and stated here in the place a reader looking for them would look.
+Four things are outside the measures above, and each is a real limit, not a hypothetical one. Three of them are also **departures from the approved proposal**, which states that data must be encrypted at rest and in transit and that rate limiting is implemented on all endpoints. They are repeated in §1.5 alongside the other undelivered promises, and stated here in the place a reader looking for them would look.
 
 **Encryption at rest.** The proposal requires that all user data and documents be encrypted at rest. They are not. The uploaded files and the Chroma index are ordinary files. Anyone with operating-system access to the host can read them. Full-disk encryption is the appropriate control and is the deploying organisation's to apply.
 
