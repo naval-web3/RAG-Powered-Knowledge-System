@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_diagram.css">
+<title>State diagram - the life of a document</title>
+<style>
+  .st { fill: #fff; stroke: #111; stroke-width: 1.8; rx: 12; ry: 12; }
+  .st.sub { stroke-width: 1.5; fill: #fff; }
+  .comp { fill: #fafafa; stroke: #111; stroke-width: 1.8; rx: 14; ry: 14; }
+  .comp-t { font-size: 12.5px; font-weight: 700; }
+  .name { font-size: 14px; font-weight: 700; }
+  .sub-name { font-size: 12.5px; font-weight: 700; }
+  .pct { font-size: 10.5px; fill: #444; }
+  .node { fill: #111; stroke: #111; stroke-width: 2; }
+  .ring { fill: #fff; stroke: #111; stroke-width: 2; }
+  .tr { stroke: #111; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+  .lb { font-size: 11px; }
+  .note { fill: #f7f7f7; stroke: #111; stroke-width: 1.2; }
+  .note-t { font-size: 10.5px; }
+</style>
+</head>
+<body>
+<div id="sheet">
+<svg width="1080" height="524" viewBox="0 76 1080 524" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+    </marker>
+  </defs>
+
+  <!-- ===================== the coarse states ===================== -->
+  <circle class="node" cx="46" cy="250" r="9"/>
+
+  <rect class="st" x="100" y="220" width="140" height="60"/>
+  <text class="name mid" x="170" y="246">pending</text>
+  <text class="pct mid" x="170" y="264">progress 0</text>
+
+  <!-- the composite: what processing_status = 'processing' contains -->
+  <rect class="comp" x="300" y="96" width="750" height="304"/>
+  <text class="comp-t" x="314" y="118">processing processing &#8212; the stage column names where inside this the worker is#8212; the stage column says where inside this the worker is</text>
+  <path class="tr" style="marker-end:none" d="M 300 128 L 1050 128"/>
+
+  <circle class="node" cx="330" cy="200" r="7"/>
+
+  <rect class="st sub" x="366" y="170" width="126" height="60"/>
+  <text class="sub-name mid" x="429" y="195">extracting</text>
+  <text class="pct mid" x="429" y="213">4 &#8594; 35 %</text>
+
+  <rect class="st sub" x="366" y="300" width="126" height="60"/>
+  <text class="sub-name mid" x="429" y="325">ocr</text>
+  <text class="pct mid" x="429" y="343">35 &#8594; 60 %</text>
+
+  <rect class="st sub" x="546" y="170" width="126" height="60"/>
+  <text class="sub-name mid" x="609" y="195">chunking</text>
+  <text class="pct mid" x="609" y="213">60 &#8594; 68 %</text>
+
+  <rect class="st sub" x="716" y="170" width="126" height="60"/>
+  <text class="sub-name mid" x="779" y="195">embedding</text>
+  <text class="pct mid" x="779" y="213">68 &#8594; 85 %</text>
+
+  <rect class="st sub" x="886" y="170" width="126" height="60"/>
+  <text class="sub-name mid" x="949" y="195">indexing</text>
+  <text class="pct mid" x="949" y="213">85 &#8594; 99 %</text>
+
+  <rect class="st" x="540" y="480" width="150" height="60"/>
+  <text class="name mid" x="615" y="506">done</text>
+  <text class="pct mid" x="615" y="524">progress 100</text>
+
+  <rect class="st" x="830" y="480" width="150" height="60"/>
+  <text class="name mid" x="905" y="506">failed</text>
+  <text class="pct mid" x="905" y="524">progress left as it was</text>
+
+  <circle class="ring" cx="330" cy="510" r="13"/>
+  <circle class="node" cx="330" cy="510" r="7"/>
+  <text class="lb mid" x="330" y="546">deleted</text>
+
+  <!-- ===================== transitions ===================== -->
+  <path class="tr" d="M 55 250 L 98 250"/>
+  <text class="lb mid" x="76" y="228">file stored,</text>
+  <text class="lb mid" x="76" y="242">row inserted</text>
+
+  <path class="tr" d="M 240 250 L 298 250"/>
+  <text class="lb mid" x="269" y="228">app.worker</text>
+  <text class="lb mid" x="269" y="242">starts</text>
+
+  <path class="tr" d="M 337 200 L 364 200"/>
+
+  <path class="tr" d="M 492 200 L 544 200"/>
+  <text class="lb mid" x="518" y="160">text found</text>
+
+  <path class="tr" d="M 429 230 L 429 298"/>
+  <text class="lb" x="437" y="244">no text layer &#8212;</text>
+  <text class="lb" x="437" y="258">this is a scan, and</text>
+  <text class="lb" x="437" y="272">the coarse status</text>
+  <text class="lb" x="437" y="286">reads ocr too</text>
+
+  <path class="tr" d="M 492 330 L 609 330 L 609 232"/>
+  <text class="lb mid" x="551" y="322">pages recognised</text>
+
+  <path class="tr" d="M 672 200 L 714 200"/>
+  <path class="tr" d="M 842 200 L 884 200"/>
+
+  <!-- out of the composite -->
+  <path class="tr" d="M 949 232 L 949 420 L 615 420 L 615 478"/>
+  <text class="lb mid" x="700" y="412">every batch indexed</text>
+  <text class="lb mid" x="700" y="440">chunk_count = total</text>
+
+  <path class="tr" d="M 1050 300 L 1064 300 L 1064 450 L 905 450 L 905 478"/>
+  <text class="lb end" x="1044" y="446">any exception, at any stage &#8212;</text>
+  <text class="lb end" x="1044" y="460">error_message records why</text>
+
+  <path class="tr" d="M 538 510 L 345 510"/>
+  <text class="lb mid" x="441" y="502">the user deletes it</text>
+  <text class="lb mid" x="441" y="530">row, file and vectors all go</text>
+
+  <path class="tr" d="M 905 540 L 905 580 L 330 580 L 330 525"/>
+  <text class="lb mid" x="620" y="574">deleted, or re-uploaded as a new document</text>
+
+  <!-- what the two columns mean -->
+  <rect class="note" x="30" y="330" width="230" height="86"/>
+  <text class="note-t" x="42" y="350">processing_status is the coarse,</text>
+  <text class="note-t" x="42" y="365">queryable column: pending,</text>
+  <text class="note-t" x="42" y="380">processing, ocr, done, failed.</text>
+  <text class="note-t" x="42" y="399">stage is the fine one, and is what</text>
+  <text class="note-t" x="42" y="411">the progress bar is driven from.</text>
+</svg>
+</div>
+</body>
+</html>
