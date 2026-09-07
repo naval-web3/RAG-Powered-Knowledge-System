@@ -294,7 +294,7 @@ def variant_sources(name):
     changes = {}
     printed = 231  # the four excerpts already in section 4.4
 
-    if name in ("C", "E", "F"):
+    if name in ("C", "E", "F", "F2"):
         extras = chapter_extras()
         added = []
         for heading, intro, code, note in extras:
@@ -311,7 +311,7 @@ def variant_sources(name):
             "fifty pages, and it is on the disc in full.")
         appendices = appendices.rstrip() + "\n" + text
         printed += lines
-    elif name in ("B", "F"):
+    elif name in ("B", "F", "F2"):
         text, lines = appendix(CORE + EXTRA_FOR_B,
             "This appendix prints the complete backend, all thirty-nine Python files, each in "
             "full and in package order. Nothing is selected and nothing is left out. The front "
@@ -352,9 +352,58 @@ def variant_sources(name):
     changes["04-coding.md"] = coding
     changes["12-appendices.md"] = appendices
 
-    if name == "F":
+    if name in ("F", "F2"):
         changes, printed = _finalise(changes, printed)
+    if name == "F2":
+        changes = _corrections(changes)
     return changes, printed
+
+
+def _corrections(changes):
+    """Two factual corrections to report-F-final, and nothing else.
+
+    Both are things the report said about itself that were not true, which is
+    the worst kind of error in a document whose whole argument is that its
+    claims can be checked.
+    """
+    # 1. Appendix E prints 34 of the 39 backend files, not all 39. The five it
+    #    leaves out are empty __init__.py package markers, so the 34 printed
+    #    files are still the whole 6,008 lines. Both sentences that got this
+    #    wrong are corrected rather than five blank listings being added.
+    appendices = changes["12-appendices.md"]
+    old = ("This appendix prints the complete backend, all thirty-nine Python files, each in "
+           "full and in package order. Nothing is selected and nothing is left out. The front "
+           "end is not printed: at 14,933 lines it would add some two hundred and fifty pages, "
+           "and it is on the disc in full.")
+    assert old in appendices, "the Appendix E opening line has moved"
+    changes["12-appendices.md"] = appendices.replace(old,
+        "This appendix prints the backend in package order, each file in full: thirty-four of "
+        "the thirty-nine Python files in the tree. The five that are not printed are "
+        "`app/__init__.py`, `app/api/__init__.py`, `app/services/__init__.py`, "
+        "`scripts/__init__.py` and `tests/__init__.py`, and every one of them is empty. They "
+        "exist to mark a directory as a package and have nothing in them to print, so what "
+        "follows is the whole 6,008 lines of the backend and not a selection from it. The "
+        "front end is in Appendix F.", 1)
+
+    coding = changes["04-coding.md"]
+    old = ("The complete backend, all thirty-nine Python files including the seven test "
+           "suites, is printed in Appendix E, and the eight front-end files that carry the "
+           "application are printed in Appendix F.")
+    assert old in coding, "the section 4.5 sentence has moved"
+    changes["04-coding.md"] = coding.replace(old,
+        "The backend is printed in Appendix E: thirty-four of the thirty-nine Python files "
+        "counted in the table below, which is all 6,008 of its lines, because the five not "
+        "printed are empty package markers. The seven test suites are among them. The eight "
+        "front-end files that carry the application are printed in Appendix F.", 1)
+
+    # 2. Section 2.6 is the data flow diagrams. The schema is section 2.7.
+    analysis = changes["02-system-analysis.md"]
+    old = "every data function is a table in the schema of §2.6"
+    assert old in analysis, "the data function sentence has moved"
+    changes["02-system-analysis.md"] = analysis.replace(
+        old, "every data function is a table in the schema of §2.7", 1)
+
+    return changes
 
 
 # --------------------------------------------------------------- variant F
@@ -442,6 +491,7 @@ NAMES = {
     "D": "D-pointer-only",
     "E": "E-expanded-plus-appendix",
     "F": "F-final",
+    "F2": "F-final-v2",
 }
 
 
