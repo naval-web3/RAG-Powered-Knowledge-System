@@ -54,16 +54,28 @@ Step "[1/8] Exporting the source (tracked files only)"
 $srcDir = Join-Path $OutDir '02-Source-Code\rag-knowledge-system'
 New-Item -ItemType Directory -Path $srcDir -Force | Out-Null
 Push-Location $root
-$tar = Join-Path $env:TEMP 'rag-src.tar'
-& git archive --format=tar -o $tar HEAD
+# A zip and Expand-Archive rather than a tar. If Git Bash is on PATH before
+# C:\Windows\System32, "tar" resolves to /usr/bin/tar, which reads the Windows
+# path C:\Users\...\rag-src.tar as a remote host named "C" and fails with
+# "Cannot connect to C: resolve failed". It extracts nothing, and the build
+# used to carry on and produce a disc holding no source at all.
+$zip = Join-Path $env:TEMP 'rag-src.zip'
+if (Test-Path $zip) { Remove-Item $zip -Force }
+& git archive --format=zip -o $zip HEAD
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw "git archive failed" }
-& tar -x -f $tar -C $srcDir
-Remove-Item $tar -Force
+Expand-Archive -Path $zip -DestinationPath $srcDir -Force
+Remove-Item $zip -Force
 $commit = (& git rev-parse --short HEAD).Trim()
 $branch = (& git rev-parse --abbrev-ref HEAD).Trim()
+$tracked = (& git ls-files | Measure-Object).Count
 Pop-Location
 $srcFiles = (Get-ChildItem $srcDir -Recurse -File).Count
 Say "        $srcFiles files at commit $commit ($branch)" Green
+
+# A disc without the source is worse than no disc, because it looks finished.
+if ($srcFiles -lt ($tracked * 0.9)) {
+    throw "only $srcFiles of $tracked tracked files were extracted to $srcDir"
+}
 
 # ---- 2. Built frontend ----------------------------------------------
 Step "[2/8] Building the frontend for production"
