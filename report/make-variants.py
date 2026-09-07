@@ -294,7 +294,7 @@ def variant_sources(name):
     changes = {}
     printed = 231  # the four excerpts already in section 4.4
 
-    if name in ("C", "E", "F", "F2"):
+    if name in ("C", "E", "F", "F2", "F3"):
         extras = chapter_extras()
         added = []
         for heading, intro, code, note in extras:
@@ -311,7 +311,7 @@ def variant_sources(name):
             "fifty pages, and it is on the disc in full.")
         appendices = appendices.rstrip() + "\n" + text
         printed += lines
-    elif name in ("B", "F", "F2"):
+    elif name in ("B", "F", "F2", "F3"):
         text, lines = appendix(CORE + EXTRA_FOR_B,
             "This appendix prints the complete backend, all thirty-nine Python files, each in "
             "full and in package order. Nothing is selected and nothing is left out. The front "
@@ -352,11 +352,42 @@ def variant_sources(name):
     changes["04-coding.md"] = coding
     changes["12-appendices.md"] = appendices
 
-    if name in ("F", "F2"):
+    if name in ("F", "F2", "F3"):
         changes, printed = _finalise(changes, printed)
-    if name == "F2":
+    if name in ("F2", "F3"):
         changes = _corrections(changes)
+    if name == "F3":
+        changes = _corrections_v3(changes)
     return changes, printed
+
+
+def _corrections_v3(changes):
+    """Two more cross-references in the Appendix E notes that name the wrong
+    section. Both are the same fault as the one corrected in v2, and both are in
+    notes written for this appendix rather than in the report's own chapters.
+
+    Worth spelling out, because neither is a dangling reference and no automated
+    check could have caught them: 2.6, 2.7, 7.3 and 7.4 all exist. A reference
+    can be well formed, resolvable, and still point at the wrong thing, which is
+    why verify_refs.py prints the title each one lands on.
+    """
+    appendices = changes["12-appendices.md"]
+
+    # 2.6 is the data flow diagrams. The cascade rules are argued in the entity
+    # relationship model at 2.7, which section 6.4 already cites correctly.
+    old_note = "The cascade rules here are the ones argued for in section 2.6."
+    assert old_note in appendices, "the models.py note has moved"
+    appendices = appendices.replace(
+        old_note, "The cascade rules here are the ones argued for in section 2.7.", 1)
+
+    # 7.3 is the document library. The personal usage report is 7.4.
+    old_note = "The personal usage report of section 7.3."
+    assert old_note in appendices, "the usage.py note has moved"
+    appendices = appendices.replace(
+        old_note, "The personal usage report of section 7.4.", 1)
+
+    changes["12-appendices.md"] = appendices
+    return changes
 
 
 def _corrections(changes):
@@ -492,6 +523,7 @@ NAMES = {
     "E": "E-expanded-plus-appendix",
     "F": "F-final",
     "F2": "F-final-v2",
+    "F3": "F-final-v3",
 }
 
 
