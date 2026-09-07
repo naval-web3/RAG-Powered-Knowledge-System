@@ -1,6 +1,8 @@
 # Project report — structure and status
 
-Target: **100–125 pages excluding code listings**, per MCSP-232 guidelines VI.2.
+Target: **100–125 pages excluding code listings**, per MCSP-232 guidelines VI.2. The
+narrative meets that; the source listings in Appendices E and F are excluded from it
+and are what take the finished volume to 312 pages.
 Sources live in `src/`, one file per chapter, built by `build.py` into `report.docx`
 and exported to `report.pdf` by `export-pdf.ps1`.
 
@@ -21,14 +23,21 @@ the evaluation. Nothing in that list is absent.
 | 09 | `09-future-scope.md` | Future Scope and Further Enhancement | Future scope | 4 | done |
 | 10 | `10-conclusion.md` | Conclusion | — | 2 | done |
 | 11 | `11-bibliography.md` | Bibliography | Bibliography | 2 | done |
-| 12 | `12-appendices.md` | Appendices: installation, user manual, REST API reference, test corpus | Appendices | 8 | done |
+| 12 | `12-appendices.md` | Appendices: A installation, B user manual, C REST API reference, D test corpus, E backend source, F front-end source | Appendices | 8 + 160 listings | done |
 | 13 | `13-glossary.md` | Glossary | Glossary | 3 | done |
 
-**Where the pages go.** The finished report is **131 pages**: fourteen of front
-matter numbered i-xiv, and **117 numbered body pages**. Fifty-three figures and
-forty-seven tables. Fourteen of the body pages are full-page landscape diagram
-plates, because the drawings are only legible at about nine inches wide - which
-was established by building a page and looking at it rather than by guessing.
+**Where the pages go.** The finished report is **312 sheets**, numbered 1 to 311
+in plain arabic with the title page unnumbered. Fifty-four figures and sixty-one
+tables. Sixteen sheets are full-page landscape plates: fourteen carry diagrams,
+which are only legible at about nine inches wide, and two carry the unit test
+case table, whose six columns do not fit a six inch text column. Both facts were
+established by building a page and looking at it rather than by guessing.
+
+About half the volume is source code. Appendix E prints the backend, thirty-four
+of its thirty-nine Python files and all 6,008 of its lines, the five not printed
+being empty package markers. Appendix F prints the eight front-end files that
+carry the application, 3,890 of the 14,933 lines of JavaScript. The rest of the
+front end, the eleven locale files and the stylesheet are on the disc only.
 
 ## Rules this report is written to
 
@@ -51,5 +60,25 @@ cd report
 powershell -ExecutionPolicy Bypass -File export-pdf.ps1
 ```
 
-`export-pdf.ps1` drives Word twice so the contents, list of figures and list of
-tables settle on the right page numbers, then reports the final page count.
+`export-pdf.ps1` drives Word so the contents, list of figures and list of tables
+settle on the right page numbers, then reports the final page count.
+
+## Checking it
+
+Four scripts, because four different things can be wrong and none of them is
+visible in the Markdown:
+
+```
+python verify.py        every section, figure and table reference resolves
+python verify_pdf.py    no blank pages, no caption parted from its figure,
+                        page numbering continuous
+python verify_refs.py   what each reference actually points at, printed beside
+                        the citing sentence, to be read
+python check_fpa.py     the function point count in 2.3.2 still matches the code
+```
+
+`verify_refs.py` exists because `verify.py` proves only that a reference is not
+dangling, and that is weaker than it sounds. Four references in this report cited
+a section that existed and was the wrong one, and every automated check passed
+on all four. Nothing can decide those but a reader; the script makes the reading
+cheap.

@@ -312,6 +312,416 @@ def get_provider(provider: str | None = None, model: str | None = None) -> LLMPr
 
 Adding a third provider is one subclass and one line in the factory. Nothing else in the system knows how many there are: the router validates the name against a list it owns, the engine asks the factory, and the prompt builder consults `llm.name` in exactly one place, for the `qwen3` reasoning switch.
 
+### The Upload Handler
+
+Validation happens three times on the way in, and the reasons differ. This is the middle one: the request has been accepted, the extension has been checked, and what is left is the two facts a client can lie about.
+
+```python
+@router.post("", response_model=DocumentOut, status_code=status.HTTP_201_CREATED)
+async def upload_document(
+    background: BackgroundTasks,
+    file: UploadFile = File(...),
+    # When the upload starts from inside a project, the new document is filed
+    # into it as well as the library, so the user does not have to attach it
+    # by hand afterwards.
+    project_id: uuid.UUID | None = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DocumentOut:
+    project: Project | None = None
+    if project_id:
+        project = db.get(Project, project_id)
+        if project is None or project.user_id != current_user.user_id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    ext = (file.filename or "").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else ""
+    if ext not in ALLOWED:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unsupported file type '.{ext}'. Allowed: pdf, docx, txt")
+
+    data = await file.read()
+    if len(data) == 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty file")
+    if len(data) > settings.max_upload_bytes:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, f"File exceeds {settings.MAX_UPLOAD_MB} MB limit")
+
+    user_dir = os.path.join(settings.UPLOAD_DIR, str(current_user.user_id))
+    os.makedirs(user_dir, exist_ok=True)
+    stored_name = f"{uuid.uuid4()}.{ext}"
+    stored_path = os.path.join(user_dir, stored_name)
+    # Sealed on the way to disk. file_size below stays the size of the document
+    # the user uploaded, not the size of what is stored, because that is the
+    # number shown in the library and counted against the upload limit.
+    file_store.write(stored_path, data)
+
+    doc = Document(
+        user_id=current_user.user_id,
+        title=(file.filename or stored_name),
+        original_filename=file.filename or stored_name,
+        file_path=stored_path,
+        file_type=ext,
+        file_size=len(data),
+        processing_status="pending",
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+
+    if project is not None:
+        db.add(ProjectDocument(project_id=project.project_id, document_id=doc.document_id))
+        # An upload into a project is an explicit choice to use that file there,
+        # so a project still set to "all documents" is switched to its own
+        # selection rather than silently ignoring the attachment.
+        project.doc_scope = "selected"
+        db.commit()
+
+    background.add_task(_run_pipeline, doc.document_id)
+    return DocumentOut.model_validate(doc)
+```
+
+The size is checked **after** reading rather than from `Content-Length`, because that header is a claim by the client and not a fact. The empty file and the oversized file are separated, because they are different mistakes and deserve different sentences. And the write goes through `file_store.write`, which seals the bytes before they reach the disk, while `file_size` records the size of the document the user uploaded rather than the size of what is stored.
+
+### The Authentication Dependency
+
+One function, hung on every protected route, and the reason authorisation cannot be forgotten on any of them.
+
+```python
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User:
+    if credentials is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
+
+    payload = decode_access_token(credentials.credentials)
+    if payload is None or "sub" not in payload:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
+
+    try:
+        user_id = uuid.UUID(payload["sub"])
+    except (ValueError, TypeError):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token subject")
+
+    user = db.get(User, user_id)
+    if user is None or not user.is_active:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found or inactive")
+    return user
+```
+
+A signed token is valid for its whole lifetime, so an account disabled ten minutes after signing in would keep working until the token expired. That is why this resolves the subject to a row and re-checks `is_active` on every request instead of trusting the claim. The cost is one indexed primary-key lookup per request; the alternative is a disabled account that keeps working for an hour.
+
+### Sealing a Document
+
+Encryption at rest is a few lines of cipher and a great deal of care about the format around them.
+
+```python
+def seal(data: bytes) -> bytes:
+    """Plaintext in, stored form out."""
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    nonce = secrets.token_bytes(NONCE_BYTES)
+    return MAGIC + nonce + AESGCM(_key()).encrypt(nonce, data, None)
+
+
+def unseal(blob: bytes) -> bytes:
+    """Stored form in, plaintext out. Plaintext in, the same plaintext out."""
+    if not is_sealed(blob):
+        return blob
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    start = len(MAGIC)
+    nonce = blob[start : start + NONCE_BYTES]
+    return AESGCM(_key()).decrypt(nonce, blob[start + NONCE_BYTES :], None)
+
+
+def read(path: str) -> bytes:
+    """The plaintext of a stored file, whether or not it was sealed.
+
+    A file that is sealed but will not open raises. That is the right outcome:
+    the alternative is handing back ciphertext and letting a PDF reader report
+    a corrupt document, which sends whoever is looking into it in the wrong
+    direction entirely.
+    """
+    with open(path, "rb") as handle:
+        blob = handle.read()
+    if not is_sealed(blob):
+        return blob
+    from cryptography.exceptions import InvalidTag
+
+    try:
+        return unseal(blob)
+    except InvalidTag as exc:
+        raise ValueError(
+            "This file is encrypted and the current key does not open it. "
+            "SECRET_KEY or FILE_ENCRYPTION_KEY has changed since it was stored."
+        ) from exc
+```
+
+The nonce is fresh on every write and never reused, so two copies of the same document do not produce the same ciphertext and the store does not leak which documents match. `read` returning plaintext untouched is what allows this to be introduced on an installation that already holds documents, and a file that is sealed but will not open raises rather than returning ciphertext, because handing back ciphertext would make a PDF reader report a corrupt document and send the reader after the wrong problem.
+
+### Refresh Token Rotation
+
+Every renewal spends the token it was given. The distinction in the middle of this function is what stops an ordinary sign-out being mistaken for a theft.
+
+```python
+@router.post("/refresh", response_model=Token)
+def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> Token:
+    """Trade a refresh token for a new access token, and a new refresh token.
+
+    The old one is spent in the process. Rotating on every use is what makes a
+    stolen token detectable: the real client and the thief cannot both keep
+    refreshing, and whichever presents the spent token second gives the theft
+    away. When that happens every session for the account is withdrawn, which
+    is heavy-handed on purpose. Losing a session is a nuisance; leaving a copied
+    token working for a month is not.
+    """
+    invalid = HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired refresh token")
+
+    row = (
+        db.query(RefreshToken)
+        .filter(RefreshToken.token_hash == hash_refresh_token(payload.refresh_token))
+        .first()
+    )
+    if row is None:
+        raise invalid
+
+    if row.revoked:
+        # Revoked for two quite different reasons, and only one of them is
+        # alarming. A token with a successor was spent in a rotation and is now
+        # being presented a second time, which means two clients hold it: end
+        # everything. A token with no successor was withdrawn on purpose, by a
+        # sign-out or a password change, and meeting it again is just a stale
+        # tab. Treating the second case as theft would let signing out of one
+        # tab sign the user out of every device they own.
+        if row.replaced_by is not None:
+            _revoke_all(db, row.user_id)
+            db.commit()
+        raise invalid
+
+    if row.expires_at < datetime.now(timezone.utc):
+        raise invalid
+
+    user = db.get(User, row.user_id)
+    if user is None or not user.is_active:
+        raise invalid
+
+    token, successor = _mint_session(db, user)
+    row.revoked = True
+    row.last_used_at = datetime.now(timezone.utc)
+    row.replaced_by = successor.token_id
+    db.commit()
+    return token
+```
+
+A revoked token means two quite different things. One with a successor recorded against it was spent in a rotation and is being presented a second time, which means two clients hold it. One with no successor was withdrawn on purpose, by a sign-out or a password change, and meeting it again is a stale tab. The first implementation did not draw that line, and the consequence, found by the end-to-end check and not by reading the code, was that signing out of one browser would have signed the user out of every device they owned.
+
+### The Rate Limiter
+
+A fixed window, counted per address, in front of every route and before authentication runs.
+
+```python
+    def hit(self, key: str, limit: int, now: float | None = None) -> tuple[bool, int]:
+        """Record one request. Returns (allowed, seconds until the window ends).
+
+        The second element is what goes in Retry-After, so a well-behaved client
+        is told exactly how long to wait instead of guessing.
+        """
+        now = time.time() if now is None else now
+        bucket = int(now // self.window)
+        with self._lock:
+            # Drop windows that have passed. Doing it here rather than on a
+            # timer keeps the memory bounded without a background thread.
+            if len(self._hits) > 4096:
+                self._hits = defaultdict(
+                    int, {k: v for k, v in self._hits.items() if k[1] >= bucket - 1}
+                )
+            self._hits[(key, bucket)] += 1
+            count = self._hits[(key, bucket)]
+        retry_after = int((bucket + 1) * self.window - now) + 1
+        return count <= limit, retry_after
+```
+
+The counter is in the process's own memory. Redis would survive a restart and would work across several instances, and it is another service to install, run and back up on a system whose entire deployment story is one machine with no internet connection. The window resetting on restart is a real weakness and a small one, since restarting is not something an attacker can cause. It is recorded as a limit in section 6.9 rather than left for a reader to notice.
+
+### The Streaming Route
+
+The same pipeline as the plain chat route, delivered a token at a time so that an answer starts appearing in about a second instead of after six.
+
+```python
+def _sse(event: str, data: dict) -> str:
+    return "event: %s\ndata: %s\n\n" % (event, json.dumps(data, default=str))
+
+
+    def events() -> Iterator[str]:
+        result: dict | None = None
+        for kind, item in answer_query_stream(
+            query=query_text,
+            user_id=user_id,
+            provider=payload.provider,
+            model=payload.model,
+            has_documents=has_documents,
+            scope_document_id=scope_id,
+            document_ids=doc_ids,
+            instructions=instructions,
+            user_instructions=current_user.custom_instructions,
+            language=payload.language,
+            history=history,
+            work_role=current_user.work_role,
+        ):
+            if kind == "token":
+                yield _sse("token", {"t": item})
+            else:
+                result = item  # type: ignore[assignment]
+
+        if result is None:  # pragma: no cover - _run always ends with "done"
+            yield _sse("error", {"message": "The model returned nothing."})
+            return
+
+        sources_payload = [s.model_dump() for s in result["sources"]]
+
+        # Stored WITH the answer, not only in query_logs: the chat reloads
+        # from messages, so without this the retrieval line can only ever
+        # render on an answer you watched arrive.
+        meta_payload = {
+            "provider": result["provider"],
+            "model": result["model"],
+            "ms": result["response_time_ms"],
+            "chunks": result["chunks_retrieved"],
+            "top_score": result.get("top_score"),
+        }
+
+        if not incognito and conv_id is not None:
+            own = SessionLocal()
+            try:
+                own.add(
+                    Message(
+                        conversation_id=conv_id,
+                        role="assistant",
+                        content=result["answer"],
+                        source_documents={"sources": sources_payload, "meta": meta_payload},
+                    )
+                )
+                own.add(
+                    QueryLog(
+                        user_id=user_pk,
+                        conversation_id=conv_id,
+                        query_text=query_text,
+                        response_time_ms=result["response_time_ms"],
+                        chunks_retrieved=result["chunks_retrieved"],
+                        llm_provider=result["provider"],
+                        model_name=result["model"],
+                        status="success",
+                    )
+                )
+                own.commit()
+            finally:
+                own.close()
+
+        yield _sse(
+            "done",
+            {
+                "conversation_id": conv_id,
+                "answer": result["answer"],
+                "sources": sources_payload,
+                "provider": result["provider"],
+                "model": result["model"],
+                "response_time_ms": result["response_time_ms"],
+                "chunks_retrieved": result["chunks_retrieved"],
+                "top_score": result["top_score"],
+            },
+        )
+```
+
+The generator yields named events rather than bare text, so the client can tell a token from a citation list from a completion. Errors are yielded as events too: once the response has begun, the status code is already sent and an exception can no longer become a 500, so a failure that is not turned into an event becomes a stream that simply stops.
+
+### Renewing a Token in the Browser
+
+The front-end half of section 6.2. What a user sees when an access token expires is one slightly slower request, and this is why.
+
+```javascript
+export function refreshAccessToken() {
+  if (inFlight) return inFlight;
+
+  const refreshToken = localStorage.getItem(REFRESH_KEY);
+  if (!refreshToken) return Promise.resolve(null);
+
+  // Bare axios, not `client`: a refresh that 401s must not re-enter the
+  // interceptor that called it.
+  inFlight = axios
+    .post("/api/auth/refresh", { refresh_token: refreshToken })
+    .then(({ data }) => {
+      storeSession(data);
+      return data.access_token;
+    })
+    .catch(() => null)
+    .finally(() => {
+      inFlight = null;
+    });
+
+  return inFlight;
+}
+```
+
+One refresh at a time, and the comment says what the alternative costs. Several requests can fail together, and each rotation spends the token it was given, so letting them all refresh at once would have the second one present a token the first had already spent. The server reads that as a stolen token and ends every session, which is the correct reading of it and exactly what the client must not provoke.
+
+### The Response Interceptor
+
+Where a rejected request becomes a renewed one, and where a session that is genuinely over becomes a trip to the login screen.
+
+```javascript
+client.interceptors.response.use(
+  (res) => res,
+  async (err) => {
+    const original = err.config;
+
+    if (err.response && err.response.status === 401 && original) {
+      const exempt = NO_RETRY.some((p) => (original.url || "").startsWith(p));
+      if (!exempt && !original._retried) {
+        original._retried = true;
+        const fresh = await refreshAccessToken();
+        if (fresh) {
+          original.headers = { ...original.headers, Authorization: `Bearer ${fresh}` };
+          return client(original);
+        }
+      }
+      // No refresh token, or the refresh was refused: the session is over. A
+      // 401 from login itself is a wrong password, and the login screen is
+      // already where the user is standing.
+      if (!exempt) {
+        toLogin();
+      }
+    }
+
+    // Give client-side timeouts a readable message instead of a bare
+    // "timeout of 120000ms exceeded" that leaks into the chat UI.
+    if (err.code === "ECONNABORTED" && !err.response) {
+      err.friendlyMessage =
+        "That took too long, so we stopped waiting. The model you picked may be too slow for this machine. Try a smaller one.";
+    }
+    return Promise.reject(err);
+  }
+);
+```
+
+`_retried` is what stops this looping: a request that fails again after a successful renewal is not renewed a second time. The exempt list matters as much. A 401 from the login route is a wrong password, not an expired session, and sending the user to the login screen they are already looking at would replace a readable error with a page reload.
+
+## Where the Complete Source Is
+
+This chapter shows the code that carries the system's logic, and the conventions every file is written to. The backend is printed in Appendix E: thirty-four of the thirty-nine Python files counted in the table below, which is all 6,008 of its lines, because the five not printed are empty package markers. The seven test suites are among them. The eight front-end files that carry the application are printed in Appendix F.
+
+The complete source is on the submitted disc under `02-Source-Code`, and it is
+the same tree the application runs from. Its scale is worth stating plainly,
+because a report that prints excerpts should say what it is drawing them from.
+
+Table: The codebase, by size
+
+| Part | Files | Lines |
+|---|---|---|
+| Backend, Python | 39 | 6,008 |
+| Front end, JavaScript and JSX | 55 | 14,933 |
+| Stylesheet | 1 | 3,581 |
+| **Total** | **95** | **24,522** |
+
+Appendices E and F and the excerpts in the previous section come to 10,448 of those 24,522 lines. What is not printed is the remainder of the front-end component library, the eleven locale files, which are string tables rather than logic, and the stylesheet. All of it is on the disc.
+
 ## Efficiency
 
 Four things in this system are fast because they were made fast, and the rest is fast enough because it was left alone. Both halves of that are decisions.

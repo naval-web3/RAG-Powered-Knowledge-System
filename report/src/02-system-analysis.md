@@ -72,7 +72,7 @@ The interaction the system asks of an ordinary user is: sign in, drag a file ont
 
 The administrator's burden is likewise small: there is a dashboard that reports the state of the system and a user list. No routine administration is required, because there is no index to rebuild, no schedule to maintain and no external service to keep credentials for unless the cloud provider is deliberately enabled.
 
-Two operational risks were identified and addressed in the design rather than left to documentation. The first is that a user uploads a scanned PDF, gets no error, and then finds that the system cannot answer anything about it. Which was in fact observed during testing, and led to OCR being added to the pipeline in spite of the proposal placing it out of scope. The second is that a user asks a question the documents do not cover, and receives an invented answer; the relevance floor described in §2.6.6 exists precisely so that this cannot happen silently.
+Two operational risks were identified and addressed in the design rather than left to documentation. The first is that a user uploads a scanned PDF, gets no error, and then finds that the system cannot answer anything about it. Which was in fact observed during testing, and led to OCR being added to the pipeline in spite of the proposal placing it out of scope. The second is that a user asks a question the documents do not cover, and receives an invented answer; the relevance floor described in §2.6.7 exists precisely so that this cannot happen silently.
 
 ### Schedule Feasibility
 
@@ -93,6 +93,147 @@ The weighting reflects the fact that the most likely estimate deserves more conf
 The dependencies between the twelve activities are genuine, not merely conventional. The database schema cannot be written before the technology trial has settled what is being stored; the retrieval engine cannot be built before there are embedded chunks to retrieve; the chat interface cannot be finished before both retrieval and authentication exist, since it needs an answer to display and a user to attribute it to. Two activities, authentication and the administrator's dashboard, sit off the critical path and can be done at any point in a wide window, which is why they are drawn lighter in both charts.
 
 The expected duration along the critical path A → B → C → E → F → G → H → I → K → L is **eighty-five days**. Counted from 22 June 2026 that lands on 15 September 2026, which is the date the report has to be posted for it to arrive before the deadline. The plan and the deadline therefore agree, with no float in hand. Figure 2.1 is the network.
+
+### Function Point Analysis and Effort Estimation
+
+The three-point estimate above sizes the *schedule*. It says nothing about how much function the system contains, and two projects with the same schedule can differ by an order of magnitude in what they deliver. Function point analysis measures the second thing, and it measures it from what the system does for its users rather than from how much code was written to do it, which is what makes it comparable across languages and across projects.
+
+The count below is taken from the delivered system and not from the proposal. Every transaction in it is a route that exists in `app/api/` and is listed in Appendix C; every data function is a table in the schema of §2.7, the Chroma collection, or the settings file. Nothing is counted that was planned and not built.
+
+**Data functions.** A logical file is a group of data the user recognises as one thing, which is not the same as a table. The three tables that hold a user, their reset codes and their sessions are one logical file with three record types, because a user does not think of a refresh token as a separate thing they own. The two external files are read and never written by this system.
+
+Table: Data functions, with record and data element types
+
+| Logical file | Type | RETs | DETs | Complexity | FP |
+|---|---|---:|---:|---|---:|
+| User account | ILF | 3 | 23 | Average | 10 |
+| Document | ILF | 1 | 16 | Simple | 7 |
+| Conversation | ILF | 2 | 16 | Simple | 7 |
+| Project | ILF | 2 | 11 | Simple | 7 |
+| Query log | ILF | 1 | 10 | Simple | 7 |
+| Vector index | ILF | 1 | 9 | Simple | 7 |
+| Runtime settings | ILF | 1 | 10 | Simple | 7 |
+| Model registry | EIF | 1 | 4 | Simple | 5 |
+| Cloud model catalogue | EIF | 1 | 4 | Simple | 5 |
+
+Each of those is described in the sentence beside it here: **User account**, users, with password_reset_tokens and refresh_tokens as record types of the same logical file; **Document**, documents, together with the sealed file each row points at; **Conversation**, conversations and messages; **Project**, projects and project_documents.
+
+**Transactional functions.** An external input maintains a logical file; an external output presents data that had to be derived or calculated; an external inquiry retrieves data and derives nothing. The distinction between the last two is where most of the judgement in this count lies, and it is made on whether the route computes anything. `GET /api/documents` returns rows and is an inquiry. `GET /api/admin/stats` computes counts across four tables and a mean response time, and is an output.
+
+Table: Transactional functions, classified
+
+| Function | Method | Type | Complexity | FP |
+|---|---|---|---|---:|
+| `/api/auth/register` | POST | EI | Average | 4 |
+| `/api/auth/login` | POST | EI | Average | 4 |
+| `/api/auth/refresh` | POST | EI | Average | 4 |
+| `/api/auth/logout` | POST | EI | Simple | 3 |
+| `/api/auth/forgot-password` | POST | EI | Simple | 3 |
+| `/api/auth/reset-password` | POST | EI | Average | 4 |
+| `/api/auth/me` | PATCH | EI | Average | 4 |
+| `/api/auth/change-password` | POST | EI | Average | 4 |
+| `/api/auth/account` | DELETE | EI | Complex | 6 |
+| `/api/documents` | POST | EI | Complex | 6 |
+| `/api/documents/{id}` | PATCH | EI | Simple | 3 |
+| `/api/documents/{id}` | DELETE | EI | Average | 4 |
+| `/api/chat` | POST | EI | Complex | 6 |
+| `/api/chat/stream` | POST | EI | Complex | 6 |
+| `/api/conversations/{id}` | PATCH | EI | Simple | 3 |
+| `/api/conversations/{id}` | DELETE | EI | Simple | 3 |
+| `/api/projects` | POST | EI | Average | 4 |
+| `/api/projects/{id}` | PATCH | EI | Average | 4 |
+| `/api/projects/{id}/open` | POST | EI | Simple | 3 |
+| `/api/projects/{id}/documents` | PUT | EI | Average | 4 |
+| `/api/projects/{id}` | DELETE | EI | Average | 4 |
+| `/api/settings` | PATCH | EI | Average | 4 |
+| `/api/admin/stats` | GET | EO | Complex | 7 |
+| `/api/admin/system` | GET | EO | Average | 5 |
+| `/api/usage` | GET | EO | Average | 5 |
+| `/api/documents/{id}/content` | GET | EO | Complex | 7 |
+| `/api/documents/{id}/thumbnail` | GET | EO | Average | 5 |
+| `/api/documents/{id}/pages` | GET | EO | Simple | 4 |
+| `/api/auth/me` | GET | EQ | Simple | 3 |
+| `/api/models` | GET | EQ | Simple | 3 |
+| `/api/settings` | GET | EQ | Simple | 3 |
+| `/api/documents/{id}` | GET | EQ | Simple | 3 |
+| `/api/documents/{id}/file` | GET | EQ | Simple | 3 |
+| `/api/documents` | GET | EQ | Average | 4 |
+| `/api/documents/{id}/chunks` | GET | EQ | Average | 4 |
+| `/api/conversations` | GET | EQ | Average | 4 |
+| `/api/conversations/{id}` | GET | EQ | Average | 4 |
+| `/api/projects` | GET | EQ | Average | 4 |
+| `/api/projects/{id}` | GET | EQ | Average | 4 |
+| `/api/admin/users` | GET | EQ | Average | 4 |
+| `/api/admin/query-logs` | GET | EQ | Average | 4 |
+
+Four inputs are rated complex and it is worth saying why, because a complexity rating that cannot be defended is the usual way a function point count is inflated. Deleting an account cascades through six tables, the vector index and the file store. Uploading a document validates it, seals it, writes it and starts a separate process. The two chat routes each run a retrieval, a generation and four writes in one transaction. Nothing else in the system touches that many files at once.
+
+**The unadjusted total.**
+
+Table: Unadjusted function point count
+
+| Function type | Simple | Average | Complex | Count | Unadjusted FP |
+|---|---:|---:|---:|---:|---:|
+| External input (EI) | 6 | 12 | 4 | 22 | 90 |
+| External output (EO) | 1 | 3 | 2 | 6 | 33 |
+| External inquiry (EQ) | 5 | 8 | 0 | 13 | 47 |
+| Internal logical file (ILF) | 6 | 1 | 0 | 7 | 52 |
+| External interface file (EIF) | 2 | 0 | 0 | 2 | 10 |
+| **Total** | | | | **50** | **232** |
+
+The unadjusted function point count is **232**.
+
+**Adjusting for the fourteen general system characteristics.** Each is rated from 0, meaning no influence, to 5, meaning strong influence throughout. The ratings below are each tied to a fact about this system rather than to an impression of it.
+
+Table: General system characteristics and their degrees of influence
+
+| # | Characteristic | Rating | Why this rating |
+|---:|---|---:|---|
+| 1 | Data communications | 4 | A browser talks to an API over HTTP, or HTTPS in the networked deployment, and one route streams server-sent events. |
+| 2 | Distributed data processing | 2 | Ingestion runs in a separate operating-system process from the API, so that a hung extraction cannot block it. It is not distributed across machines. |
+| 3 | Performance | 4 | The proposal sets a five-second answer, and NFR-2 a tighter budget for retrieval alone. Performance decided the chunk size, the batch size and the existence of the streaming route. |
+| 4 | Heavily used configuration | 2 | One machine, and a 4 GB graphics card that decided which model the system defaults to. |
+| 5 | Transaction rate | 1 | A single organisation with no stated peak. Nothing in the design is sized for a transaction rate. |
+| 6 | Online data entry | 5 | Every function is interactive. There is no batch entry anywhere in the system. |
+| 7 | End-user efficiency | 5 | Eleven interface languages, a layout responsive to 414 px, live ingestion progress, a dark theme, drag-and-drop upload, and a retrieval line under every answer. |
+| 8 | Online update | 4 | Documents, conversations, projects and settings are all maintained online, with recovery for documents left mid-processing by a restart. |
+| 9 | Complex processing | 5 | Embedding, approximate nearest-neighbour search, an OCR fallback for pages with no text layer, a relevance floor that decides whether to generate at all, and an instruction hierarchy in the prompt. |
+| 10 | Reusability | 3 | The provider factory and the embedding backend are each replaceable by adding one class. The code is layered for reuse but is not packaged as a library. |
+| 11 | Installation ease | 4 | An installation guide written for a machine with none of the software on it, a disc build that fails if it finds a secret, a backup script and a Docker Compose deployment. |
+| 12 | Operational ease | 3 | One double-click to start, automatic recovery of stuck documents, a health report and a schedulable backup. It is not unattended. |
+| 13 | Multiple sites | 2 | Docker Compose and a TLS deployment make a second site installable. There is no multi-tenancy. |
+| 14 | Facilitate change | 4 | Settings changeable at runtime, swappable providers, and a layered backend with no upward dependencies. |
+| | **Total degree of influence** | **48** | |
+
+The value adjustment factor is VAF = 0.65 + (0.01 x TDI) = 0.65 + (0.01 x 48) = **1.13**, and the adjusted count is AFP = UFP x VAF = 232 x 1.13 = **262.2 function points**, which rounds to **262**.
+
+#### Effort, and How Far It Is From What Actually Happened
+
+Turning a function point count into effort needs a productivity rate, and the rate is where the honesty of an estimate is won or lost: it is a single number that decides the answer, and it is always borrowed from projects that are not this one. Rather than pick one and present the result as a figure, three published rates are applied and the spread is shown.
+
+Table: Effort implied by three productivity rates
+
+| Productivity assumed | Implied effort | Implied duration for one developer |
+|---|---:|---|
+| 10 FP per person-month. Low, formal process with documented handovers | 26.2 person-months | about 524 working days |
+| 15 FP per person-month. Typical for a new business application | 17.5 person-months | about 350 working days |
+| 25 FP per person-month. High, a small team using modern frameworks | 10.5 person-months | about 210 working days |
+
+The project actually ran to **85 days on the critical path**, which for a single developer is about **4.25 person-months**. The achieved rate is therefore 262 divided by 4.25, or about **62 function points per person-month**, between two and six times the published rates above.
+
+A gap that size is worth explaining rather than explaining away, and there are four reasons for it that can be pointed at in this system.
+
+**Most of the counted function is supplied, not written.** Function point analysis measures delivered function and is deliberately blind to how it arrives, which is its strength as a size measure and its weakness as an effort predictor. FastAPI supplies the routing, the request validation and the interactive API documentation; SQLAlchemy supplies persistence; Chroma supplies the index and its search; React supplies the rendering. Every one of those contributes function points that nobody in this project spent a day on.
+
+**The published rates come from team projects.** They carry the cost of requirements passed between people, of integration between separately built parts, and of the communication overhead that grows with the square of the team. A single developer pays none of it.
+
+**The complex-processing rating flatters the count.** A 5 on that characteristic is correct, because the retrieval pipeline genuinely is intricate. But the intricacy is mostly in composing two libraries and a language model correctly, not in writing novel algorithms, and the effort that a 5 implies did not have to be spent.
+
+**The 85 days do not cover everything that exists.** They are the critical path of the plan in §2.3.1. This report, and the six operational features described in §6.8 and §6.4, were built after it. The honest comparison is therefore slightly worse for the project than the numbers above make it look.
+
+One cross-check is worth recording. The delivered system is 24,522 lines of source, so the count works out at about **94 lines per function point**. Published gearing factors put Python at roughly 30 to 40 and JavaScript at roughly 45 to 55, which would predict somewhere near half of that. The difference is not a fault in the count: 18,514 of the 24,522 lines are the front end and the stylesheet, which deliver a great deal of interface across relatively few distinct transactions, and a stylesheet delivers no function points at all.
+
+The conclusion to draw is not that the estimate was wrong but that function point analysis is a size measure being asked to do a second job. As a size measure it is sound: **262 adjusted function points** is a defensible statement about how much this system does, and it is comparable with any other system counted the same way. As an effort predictor it needed a productivity rate calibrated to a single developer working with modern frameworks, and no such rate was available in advance. It is available now, and it is about 62 function points per person-month.
 
 ### The Schedule
 

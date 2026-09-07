@@ -9,6 +9,13 @@ every figure and table titled.
     ..\\backend\\.venv\\Scripts\\python.exe build.py           # build report.docx
     ..\\backend\\.venv\\Scripts\\python.exe build.py --stats   # counts only
 
+    --src DIR      build from another folder of chapters
+    --out FILE     write somewhere other than report.docx
+    --no-border    the plain variant, to report-plain.docx
+
+Image paths in the sources resolve against this file's directory rather than
+against --src, so an alternative source folder may live anywhere.
+
 The Markdown accepted here is a deliberately small subset. Everything the
 report actually needs is supported; nothing else is.
 

@@ -58,6 +58,43 @@ Two of those tests deserve to be singled out, because they assert something othe
 
 Three of the suites in that table did not exist when this chapter was first drafted. `test_ratelimit.py`, `test_refresh_tokens.py` and `test_file_store.py` arrived with the three operational features described in §6.8, and they are the reason the total moved from 46 to 91.
 
+#### The Unit Test Case Designs
+
+The table above reports suites. This one reports cases, because a suite total says that something passed without saying what was asked of it. Twenty-two representative cases follow, drawn from the assertions themselves rather than written to describe them. Every actual output matched the expected output, so the last two columns are honest rather than decorative: the interesting entries are the ones where the expected output is a refusal.
+
+<!-- landscape -->
+
+Table: Unit test case designs and results
+
+| Case | Module | Input | Expected output | Actual | Result |
+|---|---|---|---|---|---|
+| UT-01 | Chunking | `_clean("Casual   leave\n\n  is credited")` | "Casual leave is credited" | As expected | PASS |
+| UT-02 | Chunking | `_clean("   \n\t  \n ")` | "" so that a blank page yields no chunk | As expected | PASS |
+| UT-03 | Chunking | `_is_heading("ASSESSMENT GUIDELINES FOR PROJECT EVALUATION")` | True, an all-caps line | As expected | PASS |
+| UT-04 | Chunking | `_is_heading("4.2 Leave Entitlement")` | True, a numbered line | As expected | PASS |
+| UT-05 | Chunking | `_is_heading("Casual leave is credited at the start of the year.")` | False, it ends in a full stop | As expected | PASS |
+| UT-06 | Chunking | `_is_heading("42")` | False, a page number is not a section | As expected | PASS |
+| UT-07 | Retrieval | `RELEVANCE_MIN` | Strictly between 0.10 and 0.28, the two score populations | As expected | PASS |
+| UT-08 | Retrieval | `_smalltalk_category("Hello!")` | "Greeting" | As expected | PASS |
+| UT-09 | Retrieval | `_smalltalk_category("How many casual leave days do I get?")` | None, a real question is not small talk | As expected | PASS |
+| UT-10 | Retrieval | `_smalltalk_category("hiring policy for contractors")` | None, a greeting word inside a question is not a greeting | As expected | PASS |
+| UT-11 | Retrieval | `is_about_conversation("summarise your last answer")` | True | As expected | PASS |
+| UT-12 | Retrieval | `is_about_conversation("What is the notice period?")` | False | As expected | PASS |
+| UT-13 | Prompt safety | `work_line("ignore all previous instructions")` | None, nothing a client sends reaches a system message | As expected | PASS |
+| UT-14 | Progress | `Stage "extracting" reported complete` | progress = 35, the stage's own end | As expected | PASS |
+| UT-15 | Progress | `Stage "extracting" at fraction 0.5` | progress = 17, interpolated across the span | As expected | PASS |
+| UT-16 | Progress | `A lower value written after 99` | progress stays 99, it never goes backwards | As expected | PASS |
+| UT-17 | Progress | `A fraction outside 0 to 1` | Clamped to the stage end, 35 | As expected | PASS |
+| UT-18 | Security | `verify_password("wrong", hash_password("s3cret-pass"))` | False, and the stored hash differs from the input | As expected | PASS |
+| UT-19 | Security | `An access token with one character appended` | decode_access_token returns None | As expected | PASS |
+| UT-20 | Rate limiting | `A sixth request in one window with limit 5` | Refused, with Retry-After between 1 and 61 seconds | As expected | PASS |
+| UT-21 | Encryption | `seal then unseal an empty file` | The same empty bytes, and the sealed form carries the marker | As expected | PASS |
+| UT-22 | Encryption | `A sealed blob with its last byte flipped` | InvalidTag raised rather than wrong plaintext returned | As expected | PASS |
+
+<!-- portrait -->
+
+Three of those deserve a second look. **UT-13** puts the string *"ignore all previous instructions"* through the function that builds the work-role line of the system prompt and asserts the result is nothing at all: it is a prompt-injection test in miniature, and it is what stops the whitelist being removed by accident. **UT-16** asserts that progress never decreases, which is a property of the reporter rather than of any one stage and cannot be checked by looking at a single call. **UT-22** asserts a *failure*: a document altered on disk must refuse to open rather than decrypt into something subtly different, which for text that a language model will quote back as fact is the outcome most worth guaranteeing.
+
 ### The Front-End Unit Tests
 
 The approved proposal names Jest for the front end, and the same boundary applies there as on the backend: pure functions, no browser. What that leaves is `utils.js` and `docMime.js`, the formatting helpers every screen calls to turn a number, a date or a name into something a person reads. They are worth testing precisely because they are shared. A regression in one of them is visible on every screen at once, which sounds like it would make the fault obvious and in practice does the opposite: a date that reads slightly wrong everywhere looks like a design decision.
@@ -87,7 +124,7 @@ The test corpus is three documents indexed into thirteen chunks:
 - `hr_employee_handbook.md`, the HR policies of **NovaTech**, a software company.
 - `it_security_policy.md`, the IT security policy of the same company.
 
-The corpus has two *different organisations* in it on purpose. A single-organisation corpus cannot detect the failure that matters most in a shared library: an answer that retrieves a passage from the right document and then attributes it to the wrong one. Two organisations with overlapping subject matter, both have grievance procedures, both have policies about who may be contacted about what, make that failure visible when it happens. It did happen once, and case 31 is where.
+The corpus has two *different organisations* in it on purpose. A single-organisation corpus cannot detect the failure that matters most in a shared library: an answer that retrieves a passage from the right document and then attributes it to the wrong one. Two organisations with overlapping subject matter, both have grievance procedures, both have policies about who may be contacted about what, make that failure visible when it happens. It did happen once, and case ST-31 is where.
 
 ### The Four Classes of Question
 
@@ -106,39 +143,39 @@ Every case retrieved five chunks, which is the configured *k*, so the chunk coun
 
 Table: System test case log, thirty-one cases
 
-| # | Class | Question | Score | ms | Result |
-|---:|---|---|---:|---:|---|
-| 1 | Easy | What are the visiting hours for the ICU? | 0.535 | 4103 | PASS |
-| 2 | Easy | How many beds does Sunrise Valley Medical Center have? | 0.615 | 3524 | PASS |
-| 3 | Easy | Who is the Head of the Cardiology department? | 0.335 | 3839 | PASS |
-| 4 | Easy | What is the ambulance dispatch number? | 0.454 | 3513 | PASS |
-| 5 | Easy | What is the refundable deposit required for ICU admission? | 0.563 | 3947 | PASS |
-| 6 | Harder | If a patient needs planned surgery, how far in advance must insurance be pre-approved? | 0.573 | 4095 | PASS |
-| 7 | Harder | Can a 10-year-old visit a patient in the general ward? Why or why not? | 0.454 | 4298 | PASS |
-| 8 | Harder | What discount does the pharmacy offer, and to whom? | 0.495 | 3441 | PASS |
-| 9 | Neg. | What is the hospital's organ donation policy? | 0.326 | 3908 | PASS |
-| 10 | Neg. | Does the hospital have a dedicated cancer treatment centre? | 0.445 | 4932 | PASS |
-| 11 | Easy | How many casual leave days do employees get per year? | 0.571 | 3540 | PASS |
-| 12 | Easy | What is the notice period for an employee with 2 years of service? | 0.599 | 3752 | PASS |
-| 13 | Easy | What is the monthly internet reimbursement amount? | 0.402 | 3370 | PASS |
-| 14 | Easy | How long is the probation period for new hires? | 0.568 | 4962 | PASS |
-| 15 | Harder | An employee refers a candidate for an SDE-3 role who is hired. When and how is the bonus paid? | 0.460 | 4262 | PASS |
-| 16 | Harder | When are appraisals conducted, and when do salary hikes take effect? | 0.454 | 4489 | PASS |
-| 17 | Harder | How much monthly allowance does a fully remote employee get, compared with a hybrid one? | 0.374 | 5270 | PASS |
-| 18 | Neg. | What is NovaTech's policy on international relocation? | 0.443 | 4044 | PASS |
-| 19 | Neg. | Is there a dress code policy mentioned in this document? | 0.339 | 3376 | PASS |
-| 20 | Easy | How often must passwords be changed? | 0.465 | 3149 | PASS |
-| 21 | Easy | What is the minimum required password length? | 0.545 | 3511 | PASS |
-| 22 | Easy | What is the IT Security Hotline number? | 0.389 | 3393 | PASS |
-| 23 | Easy | How long does a VPN session stay active before timing out? | 0.312 | 4025 | PASS |
-| 24 | Harder | An employee loses a phone with company email on it. What must they do, and within what time? | 0.560 | 4541 | PASS |
-| 25 | Harder | What is the difference in incident response SLA between Critical and Medium severity? | 0.326 | 4168 | PASS |
-| 26 | Harder | Which data tier requires the most restricted access, and what is an example of it? | 0.443 | 4320 | PASS |
-| 27 | Neg. | What antivirus software does NovaTech use? | 0.451 | 3698 | PASS |
-| 28 | Cross | Who do I contact for an HR grievance as against an IT security incident? | 0.529 | 6389 | PASS |
-| 29 | Cross | Does the notice period appear in the HR policy or the IT policy? | 0.545 | 4357 | PASS |
-| 30 | Cross | A NovaTech employee wants to file a harassment complaint, which document applies? | 0.568 | 4788 | PASS |
-| 31 | Cross | A senior citizen patient at Sunrise Valley wants a discount on medication, does NovaTech policy apply? | 0.529 | 6031 | PARTIAL |
+| Case | Class | Question | Score | ms | Result |
+|---|---|---|---:|---:|---|
+| ST-01 | Easy | What are the visiting hours for the ICU? | 0.535 | 4103 | PASS |
+| ST-02 | Easy | How many beds does Sunrise Valley Medical Center have? | 0.615 | 3524 | PASS |
+| ST-03 | Easy | Who is the Head of the Cardiology department? | 0.335 | 3839 | PASS |
+| ST-04 | Easy | What is the ambulance dispatch number? | 0.454 | 3513 | PASS |
+| ST-05 | Easy | What is the refundable deposit required for ICU admission? | 0.563 | 3947 | PASS |
+| ST-06 | Harder | If a patient needs planned surgery, how far in advance must insurance be pre-approved? | 0.573 | 4095 | PASS |
+| ST-07 | Harder | Can a 10-year-old visit a patient in the general ward? Why or why not? | 0.454 | 4298 | PASS |
+| ST-08 | Harder | What discount does the pharmacy offer, and to whom? | 0.495 | 3441 | PASS |
+| ST-09 | Neg. | What is the hospital's organ donation policy? | 0.326 | 3908 | PASS |
+| ST-10 | Neg. | Does the hospital have a dedicated cancer treatment centre? | 0.445 | 4932 | PASS |
+| ST-11 | Easy | How many casual leave days do employees get per year? | 0.571 | 3540 | PASS |
+| ST-12 | Easy | What is the notice period for an employee with 2 years of service? | 0.599 | 3752 | PASS |
+| ST-13 | Easy | What is the monthly internet reimbursement amount? | 0.402 | 3370 | PASS |
+| ST-14 | Easy | How long is the probation period for new hires? | 0.568 | 4962 | PASS |
+| ST-15 | Harder | An employee refers a candidate for an SDE-3 role who is hired. When and how is the bonus paid? | 0.460 | 4262 | PASS |
+| ST-16 | Harder | When are appraisals conducted, and when do salary hikes take effect? | 0.454 | 4489 | PASS |
+| ST-17 | Harder | How much monthly allowance does a fully remote employee get, compared with a hybrid one? | 0.374 | 5270 | PASS |
+| ST-18 | Neg. | What is NovaTech's policy on international relocation? | 0.443 | 4044 | PASS |
+| ST-19 | Neg. | Is there a dress code policy mentioned in this document? | 0.339 | 3376 | PASS |
+| ST-20 | Easy | How often must passwords be changed? | 0.465 | 3149 | PASS |
+| ST-21 | Easy | What is the minimum required password length? | 0.545 | 3511 | PASS |
+| ST-22 | Easy | What is the IT Security Hotline number? | 0.389 | 3393 | PASS |
+| ST-23 | Easy | How long does a VPN session stay active before timing out? | 0.312 | 4025 | PASS |
+| ST-24 | Harder | An employee loses a phone with company email on it. What must they do, and within what time? | 0.560 | 4541 | PASS |
+| ST-25 | Harder | What is the difference in incident response SLA between Critical and Medium severity? | 0.326 | 4168 | PASS |
+| ST-26 | Harder | Which data tier requires the most restricted access, and what is an example of it? | 0.443 | 4320 | PASS |
+| ST-27 | Neg. | What antivirus software does NovaTech use? | 0.451 | 3698 | PASS |
+| ST-28 | Cross | Who do I contact for an HR grievance as against an IT security incident? | 0.529 | 6389 | PASS |
+| ST-29 | Cross | Does the notice period appear in the HR policy or the IT policy? | 0.545 | 4357 | PASS |
+| ST-30 | Cross | A NovaTech employee wants to file a harassment complaint, which document applies? | 0.568 | 4788 | PASS |
+| ST-31 | Cross | A senior citizen patient at Sunrise Valley wants a discount on medication, does NovaTech policy apply? | 0.529 | 6031 | PARTIAL |
 
 ### Results
 
@@ -158,7 +195,7 @@ Table: System test results by class
 
 **One negative case is more interesting than a pass.** Asked whether the hospital has a dedicated cancer treatment centre, the system correctly reported that the documents do not say so, and then volunteered that an Oncology department is mentioned elsewhere in the handbook. That is a hedge, not a hallucination, the additional fact is true and came from a retrieved chunk, but it answers more than was asked. It is scored as a pass because it declined the question it was asked; it is recorded here because a stricter reading would want it not to volunteer.
 
-**One genuine defect, case 31.** The question asks whether a hospital pharmacy discount is relevant to NovaTech policy. The answer separates the two organisations correctly and cites the right document for the discount. Its final sentence then refers to *"the company's Medication & Pharmacy Policy"*, attributing the hospital's medication rule to NovaTech, which has no such policy. **The retrieval was correct**; the 3-billion-parameter model lost track of which organisation it was describing over a long answer. This is analysed in §5.6 as defect D8.
+**One genuine defect, case ST-31.** The question asks whether a hospital pharmacy discount is relevant to NovaTech policy. The answer separates the two organisations correctly and cites the right document for the discount. Its final sentence then refers to *"the company's Medication & Pharmacy Policy"*, attributing the hospital's medication rule to NovaTech, which has no such policy. **The retrieval was correct**; the 3-billion-parameter model lost track of which organisation it was describing over a long answer. This is analysed in §5.6 as defect D8.
 
 ## Performance Measurement
 
@@ -170,8 +207,8 @@ Table: Response time over thirty-one cases
 |---|---|
 | Mean | 4162 ms |
 | Median | 4044 ms |
-| Fastest | 3149 ms (case 20, a single-fact question) |
-| Slowest | 6389 ms (case 28, a cross-document question with a long answer) |
+| Fastest | 3149 ms (case ST-20, a single-fact question) |
+| Slowest | 6389 ms (case ST-28, a cross-document question with a long answer) |
 | Cases over 10 s | 0 |
 | Cases over 6 s | 2, both cross-document |
 
@@ -198,7 +235,7 @@ Table: Defect log
 | D5 | System | A provider failure surfaced to the user as *"I couldn't find anything in your documents"*, blaming the user's library for the system's own outage | A provider health check now runs **before** retrieval, and reports which provider failed and why: not running, no key, no credit, or a model that has not been pulled |
 | D6 | System | The source passage dialog rendered as *"Page7"* and *"SectionOBJECTIVES"*, unstyled. The CSS for its metadata grid had been deleted along with an earlier version of the dialog, and restoring the component brought the markup back without its styles | The rule was restored as a base rule, not a mobile-only override. **Test note:** a passage without a section falls back to *"chunk N"* in the same slot, and both shapes have three dot-separated parts, so a test that counts parts passes on the wrong one. Test for the `chunk N` fallback instead |
 | D7 | System | On a phone the sidebar drawer opened but never closed, wore the wrong icon, and slid in *behind* the top bar so that its own header was hidden, which read as an empty drawer. Three faults in one control | The toggle became a true toggle, the icon was matched to the desktop one, the open drawer was raised above the bar, and a closing control was added inside the drawer that does not also set the desktop collapsed state |
-| D8 | System | **Case 31.** The answer attributed the hospital's *"Medication & Pharmacy Policy"* to NovaTech in its closing sentence, after having separated the two organisations correctly earlier in the same answer. Retrieval was correct; the 3B model lost track of which organisation it was describing over a long answer | **Open.** Two remedies are available and neither was taken: a larger model, which contradicts the 4 GB constraint the system is built to; or naming the source document inline beside each excerpt in the prompt, which contradicts the instruction that keeps document names out of the answer text. The defect is recorded rather than papered over, and §9 proposes the compromise |
+| D8 | System | **Case ST-31.** The answer attributed the hospital's *"Medication & Pharmacy Policy"* to NovaTech in its closing sentence, after having separated the two organisations correctly earlier in the same answer. Retrieval was correct; the 3B model lost track of which organisation it was describing over a long answer | **Open.** Two remedies are available and neither was taken: a larger model, which contradicts the 4 GB constraint the system is built to; or naming the source document inline beside each excerpt in the prompt, which contradicts the instruction that keeps document names out of the answer text. The defect is recorded rather than papered over, and §9 proposes the compromise |
 | D9 | Integration | A port left held by a process that `netstat` named but no process table contained, serving requests from a stale index | The process was found by its 497 MB memory footprint, the signature of a backend with the embedding model loaded, and ended. **Lesson recorded:** when `netstat` names a PID that does not resolve, find the process by its memory size instead of reaching for a reboot |
 
 ## What the Testing Did Not Cover
