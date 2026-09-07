@@ -294,7 +294,7 @@ def variant_sources(name):
     changes = {}
     printed = 231  # the four excerpts already in section 4.4
 
-    if name in ("C", "E", "F", "F2", "F3"):
+    if name in ("C", "E", "F", "F2", "F3", "F4"):
         extras = chapter_extras()
         added = []
         for heading, intro, code, note in extras:
@@ -311,7 +311,7 @@ def variant_sources(name):
             "fifty pages, and it is on the disc in full.")
         appendices = appendices.rstrip() + "\n" + text
         printed += lines
-    elif name in ("B", "F", "F2", "F3"):
+    elif name in ("B", "F", "F2", "F3", "F4"):
         text, lines = appendix(CORE + EXTRA_FOR_B,
             "This appendix prints the complete backend, all thirty-nine Python files, each in "
             "full and in package order. Nothing is selected and nothing is left out. The front "
@@ -352,13 +352,47 @@ def variant_sources(name):
     changes["04-coding.md"] = coding
     changes["12-appendices.md"] = appendices
 
-    if name in ("F", "F2", "F3"):
+    if name in ("F", "F2", "F3", "F4"):
         changes, printed = _finalise(changes, printed)
-    if name in ("F2", "F3"):
+    if name in ("F2", "F3", "F4"):
         changes = _corrections(changes)
-    if name == "F3":
+    if name in ("F3", "F4"):
         changes = _corrections_v3(changes)
+    if name == "F4":
+        changes = _corrections_v4(changes)
     return changes, printed
+
+
+def _corrections_v4(changes):
+    """The one mis-pointing reference in the report's own chapter text.
+
+    Every correction before this was in a note written for the appendices. This
+    one is in the report proper, in the operational feasibility argument, and it
+    predates the appendices entirely. It is the same fault: 2.6.6 exists, so
+    nothing flagged it.
+    """
+    analysis = changes.get("02-system-analysis.md")
+    if analysis is None:
+        analysis = io.open(SRC / "02-system-analysis.md", encoding="utf-8").read()
+
+    # 2.6.6 is "Level 2, Process 3.0, Process Document", which is ingestion and
+    # says nothing about relevance. The floor is the gate at process 4.4,
+    # described in 2.6.7, "Level 2, Process 4.0, Answer Question".
+    old_ref = "the relevance floor described in §2.6.6 exists"
+    assert old_ref in analysis, "the operational feasibility sentence has moved"
+    changes["02-system-analysis.md"] = analysis.replace(
+        old_ref, "the relevance floor described in §2.6.7 exists", 1)
+
+    # And one more of the same kind in an appendix note, found by running
+    # verify_refs.py over the whole report rather than by looking for it.
+    # 4.4.6 is "The Authentication Dependency". The streaming route this note
+    # is describing the other half of is 4.4.10.
+    appendices = changes["12-appendices.md"]
+    old_ref = "the streaming read loop that is the front-end half of §4.4.6."
+    assert old_ref in appendices, "the ChatContext note has moved"
+    changes["12-appendices.md"] = appendices.replace(
+        old_ref, "the streaming read loop that is the front-end half of §4.4.10.", 1)
+    return changes
 
 
 def _corrections_v3(changes):
@@ -524,6 +558,7 @@ NAMES = {
     "F": "F-final",
     "F2": "F-final-v2",
     "F3": "F-final-v3",
+    "F4": "F-final-v4",
 }
 
 
