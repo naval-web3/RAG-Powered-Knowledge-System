@@ -35,6 +35,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import variant_f
+
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "src"
 BACKEND = HERE.parent / "backend"
@@ -292,7 +294,7 @@ def variant_sources(name):
     changes = {}
     printed = 231  # the four excerpts already in section 4.4
 
-    if name in ("C", "E"):
+    if name in ("C", "E", "F"):
         extras = chapter_extras()
         added = []
         for heading, intro, code, note in extras:
@@ -309,7 +311,7 @@ def variant_sources(name):
             "fifty pages, and it is on the disc in full.")
         appendices = appendices.rstrip() + "\n" + text
         printed += lines
-    elif name == "B":
+    elif name in ("B", "F"):
         text, lines = appendix(CORE + EXTRA_FOR_B,
             "This appendix prints the complete backend, all thirty-nine Python files, each in "
             "full and in package order. Nothing is selected and nothing is left out. The front "
@@ -349,6 +351,87 @@ def variant_sources(name):
 
     changes["04-coding.md"] = coding
     changes["12-appendices.md"] = appendices
+
+    if name == "F":
+        changes, printed = _finalise(changes, printed)
+    return changes, printed
+
+
+# --------------------------------------------------------------- variant F
+
+def _finalise(changes, printed):
+    """The five edits that turn variant E into the submitted report.
+
+    Everything here is additive except the system test case identifiers, which
+    are a renumbering. No existing chapter text is rewritten, and §1.7.2 and
+    §1.7.3 are not touched at all.
+    """
+    # ---- 5. Appendix F, the front end ----
+    front_matter, frontend_lines = variant_f.appendix_f(whole)
+    changes["12-appendices.md"] = changes["12-appendices.md"].rstrip() + "\n" + front_matter
+    printed += frontend_lines
+
+    # ---- 1. the section 4.5 wording, now that Appendix E is the whole backend ----
+    coding = changes["04-coding.md"]
+    old_where = ("This chapter shows the code that carries the system's logic, and the "
+                 "conventions every file is written to. The backend modules are printed in "
+                 "full in Appendix E. The front end is not printed, because at 14,933 lines it "
+                 "would add some two hundred and fifty pages to this volume.")
+    assert old_where in coding
+    coding = coding.replace(old_where,
+        "This chapter shows the code that carries the system's logic, and the conventions every "
+        "file is written to. The complete backend, all thirty-nine Python files including the "
+        "seven test suites, is printed in Appendix E, and the eight front-end files that carry "
+        "the application are printed in Appendix F.", 1)
+
+    old_excerpt = re.search(
+        r"Appendix E and the excerpts in the previous section are [\d,]+ lines of that\s+total\."
+        r" What is not printed is the front end and the stylesheet, and both\s+are on the disc\.",
+        coding)
+    assert old_excerpt, "the printed-lines sentence has moved"
+    coding = coding.replace(old_excerpt.group(0),
+        "Appendices E and F and the excerpts in the previous section come to %s of those %s "
+        "lines. What is not printed is the remainder of the front-end component library, the "
+        "eleven locale files, which are string tables rather than logic, and the stylesheet. "
+        "All of it is on the disc." % ("{:,}".format(printed), "{:,}".format(24522)), 1)
+    changes["04-coding.md"] = coding
+
+    # ---- 2. function point analysis, as a new subsection before the schedule ----
+    analysis = io.open(SRC / "02-system-analysis.md", encoding="utf-8").read()
+    anchor = "### The Schedule"
+    assert anchor in analysis
+    analysis = analysis.replace(anchor, variant_f.fpa_section().rstrip() + "\n\n" + anchor, 1)
+    changes["02-system-analysis.md"] = analysis
+
+    # ---- 3 and 4. the test chapter ----
+    testing = io.open(SRC / "05-testing.md", encoding="utf-8").read()
+
+    # At the end of the unit test report, which is where the suite totals it
+    # expands on sit, rather than after the front-end subsection that follows.
+    anchor = "### The Front-End Unit Tests"
+    assert anchor in testing
+    testing = testing.replace(anchor, variant_f.unit_case_table().rstrip() + "\n\n" + anchor, 1)
+
+    # The thirty-one system cases become ST-01 to ST-31, in the table itself and
+    # then in every sentence anywhere in the report that names one of them.
+    header = ("| # | Class | Question | Score | ms | Result |\n"
+              "|---:|---|---|---:|---:|---|")
+    assert header in testing
+    testing = testing.replace(header,
+        "| Case | Class | Question | Score | ms | Result |\n|---|---|---|---:|---:|---|", 1)
+    for number in range(31, 0, -1):
+        row = "\n| %d | " % number
+        assert row in testing, "row %d not found" % number
+        testing = testing.replace(row, "\n| ST-%02d | " % number, 1)
+    changes["05-testing.md"] = testing
+
+    for filename in ("05-testing.md", "09-future-scope.md", "12-appendices.md"):
+        text = changes.get(filename) or io.open(SRC / filename, encoding="utf-8").read()
+        for number in (20, 28, 31):
+            text = re.sub(r"\bcase %d\b" % number, "case ST-%02d" % number, text)
+            text = re.sub(r"\bCase %d\b" % number, "Case ST-%02d" % number, text)
+        changes[filename] = text
+
     return changes, printed
 
 
@@ -358,6 +441,7 @@ NAMES = {
     "C": "C-expanded-chapter",
     "D": "D-pointer-only",
     "E": "E-expanded-plus-appendix",
+    "F": "F-final",
 }
 
 

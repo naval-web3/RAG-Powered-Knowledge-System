@@ -75,6 +75,7 @@ CODE_FONT = "Consolas"
 BODY_SIZE = Pt(12)
 CODE_SIZE = Pt(8.5)
 TEXT_WIDTH_IN = 6.0  # A4 (8.27") less a 1.25" binding margin and 1" outer margin
+LANDSCAPE_WIDTH_IN = 9.44  # the same margins on a page turned on its side
 
 
 # ---------------------------------------------------------------------------
@@ -206,17 +207,89 @@ def _running_header(section, text: str) -> None:
     para._p.get_or_add_pPr().append(borders)
 
 
-def _column_widths(rows: list[list[str]], cols: int) -> list:
-    """Column widths that add up to the text width, weighted by content."""
-    weights = []
+# Rough advance widths, in inches per character. Consolas is monospace, so its
+# figure is exact: 8.5pt at 0.6em per character. Times New Roman is
+# proportional and this is an average over mixed-case text, which is close
+# enough to decide whether a word fits in a column.
+_CODE_CHAR_IN = 8.5 * 0.6 / 72.0          # 0.0708 in, exact for a monospace face
+_CELL_PADDING_IN = 0.16                   # Word's default left and right cell margins
+# Advance widths in ems for Times New Roman, by class of character. A single
+# average will not do: "UT-01" is capitals and digits and is half again as wide
+# as five lowercase letters, which is exactly the case that kept breaking.
+_EM_UPPER, _EM_DIGIT, _EM_LOWER, _EM_OTHER = 0.68, 0.50, 0.47, 0.33
+_HEADER_BOLD_ALLOWANCE = 1.03
+
+
+def _word_width_in(word: str, coded: bool) -> float:
+    if coded:
+        return len(word) * _CODE_CHAR_IN
+    ems = 0.0
+    for ch in word:
+        if ch.isupper():
+            ems += _EM_UPPER
+        elif ch.isdigit():
+            ems += _EM_DIGIT
+        elif ch.islower():
+            ems += _EM_LOWER
+        else:
+            ems += _EM_OTHER
+    return ems * BODY_SIZE.pt / 72.0 * _HEADER_BOLD_ALLOWANCE
+
+
+def _min_column_width(cells: list[str]) -> float:
+    """The narrowest this column can be without Word breaking inside a word.
+
+    Measured rather than guessed at, because a character count cannot compare a
+    column of inline code at 8.5 point against a column of prose at 12 point.
+    Guessing produced a test case table that read "UT- 01" and "Resu lt".
+    """
+    widest = 0.0
+    for cell in cells:
+        # Backticks mark inline code, which is set in the narrower fixed font.
+        coded = "`" in cell
+        for word in cell.replace("`", "").split():
+            widest = max(widest, _word_width_in(word, coded))
+    return widest + _CELL_PADDING_IN
+
+
+def _column_widths(rows: list[list[str]], cols: int, text_width: float = TEXT_WIDTH_IN) -> list:
+    """Column widths that add up to the text width, weighted by content.
+
+    Weighted first, then corrected: any column too narrow for its longest word
+    is widened to fit it, and the extra is taken from the columns that have
+    room to give. A column of long prose can afford to lose a tenth of an inch;
+    a column of identifiers cannot afford to be a tenth short.
+    """
+    weights, minimums = [], []
     for c in range(cols):
-        longest = max((len(r[c]) for r in rows if c < len(r)), default=1)
+        cells = [r[c] for r in rows if c < len(r)]
+        longest = max((len(cell) for cell in cells), default=1)
         # A very long prose column is capped before the weighting, so that one
         # 200-character description cannot squeeze a "Default" header until it
         # breaks across two lines.
         weights.append(max(5.0, min(longest, 100) ** 0.7 + 1.7))
+        minimums.append(_min_column_width(cells))
+
     total = sum(weights)
-    return [Inches(TEXT_WIDTH_IN * w / total) for w in weights]
+    widths = [text_width * w / total for w in weights]
+
+    # If the minima cannot all be met there is nothing to trade, so leave the
+    # proportional answer alone rather than making every column too narrow.
+    if sum(minimums) < text_width:
+        for _pass in range(3):
+            deficit = sum(max(0.0, m - w) for m, w in zip(minimums, widths))
+            if deficit < 0.001:
+                break
+            slack = sum(max(0.0, w - m) for m, w in zip(minimums, widths))
+            if slack <= 0:
+                break
+            taken = min(deficit, slack)
+            widths = [
+                m if w < m else w - (w - m) / slack * taken
+                for m, w in zip(minimums, widths)
+            ]
+
+    return [Inches(w) for w in widths]
 
 
 def _page_border(section) -> None:
@@ -514,7 +587,10 @@ class ReportBuilder:
         # does not starve the rest. Without this every column is the same width
         # and an "Id" column holding "FR-13" takes half the page while the
         # requirement beside it wraps over four lines.
-        widths = _column_widths(rows, cols)
+        # A landscape plate is 9.44in of text, and a table wide enough to need
+        # one must be measured against that rather than against the portrait
+        # width, or its columns come out sized for a page it is not on.
+        widths = _column_widths(rows, cols, LANDSCAPE_WIDTH_IN if self.landscape else TEXT_WIDTH_IN)
         table.autofit = False
         layout = OxmlElement("w:tblLayout")
         layout.set(qn("w:type"), "fixed")
@@ -545,7 +621,13 @@ class ReportBuilder:
             trPr = table.rows[0]._tr.get_or_add_trPr()
             header = OxmlElement("w:tblHeader")
             trPr.append(header)
-        self.doc.add_paragraph().paragraph_format.space_after = Pt(6)
+        # Word requires a paragraph after a table, and at body size it needs a
+        # whole line. When a listing ends at the foot of a page that line
+        # becomes a blank page of its own, which is what put a blank sheet
+        # between the end of Appendix F and the glossary.
+        spacer = self.doc.add_paragraph()
+        spacer.paragraph_format.space_after = Pt(6)
+        _small_paragraph_mark(spacer)
 
     def code(self, lines: list[str], language: str) -> None:
         table = self.doc.add_table(rows=1, cols=1)
@@ -903,6 +985,28 @@ def fill_lists(builder: ReportBuilder) -> None:
 # entry point
 # ---------------------------------------------------------------------------
 
+def _small_paragraph_mark(paragraph, half_points: int = 2) -> None:
+    """Shrink an empty paragraph so it cannot take a whole line of its own.
+
+    The height of an empty paragraph is the height of its paragraph mark, and
+    that is set in the pPr's own rPr rather than on any run. Used wherever a
+    paragraph exists for structure rather than to be read: after a table, which
+    Word requires, and at the very end of the body.
+    """
+    fmt = paragraph.paragraph_format
+    fmt.space_before = Pt(0)
+    fmt.line_spacing = 1.0
+    pPr = paragraph._p.get_or_add_pPr()
+    rPr = pPr.find(qn("w:rPr"))
+    if rPr is None:
+        rPr = OxmlElement("w:rPr")
+        pPr.insert(0, rPr)
+    for tag in ("w:sz", "w:szCs"):
+        size = OxmlElement(tag)
+        size.set(qn("w:val"), str(half_points))
+        rPr.append(size)
+
+
 def _shrink_trailing_paragraph(doc) -> None:
     """Make the empty paragraph that has to follow a final table take no room.
 
@@ -916,21 +1020,8 @@ def _shrink_trailing_paragraph(doc) -> None:
     if not paragraphs or paragraphs[-1].text.strip():
         return
     last = paragraphs[-1]
-    fmt = last.paragraph_format
-    fmt.space_before = Pt(0)
-    fmt.space_after = Pt(0)
-    fmt.line_spacing = 1.0
-    # The height of an empty paragraph is the height of its paragraph mark, and
-    # that is set in the pPr's own rPr rather than on any run.
-    pPr = last._p.get_or_add_pPr()
-    rPr = pPr.find(qn("w:rPr"))
-    if rPr is None:
-        rPr = OxmlElement("w:rPr")
-        pPr.insert(0, rPr)
-    for tag in ("w:sz", "w:szCs"):
-        size = OxmlElement(tag)
-        size.set(qn("w:val"), "2")  # half-points, so one point
-        rPr.append(size)
+    last.paragraph_format.space_after = Pt(0)
+    _small_paragraph_mark(last)
 
 
 def _flag(name: str, default: Path) -> Path:
