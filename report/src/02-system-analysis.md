@@ -90,9 +90,9 @@ The work was therefore decomposed into twelve activities. Each was estimated usi
 
 The weighting reflects the fact that the most likely estimate deserves more confidence than either extreme, while the extremes still pull the expected value in their direction. The estimates were made before the corresponding work began, and the values in the network below are the original ones, not values adjusted afterwards to match what happened.
 
-The dependencies between the twelve activities are genuine, not merely conventional. The database schema cannot be written before the technology trial has settled what is being stored; the retrieval engine cannot be built before there are embedded chunks to retrieve; the chat interface cannot be finished before both retrieval and authentication exist, since it needs an answer to display and a user to attribute it to. Two activities, authentication and the administrator's dashboard, sit off the critical path and can be done at any point in a wide window, which is why they are drawn lighter in both charts.
+The dependencies between the twelve activities are genuine, not merely conventional. The database schema cannot be written before the technology trial has settled what is being stored; the retrieval engine cannot be built before there are embedded chunks to retrieve; the chat interface cannot be finished before both retrieval and authentication exist, since it needs an answer to display and a user to attribute it to. Two activities, authentication and the administrator's dashboard, sit off the critical path and can be done at any point in a wide window, which is why they are drawn in green in both charts.
 
-The expected duration along the critical path A → B → C → E → F → G → H → I → K → L is **eighty-five days**. Counted from 22 June 2026 that lands on 15 September 2026, which is the date the report has to be posted for it to arrive before the deadline. The plan and the deadline therefore agree, with no float in hand. Figure 2.1 is the network.
+The expected duration along the critical path A → B → C → E → F → G → H → I → K → L is **eighty-five days**. Counted from 22 June 2026 that lands on 15 September 2026, which is the date the report has to be posted for it to arrive before the deadline. The plan and the deadline therefore agree, with no float in hand. Summing the variances along that chain gives Σσ² = 10.2, so the standard deviation of the whole project is about 3.2 days. That is the arithmetic behind §2.2.4 calling the schedule feasible but not comfortable: the expected finish is the posting date itself, so half the distribution of finishing dates lies beyond it. Figure 2.1 is the network.
 
 ### Function Point Analysis and Effort Estimation
 
@@ -237,13 +237,13 @@ The conclusion to draw is not that the estimate was wrong but that function poin
 
 ### The Schedule
 
-The Gantt chart places the same twelve activities on the calendar. Because the critical path has no slack, every critical activity starts on the day its predecessor ends, and the chart is consequently a staircase, not a set of overlapping bars. The two non-critical activities are drawn at their earliest start, and the float they carry is the horizontal distance between where they end and where their successor begins. Figure 2.2 is the schedule.
+The Gantt chart places the same twelve activities on the calendar. Because the critical path has no slack, every critical activity starts on the day its predecessor ends, and the chart is consequently a staircase, not a set of overlapping bars. The two non-critical activities are drawn at their earliest start, with the float each carries shown as a dashed extension reaching the point where its successor begins. Figure 2.2 is the schedule.
 
 <!-- landscape -->
 
-![The PERT network. Activities on the critical path are drawn heavy; the two that carry slack are drawn light. Expected times are the tₑ values from the three-point estimates listed beneath the network.](assets/diagrams/plan-pert.png){width=9.4}
+![The PERT network. Boxes on the critical path are blue, the two that carry float are green, and the deliverable posted on 15 September is orange. Expected times are the tₑ values from the three-point estimates listed beneath the network, which also give each activity's variance.](assets/diagrams/plan-pert.png){width=9.4}
 
-![The Gantt chart for the twelve activities. The dashed line marks 15 September 2026, the date the bound report must be posted.](assets/diagrams/plan-gantt.png){width=9.4}
+![The Gantt chart for the twelve activities. The dashed extension on D and J is the float each carries, running to the point where its successor begins; the dashed vertical line marks 15 September 2026, the date the bound report must be posted.](assets/diagrams/plan-gantt.png){width=9.4}
 
 <!-- portrait -->
 
