@@ -679,18 +679,44 @@ class ReportBuilder:
 # the one page that is laid out by hand
 # ---------------------------------------------------------------------------
 
+# The cover follows the approved synopsis rather than inventing a layout of
+# its own: one centred column, Times New Roman bold throughout, the university
+# logo between the degree block and the address, and the two name blocks
+# stacked underneath instead of set side by side in a table.
+LOGO = HERE / "assets" / "synopsis" / "syn-01-image1.png"
+LOGO_WIDTH_IN = 3.4  # the synopsis prints it at 57% of its text width; so does this
+LOGO_MARK = object()
+
+# The synopsis's own four cover colours, sampled from its runs. The cover is
+# the only coloured page in the report; everything after it is black.
+COVER_RED = RGBColor(0xC0, 0x50, 0x4D)     # the two "Submitted / A project" lines
+COVER_BLUE = RGBColor(0x1F, 0x49, 0x7D)    # the title, the degree, the addresses
+COVER_OLIVE = RGBColor(0x4F, 0x62, 0x28)   # "SUBMITTED TO" and "Guided By"
+COVER_NAVY = RGBColor(0x0F, 0x24, 0x3E)    # the signature rule
+COVER_BLACK = RGBColor(0x00, 0x00, 0x00)
+
+# (text, point size, colour, space after in points). Every line is centred and bold.
 TITLE_PAGE = [
-    ("A PROJECT REPORT ON", 12, False, 26),
-    ("RAG POWERED KNOWLEDGE SYSTEM", 20, True, 30),
+    ("A PROJECT REPORT ON", 18, COVER_RED, 20),
+    ("RAG POWERED KNOWLEDGE SYSTEM", 22, COVER_BLUE, 22),
     ("Submitted to the School of Computer and Information Sciences, IGNOU "
-     "in partial fulfilment of the requirements for the award of the degree", 11, False, 22),
-    ("MASTER OF COMPUTER APPLICATIONS", 15, True, 2),
-    ("(MCA_NEW)", 12, False, 2),
-    ("MCSP-232", 12, True, 30),
-    ("SUBMITTED TO", 11, False, 6),
-    ("INDIRA GANDHI NATIONAL OPEN UNIVERSITY", 13, True, 2),
-    ("MAIDAN GARHI, NEW DELHI - 110068", 11, False, 10),
-    ("Study Centre Code: 1105          Regional Centre: 11 - SHIMLA", 11, False, 96),
+     "in partial fulfilment of the requirements for the award of the degree",
+     14, COVER_BLACK, 20),
+    ("MASTER OF COMPUTER APPLICATIONS", 16, COVER_BLUE, 4),
+    ("(MCA_NEW)", 16, COVER_BLUE, 12),
+    ("MCSP-232", 16, COVER_BLUE, 16),
+    ("SUBMITTED TO", 16, COVER_OLIVE, 14),
+    (LOGO_MARK, 0, None, 12),
+    ("INDIRA GANDHI NATIONAL OPEN UNIVERSITY,", 16, COVER_BLUE, 4),
+    ("MAIDAN GARHI-110068", 16, COVER_BLUE, 4),
+    ("Study Centre Code: 1105", 16, COVER_BLUE, 4),
+    ("Regional Centre: 11:SHIMLA", 16, COVER_BLUE, 20),
+    ("Submitted By", 16, COVER_RED, 10),
+    ("Name: NAVAL CHAUDHARY", 16, COVER_BLUE, 4),
+    ("EN. No.: 2354558202", 14, COVER_BLUE, 20),
+    ("Guided By", 14, COVER_OLIVE, 10),
+    ("DR. PAWAN KUMAR THAKUR", 14, COVER_BLUE, 10),
+    ("______________________", 14, COVER_NAVY, 0),
 ]
 
 
@@ -699,36 +725,22 @@ def title_page(builder: ReportBuilder) -> None:
     page in the report that is centred, spaced by eye and never reflows."""
     doc = builder.doc
     builder.started = True
-    for text, size, bold, after in TITLE_PAGE:
+    for text, size, colour, after in TITLE_PAGE:
         para = doc.add_paragraph()
         para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para.paragraph_format.space_before = Pt(0)
         para.paragraph_format.space_after = Pt(after)
-        para.paragraph_format.line_spacing = 1.15
+        para.paragraph_format.line_spacing = 1.0
+        if text is LOGO_MARK:
+            para.add_run().add_picture(str(LOGO), width=Inches(LOGO_WIDTH_IN))
+            continue
         run = para.add_run(text)
         run.font.name = BODY_FONT
         run.font.size = Pt(size)
-        run.bold = bold
-
-    table = doc.add_table(rows=1, cols=2)
-    table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    left, right = table.rows[0].cells
-    blocks = (
-        (left, ["Submitted By", "", "Name: NAVAL CHAUDHARY",
-                "Enrolment No.: 2354558202", "Programme: MCA_NEW"]),
-        (right, ["Guided By", "", "Name: DR. PAWAN KUMAR THAKUR",
-                 "Signature: ________________", "Date: _____________________"]),
-    )
-    for cell, lines in blocks:
-        cell.text = ""
-        for index, line in enumerate(lines):
-            para = cell.paragraphs[0] if index == 0 else cell.add_paragraph()
-            para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            para.paragraph_format.space_after = Pt(4)
-            para.paragraph_format.line_spacing = 1.0
-            run = para.add_run(line)
-            run.font.name = BODY_FONT
-            run.font.size = Pt(11)
-            run.bold = index == 0
+        run.bold = True
+        run.font.color.rgb = colour
+        # The one underlined line is the rule the guide signs on.
+        run.underline = set(text) == {"_"}
 
 
 def sign_block(builder: ReportBuilder, arg: str) -> None:
