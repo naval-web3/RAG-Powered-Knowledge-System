@@ -267,7 +267,7 @@ def _column_widths(rows: list[list[str]], cols: int, text_width: float = TEXT_WI
     room to give. A column of long prose can afford to lose a tenth of an inch;
     a column of identifiers cannot afford to be a tenth short.
     """
-    weights, minimums = [], []
+    weights, minimums, coded = [], [], []
     for c in range(cols):
         cells = [r[c] for r in rows if c < len(r)]
         longest = max((len(cell) for cell in cells), default=1)
@@ -276,12 +276,11 @@ def _column_widths(rows: list[list[str]], cols: int, text_width: float = TEXT_WI
         # breaks across two lines.
         weights.append(max(5.0, min(longest, 100) ** 0.7 + 1.7))
         minimums.append(_min_column_width(cells))
+        coded.append(any("`" in cell for cell in cells))
 
     total = sum(weights)
     widths = [text_width * w / total for w in weights]
 
-    # If the minima cannot all be met there is nothing to trade, so leave the
-    # proportional answer alone rather than making every column too narrow.
     if sum(minimums) < text_width:
         for _pass in range(3):
             deficit = sum(max(0.0, m - w) for m, w in zip(minimums, widths))
@@ -295,6 +294,30 @@ def _column_widths(rows: list[list[str]], cols: int, text_width: float = TEXT_WI
                 m if w < m else w - (w - m) / slack * taken
                 for m, w in zip(minimums, widths)
             ]
+    else:
+        # The minima cannot all be met, so something has to break, and the
+        # choice of what is not arbitrary. A long argument inside inline code
+        # breaking across lines is ordinary; a heading reading "Resu lt" and an
+        # identifier reading "UT- 01" are not. So every column that holds no
+        # code is given its minimum outright, and the columns that do hold code
+        # divide whatever is left in proportion to what they asked for.
+        #
+        # Leaving the proportional answer alone here, which is what this did
+        # before, is what put "UT- 01", "Resu lt" and "PAS S" into the
+        # six-column test case table the moment it was set on a portrait page.
+        plain = sum(m for m, is_code in zip(minimums, coded) if not is_code)
+        hungry = sum(m for m, is_code in zip(minimums, coded) if is_code)
+        if hungry > 0 and plain + _CELL_PADDING_IN * cols < text_width:
+            spare = text_width - plain
+            widths = [
+                spare * m / hungry if is_code else m
+                for m, is_code in zip(minimums, coded)
+            ]
+        else:
+            # No code column to absorb it, or no room even for the plain ones.
+            # Share the shortfall out in proportion to what each column needs,
+            # which at least keeps the narrow columns narrow.
+            widths = [text_width * m / sum(minimums) for m in minimums]
 
     return [Inches(w) for w in widths]
 
