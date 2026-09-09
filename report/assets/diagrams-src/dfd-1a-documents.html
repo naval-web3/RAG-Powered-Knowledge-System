@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="_diagram.css">
+<style>
+  /* The synopsis colours the system's own work green and what lies outside it
+   * blue. A process is .shape here and an external entity is .shape.fill, so
+   * the shared palette is swapped back for these sheets to agree with it. */
+  .shape { fill: #C3F7C8; }
+  .shape.fill { fill: #CFE4FF; }
+</style>
 <title>DFD Level 1 (a)</title>
 <style>
   .proc-no { font-size: 15px; font-weight: 700; }
@@ -17,7 +24,7 @@
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
             markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3A414A"/>
     </marker>
   </defs>
 
@@ -93,7 +100,9 @@
 
   <!-- 2.0 -> D2 -->
   <path class="flow" d="M 352 386 L 352 458 L 560 458 L 560 490"/>
-  <text class="flow-label" x="380" y="450">title, type, size, owner</text>
+  <!-- Set to the right of x=400, where the raw file riser climbs: at x=380
+       that wire cut this label in half, between "title," and "type". -->
+  <text class="flow-label" x="408" y="450">title, type, size, owner</text>
 
   <!-- 2.0 -> 3.0 -->
   <path class="flow" d="M 388 318 L 662 318"/>

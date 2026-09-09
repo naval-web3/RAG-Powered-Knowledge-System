@@ -1,9 +1,14 @@
 /* Shared look for every diagram in the report.
  *
- * The report is printed on a monochrome laser printer and bound, so nothing
- * here may depend on colour to be readable: fills are white or one of two
- * greys, every shape has a black outline, and emphasis is carried by line
- * weight and fill, never by hue. */
+ * The bound copy is printed in colour, and these follow the palette of the
+ * approved synopsis, sampled from its own images rather than approximated:
+ * #CFE4FF on an ordinary shape, #C3F7C8 on the one being emphasised,
+ * #EDF5FF on a container, a #6DB1FF outline on all of them, and
+ * #3A414A for every line, every arrowhead and every word.
+ *
+ * Hue is never the only carrier. Shape and line weight still draw every
+ * distinction on their own, so a monochrome photocopy of this report stays
+ * readable, which is not true of the synopsis's own diagrams. */
 
 * { box-sizing: border-box; }
 
@@ -23,18 +28,18 @@ svg { display: block; }
 
 /* --- shapes ------------------------------------------------------------ */
 
-.shape { fill: #fff; stroke: #111; stroke-width: 1.6; }
-.shape.fill { fill: #ececec; }
-.shape.tint { fill: #f7f7f7; }
+.shape { fill: #CFE4FF; stroke: #6DB1FF; stroke-width: 1.6; }
+.shape.fill { fill: #C3F7C8; }
+.shape.tint { fill: #EDF5FF; }
 .shape.heavy { stroke-width: 2.4; }
 .shape.dashed { stroke-dasharray: 6 4; }
 
 /* an open-ended data store: two rules, drawn as paths, not a box */
-.store-line { stroke: #111; stroke-width: 1.6; fill: none; }
+.store-line { stroke: #3A414A; stroke-width: 1.6; fill: none; }
 
 /* --- text -------------------------------------------------------------- */
 
-text { fill: #111; font-size: 14px; }
+text { fill: #3A414A; font-size: 14px; }
 .t { font-size: 14px; }
 .t-sm { font-size: 12px; }
 .t-xs { font-size: 10.5px; }
@@ -45,19 +50,28 @@ text { fill: #111; font-size: 14px; }
 .end { text-anchor: end; }
 .mono { font-family: Consolas, "Courier New", monospace; }
 
-/* a label sitting on a flow line: give it a white backing so the line does
- * not run through the words */
+/* A label sitting on a flow line needs the line kept out of the words. The
+ * white stroke painted under the glyphs does that on its own, wherever the
+ * label is put and however the wire is later rerouted.
+ *
+ * .flow-label-bg is the older answer to the same problem, a rectangle placed
+ * by hand behind one label. No diagram uses it any more, and it is kept only
+ * because a backing is still the right tool when a label has to sit on top of
+ * a filled shape, where a white halo would show. */
 .flow-label { font-size: 12px; }
+.flow-label, .lb, .card, .verb, .g {
+  paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round;
+}
 .flow-label-bg { fill: #fff; stroke: none; }
 
 /* --- lines ------------------------------------------------------------- */
 
-.flow { stroke: #111; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+.flow { stroke: #3A414A; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
 .flow.thin { stroke-width: 1.2; }
 .flow.dashed { stroke-dasharray: 5 4; }
 .flow.plain { marker-end: none; }
-.link { stroke: #111; stroke-width: 1.4; fill: none; }
+.link { stroke: #3A414A; stroke-width: 1.4; fill: none; }
 
 /* --- title ------------------------------------------------------------- */
 
-.caption { font-size: 13px; fill: #444; }
+.caption { font-size: 13px; fill: #5A6472; }

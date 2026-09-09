@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="_diagram.css">
+<style>
+  /* The synopsis colours the system's own work green and what lies outside it
+   * blue. A process is .shape here and an external entity is .shape.fill, so
+   * the shared palette is swapped back for these sheets to agree with it. */
+  .shape { fill: #C3F7C8; }
+  .shape.fill { fill: #CFE4FF; }
+</style>
 <title>DFD Level 0 - Context Diagram</title>
 </head>
 <body>
@@ -11,7 +18,7 @@
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
             markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3A414A"/>
     </marker>
   </defs>
 

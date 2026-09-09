@@ -389,7 +389,7 @@ The first is a modelling error. The synopsis's context diagram places the **vect
 
 The second is a notation error. Every external entity in the synopsis is drawn as a **diamond**. A diamond is entity-relationship notation for a relationship. In data flow notation an external entity is a rectangle, and a diamond means nothing at all.
 
-The third is practical. The synopsis diagrams carry their meaning in **colour**: green processes, yellow stores, blue entities. This report is printed on a monochrome laser printer and bound. All three colours land as nearly the same grey, and a reader of the printed copy cannot tell a process from a store. Every diagram in this report is therefore drawn in black and white, with shape and line weight carrying the distinctions that colour carried in the synopsis.
+The third was practical, and it is the one objection that no longer applies. The synopsis diagrams carry their meaning in **colour**: green processes, yellow stores, blue entities. Printed in black and white those three would land as nearly the same grey, and a reader of the bound copy could not tell a process from a store. This report is printed in colour, so the figures here use the synopsis's own palette, sampled from its images rather than approximated: a pale blue on an ordinary shape, a pale green on whichever one the diagram is drawing attention to, a paler blue on a container, and a single mid blue outline on all of them. In the data flow diagrams the two main colours are used as the synopsis uses them, green for the system's own processes and blue for what lies outside it. What has not been given up is the geometry. Every distinction these diagrams draw is still carried by shape and by line weight as well as by hue, so a monochrome photocopy of this report stays readable, which a photocopy of the synopsis's diagrams would not.
 
 To that must be added the plain fact that the synopsis diagrams describe a smaller system: five tables where the delivered schema has eight, and six processes where it has seven. A figure that contradicts the text beside it is worse than a figure the reader has not seen before.
 
@@ -677,7 +677,9 @@ Running the pipeline as its own process and not as a background task in the web 
 
 Both failure exits are drawn. A file of the wrong type or size never reaches the pipeline at all and is refused with a reason. A PDF that yields no text even after optical character recognition ends at the second final node with its reason written on the row. Which is a state a real user can reach, by uploading a blank scan, and which they should be told about rather than left watching a bar that has stopped.
 
-![Activity diagram: uploading and indexing a document. The browser polls while a separate process does the work, and both ways of failing are drawn.](assets/diagrams/uml-activity-ingest.png){width=5.6}
+![Activity diagram: uploading and indexing a document. The browser polls while a separate process does the work, and both ways of failing are drawn.](assets/diagrams/uml-activity-ingest.png){width=6.0}
+
+<!-- pagebreak -->
 
 ### State Model
 

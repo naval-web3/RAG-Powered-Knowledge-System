@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="_diagram.css">
+<style>
+  /* The synopsis colours the system's own work green and what lies outside it
+   * blue. A process is .shape here and an external entity is .shape.fill, so
+   * the shared palette is swapped back for these sheets to agree with it. */
+  .shape { fill: #C3F7C8; }
+  .shape.fill { fill: #CFE4FF; }
+</style>
 <title>DFD Level 2 - process 4.0, Answer Question</title>
 <style>
   .proc-no { font-size: 15px; font-weight: 700; }
@@ -17,7 +24,7 @@
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
             markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3A414A"/>
     </marker>
   </defs>
 
@@ -156,7 +163,9 @@
   <path class="flow" d="M 1060 117 L 1060 74"/>
   <text class="flow-label end" x="1052" y="100">one row per question</text>
 
-  <path class="flow" d="M 1002 442 L 960 442 L 960 640 L 20 640 L 20 300 L 28 300"/>
+  <!-- The riser sits at x=10, not x=20: the arrowhead is about ten units long,
+       so a shorter last leg draws it back over the corner below it. -->
+  <path class="flow" d="M 1002 442 L 960 442 L 960 640 L 10 640 L 10 300 L 28 300"/>
   <text class="flow-label" x="300" y="632">the answer, with its passages numbered as they were quoted</text>
 </svg>
 </div>

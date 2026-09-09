@@ -5,18 +5,18 @@
 <link rel="stylesheet" href="_diagram.css">
 <title>State diagram - the life of a document</title>
 <style>
-  .st { fill: #fff; stroke: #111; stroke-width: 1.8; rx: 12; ry: 12; }
-  .st.sub { stroke-width: 1.5; fill: #fff; }
-  .comp { fill: #fafafa; stroke: #111; stroke-width: 1.8; rx: 14; ry: 14; }
+  .st { fill: #CFE4FF; stroke: #6DB1FF; stroke-width: 1.8; rx: 12; ry: 12; }
+  .st.sub { stroke-width: 1.5; fill: #CFE4FF; }
+  .comp { fill: #EDF5FF; stroke: #6DB1FF; stroke-width: 1.8; rx: 14; ry: 14; }
   .comp-t { font-size: 12.5px; font-weight: 700; }
   .name { font-size: 14px; font-weight: 700; }
   .sub-name { font-size: 12.5px; font-weight: 700; }
-  .pct { font-size: 10.5px; fill: #444; }
-  .node { fill: #111; stroke: #111; stroke-width: 2; }
-  .ring { fill: #fff; stroke: #111; stroke-width: 2; }
-  .tr { stroke: #111; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+  .pct { font-size: 10.5px; fill: #5A6472; }
+  .node { fill: #3A414A; stroke: #6DB1FF; stroke-width: 2; }
+  .ring { fill: #CFE4FF; stroke: #6DB1FF; stroke-width: 2; }
+  .tr { stroke: #3A414A; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
   .lb { font-size: 11px; }
-  .note { fill: #f7f7f7; stroke: #111; stroke-width: 1.2; }
+  .note { fill: #EDF5FF; stroke: #6DB1FF; stroke-width: 1.2; }
   .note-t { font-size: 10.5px; }
 </style>
 </head>
@@ -26,12 +26,12 @@
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
             markerWidth="7" markerHeight="7" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3A414A"/>
     </marker>
   </defs>
 
   <!-- ===================== the coarse states ===================== -->
-  <circle class="node" cx="46" cy="250" r="9"/>
+  <circle class="node" cx="30" cy="250" r="9"/>
 
   <rect class="st" x="100" y="220" width="140" height="60"/>
   <text class="name mid" x="170" y="246">pending</text>
@@ -74,12 +74,16 @@
 
   <circle class="ring" cx="330" cy="510" r="13"/>
   <circle class="node" cx="330" cy="510" r="7"/>
-  <text class="lb mid" x="330" y="546">deleted</text>
+  <!-- Left of the node, not under it: the return transition comes up the
+       x=330 line and would run straight through the word. -->
+  <text class="lb end" x="312" y="514">deleted</text>
 
   <!-- ===================== transitions ===================== -->
-  <path class="tr" d="M 55 250 L 98 250"/>
-  <text class="lb mid" x="76" y="228">file stored,</text>
-  <text class="lb mid" x="76" y="242">row inserted</text>
+  <!-- The label is wider than the gap it names, so it sits above both the
+       initial node and the arrow rather than beside them. -->
+  <path class="tr" d="M 39 250 L 98 250"/>
+  <text class="lb mid" x="62" y="222">file stored,</text>
+  <text class="lb mid" x="62" y="236">row inserted</text>
 
   <path class="tr" d="M 240 250 L 298 250"/>
   <text class="lb mid" x="269" y="228">app.worker</text>

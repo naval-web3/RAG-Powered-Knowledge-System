@@ -18,28 +18,33 @@
   #sheet { position: relative; width: 1180px; height: 780px; padding: 0; }
   .plane { position: relative; width: 1180px; height: 780px; }
 
-  .cls { position: absolute; border: 1.6px solid #111; background: #fff; }
+  .cls { position: absolute; border: 1.6px solid #6DB1FF; background: #CFE4FF; }
   .cls > .hd {
-    border-bottom: 1.6px solid #111; padding: 3px 8px 4px; background: #ececec;
+    border-bottom: 1.6px solid #6DB1FF; padding: 3px 8px 4px; background: #C3F7C8;
     text-align: center;
   }
-  .cls > .hd .st { display: block; font-size: 11px; font-style: italic; color: #333; line-height: 12px; }
+  .cls > .hd .st { display: block; font-size: 11px; font-style: italic; color: #5A6472; line-height: 12px; }
   .cls > .hd .nm { display: block; font-size: 14px; font-weight: 700; line-height: 16px; }
   .cls > .hd .nm.abs { font-style: italic; }
   .cls .sec { padding: 3px 8px; }
-  .cls .sec + .sec { border-top: 1.6px solid #111; }
+  .cls .sec + .sec { border-top: 1.6px solid #6DB1FF; }
   .cls .m { font-size: 12px; line-height: 16px; white-space: nowrap; }
   .cls .m.abs { font-style: italic; }
-  .cls .m.dim { color: #555; }
+  .cls .m.dim { color: #5A6472; }
 
   svg.wires { position: absolute; left: 0; top: 0; }
-  .rule { stroke: #bbb; stroke-width: 1.2; stroke-dasharray: 5 5; }
-  .band { font-size: 12.5px; fill: #555; font-style: italic; }
-  .use  { stroke: #111; stroke-width: 1.3; fill: none; stroke-dasharray: 6 4; marker-end: url(#open); }
-  .gen  { stroke: #111; stroke-width: 1.5; fill: none; }
-  .assoc{ stroke: #111; stroke-width: 1.4; fill: none; }
-  .tri  { stroke: #111; stroke-width: 1.5; fill: #fff; }
-  .lbl  { font-size: 11.5px; fill: #333; font-style: italic; }
+  .rule { stroke: #B9C7D6; stroke-width: 1.2; stroke-dasharray: 5 5; }
+  .band { font-size: 12.5px; fill: #5A6472; font-style: italic; }
+  .use  { stroke: #3A414A; stroke-width: 1.3; fill: none; stroke-dasharray: 6 4; marker-end: url(#open); }
+  .gen  { stroke: #3A414A; stroke-width: 1.5; fill: none; }
+  .assoc{ stroke: #3A414A; stroke-width: 1.4; fill: none; }
+  .tri  { stroke: #6DB1FF; stroke-width: 1.5; fill: #CFE4FF; }
+  .lbl  { font-size: 11.5px; fill: #5A6472; font-style: italic; }
+  /* Every one of these names a dependency and sits next to the dashed line it
+     names, several of which cross a layer rule on the way. A white stroke
+     under the glyphs keeps the words off whatever passes behind them. */
+  .lbl, .band { paint-order: stroke; stroke: #fff; stroke-width: 3px;
+                stroke-linejoin: round; }
 </style>
 </head>
 <body>
@@ -183,7 +188,7 @@
     <defs>
       <marker id="open" viewBox="0 0 10 10" refX="9" refY="5"
               markerWidth="9" markerHeight="9" orient="auto">
-        <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#111" stroke-width="1.4"/>
+        <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#3A414A" stroke-width="1.4"/>
       </marker>
     </defs>
 
@@ -233,9 +238,13 @@
     <path class="assoc" d="M 560 320 L 560 644 L 190 644 L 190 658"/>
     <text class="lbl" x="568" y="470">persists vectors into</text>
 
-    <!-- rows go through the ORM -->
-    <path class="use" d="M 1110 96 L 1150 96 L 1150 650 L 880 650 L 880 658"/>
-    <text class="lbl mid" x="1015" y="642">reads and writes rows</text>
+    <!-- Rows go through the ORM. This enters app.models from the right rather
+         than dropping onto its top edge: there are only 32 units between the
+         persistence rule and the top of that box, which is not enough for a
+         horizontal run, a label above it, and a last leg longer than the
+         arrowhead. Coming in from the side gives the head a clear approach. -->
+    <path class="use" d="M 1110 96 L 1150 96 L 1150 700 L 914 700"/>
+    <text class="lbl mid" x="1030" y="692">reads and writes rows</text>
   </svg>
 
 </div></div>
