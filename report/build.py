@@ -12,6 +12,15 @@ every figure and table titled.
     --src DIR      build from another folder of chapters
     --out FILE     write somewhere other than report.docx
     --no-border    the plain variant, to report-plain.docx
+    --body-size N        Normal, and everything that follows it (default 12)
+    --heading-sizes a,b,c,d   Heading 1 to 4 (default 16,13.5,12,12)
+
+The two size flags build a large-print copy beside the real report and change
+nothing else: captions, table text, code listings, the running header and the
+synopsis-matched title page keep their own sizes. The 18/14 copy asked for on
+2026-09-13 is
+
+    build.py --body-size 14 --heading-sizes 18,16,15,14 --out report-18-14.docx
 
 Image paths in the sources resolve against this file's directory rather than
 against --src, so an alternative source folder may live anywhere.
@@ -81,6 +90,10 @@ BODY_FONT = "Times New Roman"
 CODE_FONT = "Consolas"
 BODY_SIZE = Pt(12)
 CODE_SIZE = Pt(8.5)
+# Heading 1 to Heading 4, in points. --body-size and --heading-sizes override
+# both of these from the command line so a large-print variant can be built
+# beside the real report without editing anything; see main().
+HEADING_SIZES = (16.0, 13.5, 12.0, 12.0)
 TEXT_WIDTH_IN = 6.0  # A4 (8.27") less a 1.25" binding margin and 1" outer margin
 LANDSCAPE_WIDTH_IN = 9.44  # the same margins on a page turned on its side
 
@@ -367,11 +380,13 @@ def build_styles(doc: Document) -> None:
     pf.space_before = Pt(0)
     pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
+    # The size comes from HEADING_SIZES; the spacing above and below each
+    # heading does not scale with it, because it was tuned against the page
+    # rather than against the type.
+    spacing = ((18, 12), (14, 6), (10, 4), (8, 2))
     specs = {
-        "Heading 1": (16.0, 18, 12),
-        "Heading 2": (13.5, 14, 6),
-        "Heading 3": (12.0, 10, 4),
-        "Heading 4": (12.0, 8, 2),
+        "Heading %d" % level: (HEADING_SIZES[level - 1],) + spacing[level - 1]
+        for level in (1, 2, 3, 4)
     }
     for name, (size, before, after) in specs.items():
         style = doc.styles[name]
@@ -477,12 +492,28 @@ class ReportBuilder:
         self.landscape = False    # figures are capped against the page height
         self.started = False          # no page break before the very first block
         self.markers: dict[str, object] = {}   # where the figure/table lists go
+        self.pending_break = False    # a <!-- pagebreak --> waiting for its block
+
+    def take_break(self, paragraph):
+        """Carry a pending <!-- pagebreak --> as a property of this paragraph.
+
+        Same reasoning as the level 1 heading below: a break in a paragraph of
+        its own is content, and when the page it breaks from is exactly full
+        that paragraph cannot fit on it. It moves to the next sheet and the
+        break then pushes the real block to the sheet after, leaving a blank
+        page between. At 14pt body size the Abstract fills its sheet to the
+        last line and that is exactly what happened.
+        """
+        if self.pending_break:
+            paragraph.paragraph_format.page_break_before = True
+            self.pending_break = False
+        return paragraph
 
     # -- blocks ------------------------------------------------------------
 
     def para(self, text: str, style: str | None = None):
         self.started = True
-        p = self.doc.add_paragraph(style=style)
+        p = self.take_break(self.doc.add_paragraph(style=style))
         add_inline(p, text)
         self.words += len(text.split())
         return p
@@ -538,6 +569,8 @@ class ReportBuilder:
                 title = "CHAPTER %d.  %s" % (self.chapter, title)
             head = self.doc.add_heading(title, level=1)
             head.paragraph_format.page_break_before = page_break
+            # A chapter already starts its own page; drop any pending break.
+            self.pending_break = False
             self._rule(head)
             return head
 
@@ -545,7 +578,7 @@ class ReportBuilder:
             self.section_no += 1
             self.subsection_no = 0
             prefix = "%d.%d  " % (self.chapter, self.section_no) if self.numbered and not unnumbered else ""
-            return self.doc.add_heading(prefix + text, level=2)
+            return self.take_break(self.doc.add_heading(prefix + text, level=2))
 
         if level == 3:
             self.subsection_no += 1
@@ -554,9 +587,9 @@ class ReportBuilder:
                 if self.numbered and not unnumbered
                 else ""
             )
-            return self.doc.add_heading(prefix + text, level=3)
+            return self.take_break(self.doc.add_heading(prefix + text, level=3))
 
-        return self.doc.add_heading(text, level=4)
+        return self.take_break(self.doc.add_heading(text, level=4))
 
     def _rule(self, paragraph) -> None:
         borders = OxmlElement("w:pBdr")
@@ -918,7 +951,9 @@ def _starts_block(stripped: str) -> bool:
 def handle_directive(builder: ReportBuilder, name: str, arg: str | None) -> None:
     doc = builder.doc
     if name == "pagebreak":
-        doc.add_page_break()
+        # Not a break paragraph: a flag the next block turns into its own
+        # page_break_before. See ReportBuilder.take_break for why.
+        builder.pending_break = True
     elif name == "frontmatter":
         builder.numbered = False
     elif name == "numbered":
@@ -932,7 +967,7 @@ def handle_directive(builder: ReportBuilder, name: str, arg: str | None) -> None
         # one: the contents, the list of figures and the list of tables should
         # not list themselves.
         builder.started = True
-        para = doc.add_paragraph()
+        para = builder.take_break(doc.add_paragraph())
         para.paragraph_format.space_after = Pt(12)
         para.paragraph_format.keep_with_next = True
         run = para.add_run((arg or "").upper())
@@ -1076,9 +1111,30 @@ def _flag(name: str, default: Path) -> Path:
     return Path(sys.argv[index])
 
 
+def _value(name: str, default: str) -> str:
+    """The string after --name on the command line, or the default."""
+    if name not in sys.argv:
+        return default
+    index = sys.argv.index(name) + 1
+    if index >= len(sys.argv):
+        raise SystemExit("%s needs a value" % name)
+    return sys.argv[index]
+
+
 def main() -> int:
-    global BORDER
+    global BORDER, BODY_SIZE, HEADING_SIZES
     BORDER = "--no-border" not in sys.argv
+
+    # --body-size sets Normal, and with it every style and every inline run
+    # that takes its size from BODY_SIZE: lists, numbered items, body prose.
+    # --heading-sizes takes the four levels comma separated. Captions, table
+    # text, code listings, the running header and the title page are NOT
+    # affected by either; they carry their own sizes on purpose.
+    BODY_SIZE = Pt(float(_value("--body-size", "12")))
+    sizes = [float(n) for n in _value("--heading-sizes", "16,13.5,12,12").split(",")]
+    if len(sizes) != 4:
+        raise SystemExit("--heading-sizes needs four comma separated values")
+    HEADING_SIZES = tuple(sizes)
     # --src and --out let a variant of the report be built beside the real one
     # without disturbing it. Image paths in the sources resolve against this
     # file's directory rather than against --src, so a variant source folder is
